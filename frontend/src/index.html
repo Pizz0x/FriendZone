@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quartieri Vivi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap">
+<style>
+  :root { --bg: #ebe7f5; --card: #ffffff; --ink: #241d3a; --mute: #6b6384; --p: #6a3fd0; --line: #ddd6ec; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #15121f; --card: #211c30; --ink: #f1edfa; --mute: #a9a1c0; --p: #a68bf2; --line: #332c4a; color-scheme: dark; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font: 16px/1.5 Manrope, system-ui, sans-serif;
+         display: grid; place-items: center; padding: 24px max(16px, env(safe-area-inset-left)); }
+  main { width: 100%; max-width: 760px; display: grid; gap: 20px; }
+  h1 { font-size: 30px; line-height: 1.15; margin: 0; letter-spacing: -0.02em; text-wrap: balance; }
+  p { margin: 0; color: var(--mute); max-width: 62ch; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  a.card { display: grid; gap: 6px; padding: 20px; border-radius: 20px; background: var(--card); color: inherit; text-decoration: none;
+           border: 1.5px solid var(--line); }
+  a.card:hover, a.card:focus-visible { border-color: var(--p); outline: none; }
+  a.card b { font-size: 19px; color: var(--p); }
+  small { color: var(--mute); font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Quartieri Vivi</h1>
+  <p>Il punteggio stima la sicurezza percepita a partire dai dati disponibili. Non misura la sicurezza reale di un luogo.</p>
+  <div class="grid">
+    <a class="card" href="lumi.html"><b>Lumi, l'app per chi cammina</b><span>Percorsi che preferiscono strade illuminate e vissute, navigatore, segnalazioni anonime e numeri utili. Pensata per il telefono.</span></a>
+    <a class="card" href="enti.html"><b>Mappa per il Comune e gli enti</b><span>Tutte le strade colorate per ora, giorno e profilo, con i parametri di ogni tratto e le priorità di intervento per quartiere.</span></a>
+  </div>
+  <small>Per usare la posizione del telefono servono https o localhost: <code>python -m http.server -d frontend</code> e poi http://localhost:8000.</small>
+</main>
+</body>
+</html>

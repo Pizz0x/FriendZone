@@ -1,0 +1,1588 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ebe7f5">
+</head>
+<body>
+<!--PAGE-START-->
+<title>Lumi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap">
+<style>/*__MAPLIBRE_CSS__*/</style>
+<style>
+  /* Phone-first app on top of a full-bleed 3D map; brand from the team's Lumi demo (Manrope, violet). */
+  :root {
+    --bg: #ebe7f5; --surface: #ffffff; --soft: #f5f2fb; --line: #ece8f4; --ink: #241d3a; --mute: #665e7f;
+    --p: #6a3fd0; --p2: #9a7ae6; --pl: #efeafc; --ring: #d9cdf4; --on-p: #ffffff;
+    --green: #2f9a59; --amber: #d98d1f; --red: #d23f38; --green-bg: #e5f5ea; --red-bg: #fbe3e1; --amber-bg: #fdf0dc;
+    --lime: #c5ef3c; --shadow: 0 8px 24px rgba(60, 40, 120, .14); --backdrop: #cfc9e0;
+    --font: Manrope, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg: #15121f; --surface: #221d31; --soft: #2a2440; --line: #332c4a; --ink: #f1edfa; --mute: #aaa2c2;
+    --p: #9b7cf0; --p2: #b9a3f5; --pl: #2e2650; --ring: #3a2f63; --on-p: #15121f;
+    --green: #4cc27d; --amber: #f0b155; --red: #f0675a; --green-bg: #1d3328; --red-bg: #3a1f22; --amber-bg: #3a2e1a;
+    --shadow: 0 8px 24px rgba(0, 0, 0, .45); --backdrop: #0d0b14; color-scheme: dark; } }
+  :root[data-theme="dark"] {
+    --bg: #15121f; --surface: #221d31; --soft: #2a2440; --line: #332c4a; --ink: #f1edfa; --mute: #aaa2c2;
+    --p: #9b7cf0; --p2: #b9a3f5; --pl: #2e2650; --ring: #3a2f63; --on-p: #15121f;
+    --green: #4cc27d; --amber: #f0b155; --red: #f0675a; --green-bg: #1d3328; --red-bg: #3a1f22; --amber-bg: #3a2e1a;
+    --shadow: 0 8px 24px rgba(0, 0, 0, .45); --backdrop: #0d0b14; color-scheme: dark; }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--backdrop); font-family: var(--font); color: var(--ink); }
+  button, input, textarea, select { font: inherit; color: inherit; }
+  button { cursor: pointer; border: 0; background: none; padding: 0; }
+  a { color: inherit; text-decoration: none; }
+  :focus-visible { outline: 3px solid var(--p2); outline-offset: 2px; border-radius: 12px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+  #app { position: fixed; inset: 0; margin: 0 auto; width: 100%; max-width: 430px; overflow: hidden; background: var(--bg); }
+  @media (min-width: 640px) { #app { top: 16px; bottom: 16px; border-radius: 28px; box-shadow: 0 20px 60px rgba(30, 20, 60, .35); } }
+  #map { position: absolute; inset: 0; background: #e8e5ee; }
+  .maplibregl-ctrl-bottom-right, .maplibregl-ctrl-bottom-left { display: none; }
+
+  /* screens */
+  .scr { position: absolute; inset: 0; display: none; background: var(--bg); overflow-y: auto; z-index: 10; padding: 0 0 120px; }
+  .scr.on { display: block; }
+  .scr.map { background: transparent; overflow: visible; pointer-events: none; z-index: 5; padding: 0; }
+  .scr.map > * { pointer-events: auto; }
+  .hdr { display: flex; align-items: center; gap: 12px; padding: max(18px, env(safe-area-inset-top)) 18px 6px; }
+  .hdr h1 { font-size: 23px; font-weight: 800; letter-spacing: -.02em; margin: 0; line-height: 1.15; flex: 1; }
+  .round { width: 44px; height: 44px; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow); display: grid; place-items: center; flex: none; }
+  .ico { width: 22px; height: 22px; stroke: var(--ink); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .ico.p { stroke: var(--p); }
+  .ico.w { stroke: var(--on-p); }
+  .round:active, .tile:active, .item:active, .btn:active { transform: scale(.97); }
+
+  .btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 54px; border-radius: 20px; background: var(--p); color: var(--on-p); font-weight: 700; font-size: 16px; box-shadow: 0 8px 20px rgba(106, 63, 208, .3); padding: 0 16px; }
+  .btn.ghost { background: var(--surface); color: var(--p); box-shadow: var(--shadow); }
+  .btn.danger { background: var(--red); color: #fff; box-shadow: none; }
+  .btn:disabled { opacity: .45; box-shadow: none; }
+  .btn-row { display: flex; gap: 10px; }
+  .btn-row .btn { flex: 1; }
+  .btn-row .btn.ghost { flex: 0 0 118px; }
+  .link { color: var(--p); font-weight: 700; font-size: 14px; padding: 10px 4px; }
+
+  .mz { display: block; object-fit: contain; }
+  .stage { position: relative; height: 290px; margin: 6px 0 0; }
+  .stage .ring { position: absolute; left: 50%; top: 26px; width: 240px; height: 240px; transform: translateX(-50%); border-radius: 50%; background: var(--ring); }
+  .stage img { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); height: 300px; width: auto; }
+  .logo { font-weight: 800; font-size: 34px; letter-spacing: -.03em; color: var(--p); line-height: 1; position: relative; display: inline-block; }
+  .logo b { position: absolute; right: -14px; top: -10px; font-size: 13px; color: var(--p2); }
+  .tag { font-size: 13px; font-weight: 700; color: var(--p); margin-top: 6px; }
+
+  .panel { background: var(--surface); border-radius: 28px; margin: 0 14px; padding: 18px 16px 16px; box-shadow: var(--shadow); }
+  .panel h2 { font-size: 19px; font-weight: 800; margin: 0 0 12px; text-wrap: balance; }
+  .panel p { font-size: 14px; color: var(--mute); margin: 0 0 14px; line-height: 1.5; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tile { background: var(--soft); border-radius: 18px; padding: 14px 12px; text-align: left; display: flex; flex-direction: column; gap: 10px; min-height: 108px; font-weight: 700; font-size: 14px; line-height: 1.25; }
+  .tile .ti { width: 40px; height: 40px; border-radius: 14px; background: var(--pl); display: grid; place-items: center; }
+  .tile .ti .ico { stroke: var(--p); width: 20px; height: 20px; }
+
+  .now { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; }
+  .now b { font-size: 15px; }
+  .now span { display: block; font-size: 12.5px; color: var(--mute); font-weight: 600; }
+  .legend3 { grid-column: 1 / -1; display: flex; gap: 12px; font-size: 12px; font-weight: 700; color: var(--mute); font-variant-numeric: tabular-nums; }
+  .legend3 span { display: inline; font-size: 12px; }
+  .legend3 i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+  .bar3 { grid-column: 1 / -1; display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 6px; background: var(--line); }
+  .bar3 i { display: block; height: 100%; }
+  .pct { font-size: 22px; font-weight: 800; color: var(--green); font-variant-numeric: tabular-nums; }
+
+  .bnav { position: absolute; left: 14px; right: 14px; bottom: max(14px, env(safe-area-inset-bottom)); height: 72px; background: var(--surface); border-radius: 26px; box-shadow: var(--shadow); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; z-index: 20; }
+  .bnav button { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; color: var(--mute); }
+  .bnav button .ico { width: 22px; height: 22px; stroke: var(--mute); }
+  .bnav button.on { color: var(--p); }
+  .bnav button.on .ico { stroke: var(--p); }
+  .bnav .sosc { width: 64px; height: 64px; border-radius: 50%; background: var(--red); margin-top: -30px; justify-self: center; border: 5px solid var(--surface); color: #fff; font-size: 11px; font-weight: 800; box-shadow: 0 8px 20px rgba(210, 63, 56, .4); }
+  .bnav .sosc .ico { stroke: #fff; width: 20px; height: 20px; }
+
+  /* questions */
+  .body { padding: 6px 18px 0; }
+  .wzbar { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+  .wzbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--p2), var(--p)); border-radius: 4px; transition: width .4s ease; }
+  .wzinfo { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; font-weight: 700; color: var(--mute); margin-top: 7px; }
+  .q-title { font-size: 25px; font-weight: 800; line-height: 1.2; letter-spacing: -.02em; margin: 20px 0 8px; text-wrap: balance; }
+  .q-help { font-size: 14px; color: var(--mute); line-height: 1.5; margin: 0 0 18px; font-weight: 500; }
+  .opts { display: grid; gap: 10px; }
+  .opt { background: var(--surface); border: 2px solid transparent; border-radius: 18px; padding: 14px 16px; text-align: left; font-weight: 700; font-size: 15px; box-shadow: var(--shadow); display: flex; gap: 12px; align-items: center; }
+  .opt small { display: block; font-weight: 600; font-size: 12.5px; color: var(--mute); margin-top: 2px; }
+  .opt.on { border-color: var(--p); color: var(--p); }
+  .opt .chk { width: 22px; height: 22px; border-radius: 7px; border: 2px solid var(--ring); flex: none; display: grid; place-items: center; }
+  .opt.on .chk { background: var(--p); border-color: var(--p); }
+  .opt.on .chk::after { content: ""; width: 10px; height: 6px; border: solid var(--on-p); border-width: 0 0 2.5px 2.5px; transform: translateY(-1px) rotate(-45deg); }
+  .field input { width: 100%; border-radius: 16px; border: 1.5px solid var(--line); background: var(--surface); padding: 0 14px; height: 52px; font-size: 16px; outline: 0; }
+  .field input:focus { border-color: var(--p); }
+  .err { color: var(--red); font-size: 13px; font-weight: 700; min-height: 18px; margin: 6px 0; }
+  .chips { display: flex; gap: 10px; }
+  .chip2 { flex: 1; border: 2px solid transparent; background: var(--surface); border-radius: 18px; padding: 14px 10px; font-weight: 700; font-size: 14px; box-shadow: var(--shadow); }
+  .chip2.on { border-color: var(--p); color: var(--p); }
+  .dots { display: flex; gap: 6px; justify-content: center; margin: 12px 0 0; }
+  .dots i { width: 8px; height: 8px; border-radius: 4px; background: var(--ring); }
+  .dots i.on { width: 22px; background: var(--p); }
+  .fit { list-style: none; padding: 0; margin: 0 0 18px; display: grid; gap: 8px; }
+  .fit li { background: var(--surface); border-radius: 16px; padding: 12px 14px; font-size: 14px; font-weight: 600; line-height: 1.4; box-shadow: var(--shadow); }
+
+  /* lists */
+  .card { background: var(--surface); border-radius: 20px; box-shadow: var(--shadow); padding: 4px 0; margin: 0 18px 12px; overflow: hidden; }
+  .item { display: flex; align-items: center; gap: 12px; padding: 13px 14px; width: 100%; text-align: left; border-bottom: 1px solid var(--line); color: var(--ink); }
+  .item:last-child { border-bottom: 0; }
+  .item .ii { width: 40px; height: 40px; border-radius: 14px; background: var(--pl); display: grid; place-items: center; flex: none; }
+  .item .ii .ico { stroke: var(--p); width: 20px; height: 20px; }
+  .item .tx { flex: 1; min-width: 0; }
+  .item .tx b { display: block; font-size: 15px; font-weight: 700; }
+  .item .tx span { display: block; font-size: 12.5px; color: var(--mute); line-height: 1.35; margin-top: 2px; }
+  .item .chev { color: var(--mute); font-size: 22px; }
+  .item.on { background: var(--soft); }
+  .sec { font-size: 15px; font-weight: 800; margin: 18px 18px 8px; }
+  .seg { display: flex; background: var(--surface); border-radius: 16px; padding: 4px; margin: 12px 18px 14px; box-shadow: var(--shadow); }
+  .seg button { flex: 1; min-height: 40px; border-radius: 12px; font-weight: 700; font-size: 14px; color: var(--mute); }
+  .seg button.on { background: var(--p); color: var(--on-p); }
+  .panelx { display: none; }
+  .panelx.on { display: block; }
+  .tg { width: 48px; height: 28px; border-radius: 14px; background: var(--ring); position: relative; flex: none; transition: background .2s; }
+  .tg::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0, 0, 0, .2); transition: transform .2s; }
+  .tg.on { background: var(--p); }
+  .tg.on::after { transform: translateX(20px); }
+  .num { font-size: 20px; font-weight: 800; color: var(--p); font-variant-numeric: tabular-nums; user-select: all; }
+  .callp { background: var(--p); color: var(--on-p); border-radius: 14px; padding: 9px 14px; font-weight: 800; font-size: 13.5px; flex: none; }
+  .empty { margin: 6px 18px; color: var(--mute); font-size: 14px; line-height: 1.5; font-weight: 500; }
+  .note-s { padding: 0 18px; font-size: 12.5px; color: var(--mute); line-height: 1.5; margin: 10px 0; }
+  details.acc { border-bottom: 1px solid var(--line); }
+  details.acc:last-child { border-bottom: 0; }
+  details.acc summary { list-style: none; cursor: pointer; padding: 15px 16px; font-weight: 700; font-size: 15px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  details.acc summary::-webkit-details-marker { display: none; }
+  details.acc summary::after { content: "+"; color: var(--p); font-size: 22px; font-weight: 500; line-height: 1; }
+  details.acc[open] summary::after { content: "–"; }
+  details.acc p { margin: 0; padding: 0 16px 16px; font-size: 14px; line-height: 1.6; color: var(--mute); font-weight: 500; }
+
+  /* reports */
+  .types { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 18px; }
+  .type { background: var(--surface); border-radius: 16px; padding: 12px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; text-align: left; box-shadow: var(--shadow); border: 2px solid transparent; line-height: 1.25; min-height: 58px; }
+  .type.on { border-color: var(--p); color: var(--p); }
+  .type .ico { width: 22px; height: 22px; stroke: var(--p); flex: none; }
+  .type.good .ico { stroke: var(--green); }
+  .faces { display: flex; gap: 8px; margin: 0 18px; }
+  .face { flex: 1; min-height: 52px; border-radius: 16px; background: var(--surface); box-shadow: var(--shadow); font-weight: 800; font-size: 15px; border: 2px solid transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .face small { font-size: 10px; font-weight: 700; color: var(--mute); }
+  .face.on { border-color: var(--p); color: var(--p); }
+  .inputrow { background: var(--surface); border-radius: 18px; margin: 0 18px; padding: 14px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; width: calc(100% - 36px); text-align: left; }
+
+  /* trips */
+  .trip { margin: 0 18px 10px; background: var(--surface); border-radius: 18px; padding: 14px; box-shadow: var(--shadow); display: flex; gap: 12px; align-items: center; }
+  .trip .ti { width: 38px; height: 38px; border-radius: 50%; background: var(--pl); display: grid; place-items: center; flex: none; }
+  .trip .ti .ico { stroke: var(--p); width: 18px; height: 18px; }
+  .trip b { display: block; font-size: 14.5px; }
+  .trip span { display: block; font-size: 12.5px; color: var(--mute); margin-top: 2px; }
+  .fab { position: absolute; right: 22px; bottom: 110px; width: 54px; height: 54px; border-radius: 50%; background: var(--p); color: var(--on-p); font-size: 28px; box-shadow: 0 8px 20px rgba(106, 63, 208, .45); display: grid; place-items: center; z-index: 20; }
+  .ntitle { width: 100%; border: 0; background: transparent; font-size: 26px; font-weight: 800; outline: 0; padding: 8px 0; color: var(--ink); }
+  .ntmeta { font-size: 12px; color: var(--mute); font-weight: 600; margin-bottom: 8px; }
+  .ntbody { width: 100%; min-height: 58vh; border: 0; background: transparent; font-size: 16px; line-height: 1.55; outline: 0; resize: none; color: var(--ink); }
+
+  /* arrival */
+  .arrive { display: flex; flex-direction: column; align-items: center; padding: 0 18px; text-align: center; }
+  .arrive img { height: 190px; }
+  .arrive h2 { font-size: 22px; font-weight: 800; margin: 6px 0; }
+  .arrive p { font-size: 14px; color: var(--mute); line-height: 1.5; margin: 0 0 12px; }
+  .kv { display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; border-bottom: 1px solid var(--line); font-weight: 700; font-size: 14.5px; }
+  .kv:last-child { border-bottom: 0; }
+  .kv span:last-child { color: var(--mute); font-variant-numeric: tabular-nums; }
+
+  /* sheet */
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 60; background: var(--surface); border-radius: 28px 28px 0 0; padding: 18px 20px max(24px, env(safe-area-inset-bottom)); box-shadow: 0 -10px 30px rgba(60, 40, 120, .2); transform: translateY(105%); transition: transform .3s ease; max-height: 80%; overflow-y: auto; }
+  .sheet.on { transform: translateY(0); }
+  .sheet h3 { margin: 0 0 8px; font-size: 18px; font-weight: 800; }
+  .sheet > p { margin: 0 0 10px; font-size: 14px; line-height: 1.5; color: var(--mute); font-weight: 500; }
+  .sheet .btn { margin-top: 8px; }
+  .scrim { position: absolute; inset: 0; z-index: 55; background: rgba(20, 14, 40, .35); display: none; }
+  .scrim.on { display: block; }
+  .big112 { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--red-bg); border-radius: 18px; padding: 14px 16px; margin: 6px 0; }
+  .big112 b { font-size: 34px; font-weight: 800; color: var(--red); user-select: all; }
+  .big112 span { font-size: 13px; font-weight: 700; color: var(--ink); }
+
+  /* map overlays */
+  .ptop { position: absolute; top: max(12px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); display: grid; gap: 8px; }
+  .od { background: var(--surface); border-radius: 22px; box-shadow: var(--shadow); padding: 6px 6px 6px 8px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; }
+  .od .rail { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 0 6px; }
+  .od .rail i { width: 10px; height: 10px; border-radius: 50%; border: 2.5px solid var(--p); }
+  .od .rail i.to { background: var(--p); }
+  .od .rail em { width: 2px; height: 18px; background: var(--ring); }
+  .od .rows { display: grid; min-width: 0; }
+  .od .rows button { text-align: left; padding: 9px 8px; border-radius: 12px; min-width: 0; }
+  .od .rows button + button { border-top: 1px solid var(--line); border-radius: 0 0 12px 12px; }
+  .od .rows small { display: block; font-size: 11px; font-weight: 700; color: var(--mute); text-transform: uppercase; letter-spacing: .06em; }
+  .od .rows span { display: block; font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .od .rows span.ph { color: var(--mute); font-weight: 600; }
+  .od .swap { width: 40px; height: 40px; border-radius: 50%; background: var(--soft); display: grid; place-items: center; }
+  .od .swap .ico { width: 18px; height: 18px; }
+  .pchips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+  .pchip { flex: none; display: flex; align-items: center; gap: 6px; background: var(--surface); border-radius: 999px; padding: 8px 12px; font-size: 13px; font-weight: 700; box-shadow: var(--shadow); white-space: nowrap; }
+  .pchip .ico { width: 16px; height: 16px; stroke: var(--p); }
+  .pchip.night { background: #2b2545; color: #f1edfa; }
+  .pchip.night .ico { stroke: #c9b8ff; }
+  .sright { position: absolute; right: max(12px, env(safe-area-inset-right)); top: 196px; display: flex; flex-direction: column; gap: 10px; }
+  .rb { width: 50px; height: 50px; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow); display: grid; place-items: center; }
+  .rb .ico { width: 20px; height: 20px; }
+  .rb.on { background: var(--p); }
+  .rb.on .ico { stroke: var(--on-p); }
+  .rb.sos { height: 62px; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--red); font-size: 10px; font-weight: 800; }
+  .rb.sos .ico { stroke: var(--red); }
+  .psheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface); border-radius: 28px 28px 0 0; padding: 12px 16px max(16px, env(safe-area-inset-bottom)); box-shadow: 0 -10px 30px rgba(60, 40, 120, .16); max-height: 62%; overflow-y: auto; }
+  .psheet .grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 10px; }
+  .psheet .row { display: flex; align-items: center; gap: 12px; }
+  .mini { width: 52px; height: 52px; border-radius: 50%; background: var(--pl); flex: none; position: relative; overflow: hidden; }
+  .mini img { position: absolute; left: 50%; top: 4px; transform: translateX(-50%); height: 72px; }
+  .st { flex: 1; font-weight: 700; font-size: 14.5px; line-height: 1.3; min-width: 0; }
+  .st span { display: block; font-size: 12.5px; color: var(--mute); font-weight: 600; margin-top: 2px; }
+  .ropt { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; width: 100%; text-align: left; background: var(--soft); border: 2px solid transparent; border-radius: 18px; padding: 12px 14px; margin-top: 10px; }
+  .ropt.on { border-color: var(--p); background: var(--surface); }
+  .ropt b { font-size: 15px; }
+  .ropt .t { font-size: 20px; font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
+  .ropt .d { font-size: 12.5px; color: var(--mute); font-weight: 600; grid-column: 1 / -1; }
+  .ropt .bar3 { margin-top: 8px; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 999px; background: var(--pl); color: var(--p); margin-left: 6px; vertical-align: 2px; }
+  .why { font-size: 13px; color: var(--mute); line-height: 1.45; margin: 10px 2px 0; font-weight: 600; }
+  .demo { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .results { position: absolute; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); top: calc(max(12px, env(safe-area-inset-top)) + 64px); background: var(--surface); border-radius: 20px; box-shadow: var(--shadow); max-height: 60vh; overflow-y: auto; display: none; z-index: 30; }
+  .results.on { display: block; }
+  .searchbox { background: var(--surface); border-radius: 18px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 8px; padding: 0 8px 0 14px; }
+  .searchbox input { flex: 1; min-width: 0; height: 52px; border: 0; outline: 0; background: transparent; font-size: 16px; font-weight: 600; }
+
+  /* navigation */
+  .ntop { position: absolute; top: max(12px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .npill { background: var(--p); color: var(--on-p); font-weight: 700; font-size: 13.5px; padding: 11px 16px; border-radius: 20px; display: flex; align-items: center; gap: 8px; box-shadow: var(--shadow); }
+  .npill .ico { stroke: var(--on-p); width: 16px; height: 16px; }
+  .tcard { position: absolute; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); top: calc(max(12px, env(safe-area-inset-top)) + 60px); background: var(--surface); border-radius: 22px; padding: 14px 16px; box-shadow: var(--shadow); }
+  .trow { display: flex; align-items: center; gap: 14px; }
+  .turn { width: 54px; height: 54px; flex: none; stroke: var(--p); fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+  .trow b { display: block; font-size: 28px; font-weight: 800; letter-spacing: -.02em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .trow span { display: block; font-size: 14px; color: var(--mute); font-weight: 700; margin-top: 2px; }
+  .tbar { height: 5px; border-radius: 3px; background: var(--line); margin-top: 12px; overflow: hidden; }
+  .tbar i { display: block; height: 100%; width: 0; background: var(--p); border-radius: 3px; transition: width .5s ease; }
+  .tfoot { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  .tfoot span:last-child { color: var(--mute); font-weight: 600; }
+  .nright { position: absolute; right: max(12px, env(safe-area-inset-right)); top: 236px; display: flex; flex-direction: column; gap: 10px; }
+  .nstate { position: absolute; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); background: var(--surface); border-radius: 22px; padding: 14px 92px 14px 16px; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow); min-height: 72px; }
+  .nstate .sh { width: 14px; height: 14px; border-radius: 50%; flex: none; background: var(--green); box-shadow: 0 0 0 5px var(--green-bg); }
+  .nstate.c1 .sh { background: var(--amber); box-shadow: 0 0 0 5px var(--amber-bg); }
+  .nstate.c2 .sh { background: var(--red); box-shadow: 0 0 0 5px var(--red-bg); }
+  .nstate .peek { position: absolute; right: 8px; bottom: 0; height: 96px; pointer-events: none; }
+  .simchip { position: absolute; left: max(12px, env(safe-area-inset-left)); bottom: calc(max(18px, env(safe-area-inset-bottom)) + 84px); }
+
+  .you { width: 30px; height: 30px; display: grid; place-items: center; }
+  .you .dot { width: 22px; height: 22px; border-radius: 50%; background: var(--lime); border: 4px solid #1b1b1b; box-shadow: 0 0 0 10px rgba(197, 239, 60, .35); }
+  .you .arr { display: none; width: 40px; height: 40px; fill: var(--lime); stroke: #1b1b1b; stroke-width: 1.6; }
+  .you.nav .dot { display: none; }
+  .you.nav .arr { display: block; }
+  .pin svg { display: block; filter: drop-shadow(0 5px 6px rgba(0, 0, 0, .28)); }
+
+  .liveb { position: absolute; top: 0; left: 0; right: 0; z-index: 80; background: var(--p); color: var(--on-p); padding: max(10px, env(safe-area-inset-top)) 14px 10px; font-size: 13.5px; font-weight: 700; align-items: center; gap: 10px; display: none; }
+  .liveb.on { display: flex; }
+  .liveb button { background: var(--surface); color: var(--p); border-radius: 12px; padding: 7px 12px; font-weight: 800; font-size: 13px; }
+  #toast { position: absolute; left: 50%; transform: translateX(-50%); bottom: 110px; z-index: 90; background: var(--ink); color: var(--bg); font-weight: 700; font-size: 13px; padding: 10px 16px; border-radius: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; max-width: 90%; text-align: center; }
+  #toast.show { opacity: 1; }
+  #loading { position: absolute; inset: 0; display: grid; place-items: center; z-index: 4; color: var(--mute); font-weight: 700; font-size: 14px; }
+
+  /* bigger text, chosen in the settings */
+  #app.big .q-title { font-size: 29px; }
+  #app.big .q-help, #app.big .panel p, #app.big .item .tx span, #app.big details.acc p, #app.big .st span, #app.big .ropt .d { font-size: 16px; }
+  #app.big .opt, #app.big .item .tx b, #app.big .btn, #app.big .tile, #app.big .st { font-size: 17px; }
+  #app.big .trow span { font-size: 17px; }
+</style>
+
+<div id="app">
+  <div id="map" role="application" aria-label="Mappa di Vicenza"></div>
+  <div id="loading">Preparo la mappa di Vicenza…</div>
+
+  <!-- welcome -->
+  <section class="scr" id="s-welcome">
+    <div style="padding:max(26px, env(safe-area-inset-top)) 22px 0;">
+      <div class="logo">LUMI<b>♥</b></div>
+      <div class="tag">La tua guida per camminare a Vicenza</div>
+    </div>
+    <div class="stage"><div class="ring"></div><img class="mz" data-m="hero" alt=""></div>
+    <div class="panel">
+      <h2>Ciao, ti accompagno.</h2>
+      <p>Ti suggerisco percorsi su strade illuminate e frequentate. Ti faccio qualche domanda per adattarli a te: puoi saltarle tutte, e le risposte restano su questo telefono.</p>
+      <div class="sec" style="margin:0 0 8px;font-size:14px;">Chi vuoi come guida?</div>
+      <div class="chips">
+        <button class="chip2 on" data-act="guide" data-v="f">Lumi ragazza</button>
+        <button class="chip2" data-act="guide" data-v="m">Lumi ragazzo</button>
+      </div>
+      <div style="height:14px"></div>
+      <button class="btn" data-go="s-form">Iniziamo</button>
+      <div style="text-align:center;margin-top:6px;"><button class="link" data-act="skip-all">Salta le domande</button></div>
+    </div>
+  </section>
+
+  <!-- questions, one at a time -->
+  <section class="scr" id="s-form">
+    <div class="hdr"><button class="round" data-act="wiz-prev" aria-label="Indietro"><svg class="ico" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><div style="flex:1;"><div class="wzbar"><i id="wzFill"></i></div><div class="wzinfo"><span id="wzCount"></span><span id="wzLeft"></span></div></div></div>
+    <div class="body" id="wiz"></div>
+  </section>
+
+  <!-- tutorial -->
+  <section class="scr" id="s-tut">
+    <div class="hdr"><button class="round" data-act="tut-back" aria-label="Indietro"><svg class="ico" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h1 style="font-size:16px;color:var(--mute);font-weight:700;">Come funziona</h1><button class="link" data-act="tut-skip">Salta</button></div>
+    <div class="stage" style="height:310px;"><div class="ring" style="top:34px;"></div><img class="mz" id="tutImg" data-m="hero" alt="" style="height:300px;"></div>
+    <div class="body" style="text-align:center;">
+      <h2 id="tutT" style="font-size:23px;font-weight:800;margin:6px 0 8px;text-wrap:balance;"></h2>
+      <p id="tutP" style="font-size:15px;color:var(--mute);line-height:1.5;margin:0 0 6px;font-weight:500;"></p>
+      <div class="dots" id="tutDots"></div>
+      <div style="height:18px"></div>
+      <div class="btn-row"><button class="btn ghost" id="tutBack" data-act="tut-back">Indietro</button><button class="btn" data-act="tut-next" id="tutNext">Avanti</button></div>
+    </div>
+  </section>
+
+  <!-- end of onboarding: what was adapted -->
+  <section class="scr" id="s-end">
+    <div class="hdr"><div class="logo" style="font-size:28px;">LUMI<b>♥</b></div></div>
+    <div class="stage" style="height:250px;"><div class="ring" style="top:20px;width:210px;height:210px;"></div><img class="mz" data-m="emo2" alt="" style="height:250px;"></div>
+    <div class="body">
+      <h2 class="q-title" id="endT" style="margin-top:8px;">Ho adattato i percorsi a te</h2>
+      <ul class="fit" id="endList"></ul>
+      <button class="btn" data-act="end-finish">Iniziamo</button>
+      <p class="note-s" style="padding:0;text-align:center;">Puoi cambiare tutto quando vuoi in Impostazioni.</p>
+    </div>
+  </section>
+
+  <!-- home -->
+  <section class="scr" id="s-home">
+    <div class="hdr" style="padding-top:max(22px, env(safe-area-inset-top));">
+      <div style="flex:1;"><div class="logo" style="font-size:32px;">LUMI<b>♥</b></div><div class="tag" id="hello">Ciao!</div></div>
+      <button class="round" data-go="s-settings" aria-label="Impostazioni"><svg class="ico p" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></button>
+    </div>
+    <div class="stage" style="height:190px;"><div class="ring" style="top:10px;width:180px;height:180px;"></div><img class="mz" data-m="hero" alt="" style="height:205px;"></div>
+    <div class="panel" style="margin-top:6px;">
+      <h2>Come posso aiutarti?</h2>
+      <div class="grid2">
+        <button class="tile" data-go="s-plan"><span class="ti"><svg class="ico" viewBox="0 0 24 24"><path d="M3 17c3-1 4-6 7-6s3 4 6 4 3-3 5-5"/><circle cx="5" cy="19" r="1.2"/><circle cx="19" cy="6" r="2.4"/></svg></span>Trova un percorso</button>
+        <button class="tile" data-go="s-report"><span class="ti"><svg class="ico" viewBox="0 0 24 24"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg></span>Segnala un luogo</button>
+        <button class="tile" data-go="s-support"><span class="ti"><svg class="ico" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-9.5A3.8 3.8 0 0 1 12 8a3.8 3.8 0 0 1 7 2.5C19 15.6 12 20 12 20z"/></svg></span>Supporto e numeri utili</button>
+        <button class="tile" data-go="s-share"><span class="ti"><svg class="ico" viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg></span>Aiuta a migliorare la mappa</button>
+      </div>
+    </div>
+    <div style="height:12px"></div>
+    <div class="panel now" id="nowCard">
+      <div><b id="nowT">Adesso a Vicenza</b><span id="nowS"></span></div>
+      <div style="text-align:right;"><div class="pct" id="nowPct">–</div><span>verdi o gialle</span></div>
+      <div class="bar3" id="nowBar"></div>
+      <div class="legend3" id="nowLegend"></div>
+    </div>
+  </section>
+
+  <!-- map: planning -->
+  <section class="scr map" id="s-plan">
+    <div class="ptop">
+      <div class="od">
+        <div class="rail" aria-hidden="true"><i></i><em></em><i class="to"></i></div>
+        <div class="rows">
+          <button data-act="search" data-v="from"><small>Partenza</small><span id="fromTxt" class="ph">Tocca la mappa o cerca</span></button>
+          <button data-act="search" data-v="to"><small>Destinazione</small><span id="toTxt" class="ph">Dove vuoi andare?</span></button>
+        </div>
+        <button class="swap" data-act="swap" aria-label="Inverti partenza e destinazione"><svg class="ico" viewBox="0 0 24 24"><path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4"/></svg></button>
+      </div>
+      <div class="pchips">
+        <button class="pchip" id="whenChip" data-act="when"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span id="whenTxt">Adesso</span></button>
+        <button class="pchip" data-act="company"><svg class="ico" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.8-3.6 3.2-5.5 6-5.5s5.2 1.9 6 5.5"/><path d="M16 5.5a3 3 0 0 1 0 5.6M18 14.6c1.6.8 2.6 2.6 3 5.4"/></svg><span id="companyTxt">Da sola</span></button>
+        <button class="pchip" data-act="legend"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8v.5"/></svg>Colori</button>
+      </div>
+    </div>
+    <div class="sright">
+      <button class="rb" data-act="locate" aria-label="Centra sulla mia posizione"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+      <button class="rb" data-act="view3d" aria-label="Vista 2D o 3D" id="b3d"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg></button>
+      <button class="rb sos" data-act="sos"><svg class="ico" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1z"/></svg>SOS</button>
+    </div>
+    <div class="psheet" id="pSheet"></div>
+  </section>
+
+  <!-- search -->
+  <section class="scr" id="s-search">
+    <div class="hdr"><button class="round" data-back aria-label="Indietro"><svg class="ico" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><div class="searchbox" style="flex:1;"><svg class="ico" viewBox="0 0 24 24" style="width:18px;height:18px;stroke:var(--mute)"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg><input id="q" type="search" placeholder="Via, piazza o luogo" autocomplete="off" enterkeyhint="search" aria-label="Cerca una via o un luogo"></div></div>
+    <div id="qHint" class="note-s"></div>
+    <div class="card" id="qRes"></div>
+  </section>
+
+  <!-- map: navigation -->
+  <section class="scr map" id="s-nav">
+    <div class="ntop">
+      <span class="npill"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/></svg><span id="navMode">In cammino</span></span>
+      <button class="round" data-act="stop" aria-label="Termina la navigazione"><svg class="ico" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="tcard" aria-live="polite">
+      <div class="trow">
+        <svg class="turn" id="turnSvg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V5M6 11l6-6 6 6"/></svg>
+        <div style="min-width:0;"><b id="tDist">--</b><span id="tStreet">Calcolo il percorso</span></div>
+      </div>
+      <div class="tbar"><i id="tProg"></i></div>
+      <div class="tfoot"><span id="tLeft">--</span><span id="tArr">--</span></div>
+    </div>
+    <div class="nright">
+      <button class="rb on" id="bVoice" data-act="voice" aria-label="Indicazioni a voce"><svg class="ico" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg></button>
+      <button class="rb" data-act="locate" aria-label="Centra sulla mia posizione"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+      <button class="rb" data-act="share-start" aria-label="Condividi la posizione"><svg class="ico" viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.5M8.2 13.2l7.6 4.5"/></svg></button>
+      <button class="rb sos" data-act="sos"><svg class="ico" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1z"/></svg>SOS</button>
+    </div>
+    <button class="pchip simchip" id="simChip" data-act="sim"><svg class="ico" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg><span id="simTxt">Simula la camminata</span></button>
+    <div class="nstate" id="nState"><span class="sh"></span><span class="st" id="nStateTxt">Calcolo…</span><img class="peek mz" data-m="act3" alt=""></div>
+  </section>
+
+  <!-- report -->
+  <section class="scr" id="s-report">
+    <div class="hdr"><button class="round" data-back aria-label="Indietro"><svg class="ico" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h1>Segnala un luogo</h1><img class="mz" data-m="act3" style="width:58px;height:70px;" alt=""></div>
+    <p class="note-s" style="margin-top:0;">Anonima: niente nome, niente testo libero. Servono il punto, cosa hai notato e, se vuoi, come ti sei sentit<span class="gx">a</span>.</p>
+    <div class="sec">Dove</div>
+    <button class="inputrow" data-act="report-pick"><svg class="ico p" viewBox="0 0 24 24" style="width:20px;height:20px;"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span id="repLoc" style="flex:1;">Scegli il punto sulla mappa</span><span class="chev" style="color:var(--mute);">›</span></button>
+    <div class="sec">Cosa hai notato?</div>
+    <div class="types" id="repTypes"></div>
+    <div class="sec">Quando</div>
+    <div class="seg" id="repWhen" style="margin-top:0;"></div>
+    <div class="sec">Come ti sei sentit<span class="gx">a</span> lì? <span style="font-weight:600;color:var(--mute);">(facoltativo)</span></div>
+    <div class="faces" id="repVote"></div>
+    <div class="err" id="repErr" style="margin:12px 18px 0;"></div>
+    <div style="padding:6px 18px 0;"><button class="btn" data-act="report-send">Invia in modo anonimo</button></div>
+    <p class="note-s">Una sola segnalazione non cambia i colori: un tratto cambia solo dopo almeno 5 segnalazioni dello stesso tipo. Per ora resta su questo telefono e partirà quando il servizio sarà attivo.</p>
+  </section>
+
+  <!-- support -->
+  <section class="scr" id="s-support">
+    <div class="hdr"><h1>Supporto</h1><img class="mz" data-m="emo1" style="width:80px;height:80px;" alt=""></div>
+    <div id="supTag" class="note-s" style="font-size:14px;font-weight:600;margin-top:0;"></div>
+    <div class="seg">
+      <button class="on" data-tab="res" data-group="support">Aiuto e numeri</button>
+      <button data-tab="contacts" data-group="support">Persone di fiducia</button>
+    </div>
+    <div class="panelx on" data-panel="res" data-group="support">
+      <div class="sec">In emergenza</div>
+      <div class="card" id="numEm"></div>
+      <div class="sec">Ascolto e sostegno</div>
+      <div class="card" id="numSup"></div>
+      <div class="card">
+        <a class="item" href="https://www.1522.eu" target="_blank" rel="noopener"><span class="ii"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></span><span class="tx"><b>Sito ufficiale del 1522</b><span>Informazioni e contatti dei centri antiviolenza. Il 1522 ti mette in contatto con quello più vicino.</span></span><span class="chev">›</span></a>
+        <a class="item" href="https://www.psy.it" target="_blank" rel="noopener"><span class="ii"><svg class="ico" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-9.5A3.8 3.8 0 0 1 12 8a3.8 3.8 0 0 1 7 2.5C19 15.6 12 20 12 20z"/></svg></span><span class="tx"><b>Albo degli psicologi</b><span>Trova una persona iscritta all'albo</span></span><span class="chev">›</span></a>
+      </div>
+      <div class="sec">Prenditi cura di te</div>
+      <div class="card">
+        <button class="item" data-act="info" data-v="tips"><span class="ii"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/></svg></span><span class="tx"><b>Consigli per camminare tranquill<span class="gx">a</span></b><span>Prima, durante e dopo</span></span><span class="chev">›</span></button>
+        <button class="item" data-act="info" data-v="guide"><span class="ii"><svg class="ico" viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/></svg></span><span class="tx"><b>Come funziona Lumi</b><span>Colori, dati, limiti e diritti</span></span><span class="chev">›</span></button>
+      </div>
+    </div>
+    <div class="panelx" data-panel="contacts" data-group="support">
+      <p class="note-s" style="margin-top:0;">Persone a cui mandare la tua posizione durante un percorso. Restano su questo telefono.</p>
+      <div id="myContacts"></div>
+      <div style="padding:0 18px 14px;"><button class="btn ghost" data-act="add-contact">Aggiungi una persona</button></div>
+    </div>
+  </section>
+
+  <!-- data sharing -->
+  <section class="scr" id="s-share">
+    <div class="hdr"><button class="round" data-back aria-label="Indietro"><svg class="ico" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h1>Aiuta la mappa</h1><img class="mz" data-m="act3" style="width:56px;height:68px;" alt=""></div>
+    <p class="note-s" style="margin-top:0;font-size:14px;">Le segnalazioni anonime aiutano il Comune a capire dove intervenire: più luce, marciapiedi, presidi. Scegli tu cosa condividere.</p>
+    <div class="sec">Cosa condividi</div>
+    <div class="card">
+      <button class="item" data-act="share" data-k="reports"><span class="tx"><b>Segnalazioni anonime</b><span>Punto, tipo e fascia oraria. Nessun nome, nessun testo.</span></span><span class="tg" data-tg="reports"></span></button>
+      <button class="item" data-act="share" data-k="demo"><span class="tx"><b>Genere e fascia d'età con le segnalazioni</b><span>Servono a capire se donne, anziani o giovani vivono la stessa strada in modo diverso.</span></span><span class="tg" data-tg="demo"></span></button>
+      <button class="item" data-act="share" data-k="routes"><span class="tx"><b>Percorsi, solo in forma statistica</b><span>Quanti metri si allungano i percorsi per evitare tratti con criticità. Mai il tuo percorso.</span></span><span class="tg" data-tg="routes"></span></button>
+    </div>
+    <div class="sec">A cosa servono</div>
+    <div class="card">
+      <div class="item"><span class="tx"><b>Mostrare al Comune le priorità di intervento</b></span></div>
+      <div class="item"><span class="tx"><b>Accendere i fattori che oggi mancano</b><span>Episodi e cura degli spazi entrano nel punteggio solo grazie alle segnalazioni.</span></span></div>
+      <div class="item"><span class="tx"><b>Confrontare dati pubblici e percezione</b></span></div>
+    </div>
+    <p class="note-s">Per ora non parte nulla: il servizio che raccoglie le segnalazioni non è ancora attivo, quindi tutto resta su questo telefono.</p>
+  </section>
+
+  <!-- arrival -->
+  <section class="scr" id="s-arrive">
+    <div class="hdr"><button class="round" data-act="arrive-home" aria-label="Chiudi"><svg class="ico" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button><h1>Arrivo</h1></div>
+    <div class="arrive">
+      <img class="mz" data-m="emo4" alt="">
+      <h2 id="arrT">Sei arrivata.</h2>
+      <p>Com'è andata? Se qualcosa lungo la strada ti ha messo a disagio, o al contrario ti ha fatto sentire bene, puoi segnalarlo.</p>
+    </div>
+    <div class="card" id="arriveSummary"></div>
+    <div style="padding:6px 18px 0;display:grid;gap:10px;"><button class="btn" data-go="s-report">Segnala qualcosa</button><button class="btn ghost" data-act="arrive-home">Torna alla home</button></div>
+  </section>
+
+  <!-- diary -->
+  <section class="scr" id="s-diary">
+    <div class="hdr" style="padding-top:max(22px, env(safe-area-inset-top));"><div style="flex:1;"><h1>Diario</h1><div style="font-size:13px;color:var(--mute);font-weight:600;margin-top:4px;">Solo su questo telefono.</div></div></div>
+    <div class="seg">
+      <button class="on" data-tab="hist" data-group="diary">Percorsi</button>
+      <button data-tab="notes" data-group="diary">Note</button>
+      <button data-tab="reps" data-group="diary">Segnalazioni</button>
+    </div>
+    <div class="panelx on" data-panel="hist" data-group="diary"><div id="tripList"></div></div>
+    <div class="panelx" data-panel="notes" data-group="diary"><div class="card" id="noteList"></div></div>
+    <div class="panelx" data-panel="reps" data-group="diary"><div class="card" id="repList"></div></div>
+    <button class="fab" data-act="new-note" aria-label="Nuova nota">+</button>
+  </section>
+
+  <!-- settings -->
+  <section class="scr" id="s-settings">
+    <div class="hdr"><button class="round" data-back aria-label="Indietro"><svg class="ico" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h1>Impostazioni</h1></div>
+    <div class="sec">Il tuo profilo per i percorsi</div>
+    <div class="card">
+      <button class="item" data-act="edit-profile"><span class="ii"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></span><span class="tx"><b>Rispondi di nuovo alle domande</b><span id="profTxt"></span></span><span class="chev">›</span></button>
+      <button class="item" data-act="forma"><span class="ii"><svg class="ico" viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h7"/></svg></span><span class="tx"><b>Come ti scriviamo</b><span id="formaTxt"></span></span><span class="chev">›</span></button>
+    </div>
+    <div class="sec">Sicurezza e privacy</div>
+    <div class="card">
+      <button class="item" data-act="pref" data-k="discreet"><span class="tx"><b>Modalità discreta</b><span>Niente messaggi a comparsa sullo schermo</span></span><span class="tg" data-tg="discreet"></span></button>
+      <button class="item" data-act="pin"><span class="tx"><b>Codice di protezione</b><span id="pinState"></span></span><span class="chev">›</span></button>
+      <button class="item" data-act="info" data-v="privacy"><span class="tx"><b>Privacy</b><span>Dove restano i tuoi dati</span></span><span class="chev">›</span></button>
+    </div>
+    <div class="sec">Preferenze</div>
+    <div class="card">
+      <button class="item" data-act="pref" data-k="big"><span class="tx"><b>Testo più grande</b></span><span class="tg" data-tg="big"></span></button>
+      <button class="item" data-act="pref" data-k="voice"><span class="tx"><b>Indicazioni a voce</b></span><span class="tg" data-tg="voice"></span></button>
+      <button class="item" data-act="theme"><span class="tx"><b>Aspetto</b></span><span style="color:var(--mute);font-weight:700;font-size:14px;" id="themeTxt">Automatico</span></button>
+    </div>
+    <div class="sec">I tuoi dati</div>
+    <div class="card">
+      <button class="item" data-act="wipe"><span class="tx"><b style="color:var(--red);">Cancella tutti i miei dati</b><span>Risposte, percorsi, note, segnalazioni e contatti</span></span></button>
+    </div>
+    <p class="note-s">Lumi stima la sicurezza percepita a partire dai dati disponibili. Non misura la sicurezza reale di un luogo. <span id="dataInfo"></span></p>
+  </section>
+
+  <!-- info -->
+  <section class="scr" id="s-info">
+    <div class="hdr"><button class="round" data-back aria-label="Indietro"><svg class="ico" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h1 id="infoT" style="font-size:21px;"></h1></div>
+    <p class="q-help" id="infoIntro" style="padding:0 18px;margin:4px 0 14px;"></p>
+    <div class="card" id="infoBody"></div>
+  </section>
+
+  <!-- note -->
+  <section class="scr" id="s-note">
+    <div class="hdr"><button class="round" data-back aria-label="Indietro"><svg class="ico" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><div style="flex:1;"></div><button data-act="note-del" style="color:var(--red);font-weight:700;font-size:15px;padding:10px;">Elimina</button></div>
+    <div style="padding:6px 18px 0;">
+      <input id="ntTitle" class="ntitle" placeholder="Titolo" autocomplete="off" aria-label="Titolo della nota">
+      <div class="ntmeta" id="ntMeta"></div>
+      <textarea id="ntBody" class="ntbody" placeholder="Scrivi qui…" aria-label="Testo della nota"></textarea>
+    </div>
+  </section>
+
+  <nav class="bnav" id="bnav" hidden></nav>
+  <div class="scrim" id="scrim" data-act="sheet-close"></div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetT">
+    <h3 id="sheetT"></h3>
+    <p id="sheetP"></p>
+    <div id="sheetBody"></div>
+  </div>
+  <div class="liveb" id="liveBar"><span style="width:9px;height:9px;border-radius:50%;background:#ffd6ff;flex:none;"></span><span id="liveTxt" style="flex:1;">Posizione condivisa</span><button data-act="share-stop">Ferma</button></div>
+  <div id="toast" role="status"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.js"></script>
+<script>
+/*__CORE__*/
+</script>
+<script>
+const DATA = /*__DATA__*/null;
+const IMG = /*__IMG__*/null;
+(function () {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const M = DATA.model;
+  const CENTRO = [11.5469, 45.5470];
+
+  // ------------------------------------------------------------ storage
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem("lumi." + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem("lumi." + k, JSON.stringify(v)); } catch (e) { /* private mode: keep in memory only */ } },
+    wipe() { try { Object.keys(localStorage).filter(k => k.startsWith("lumi.")).forEach(k => localStorage.removeItem(k)); } catch (e) { /* nothing stored */ } }
+  };
+  let guide = store.get("guide", "f");
+  let profile = store.get("profile", null);   // {nome, genere, eta, situazioni, deviazione, forma}
+  let prefs = Object.assign({ discreet: false, big: false, voice: true, theme: "auto", pwHash: "", share: { reports: true, demo: false, routes: true } }, store.get("prefs", {}));
+  const savePrefs = () => store.set("prefs", prefs);
+  const trip = { company: false, when: null, rain: false };   // when: null = now, else a Date
+
+  // ------------------------------------------------------------ words
+  const forma = () => (profile && profile.forma) || "n";
+  const g = (f, m, n) => forma() === "f" ? f : forma() === "m" ? m : n;
+  function applyForma() { document.querySelectorAll(".gx").forEach(el => { el.textContent = g("a", "o", "o/a"); }); }
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const fmtKm = m => m < 1000 ? Math.round(m / 10) * 10 + " m" : (m / 1000).toFixed(1).replace(".", ",") + " km";
+  const fmtDist = m => m < 1000 ? Math.max(10, Math.round(m / 10) * 10) + " m" : (m / 1000).toFixed(1).replace(".", ",") + " km";
+  const hhmm = d => String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  function toast(t, critical) {
+    if (prefs.discreet && !critical) return;
+    const el = $("toast"); el.textContent = t; el.classList.add("show");
+    clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("show"), 2600);
+  }
+  function applyGuide() {
+    document.querySelectorAll("img[data-m]").forEach(img => { const src = IMG[guide] && IMG[guide][img.dataset.m]; if (src) img.src = src; });
+  }
+  function applyTheme() {
+    if (prefs.theme === "auto") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", prefs.theme);
+    $("app").classList.toggle("big", !!prefs.big);
+  }
+
+  // ------------------------------------------------------------ profile -> model
+  const SITUAZIONI = [
+    { k: "disabilita", t: "Mi muovo con una disabilità, in carrozzina o con difficoltà a camminare", h: "Preferisco marciapiedi comodi ed evito scale e fondi sconnessi." },
+    { k: "lgbtq", t: "Faccio parte della comunità LGBTQ+", h: "Do più peso a strade frequentate e con negozi aperti." },
+    { k: "molestie_recenti", t: "Di recente ho vissuto una molestia o una situazione che mi ha spaventato", h: "Do più peso a luce e luoghi aperti, ed evito di più i posti isolati." },
+    { k: "conosce_zona", t: "Conosco bene Vicenza", h: "Il buio pesa un po' meno nelle zone che conosci." }
+  ];
+  function modelProfiles() {
+    const p = new Set(), pr = profile || {};
+    if (pr.genere === "donna") p.add("donna");
+    if (pr.genere === "nonbinaria") p.add("lgbtq");
+    if (pr.eta === "16_34") p.add("giovani_16_34");
+    if (pr.eta === "75") p.add("over75");
+    for (const s of pr.situazioni || []) p.add(s);
+    if (trip.company) p.add("in_compagnia");
+    return [...p].filter(x => M.profiles[x]);
+  }
+  const detour = () => (profile && profile.deviazione) || "medio";
+  function walkSpeed(profs) {
+    const R = M.routing; let v = R.walking_speed_kmh;
+    for (const p of profs) if (R.slow_profiles[p]) v = Math.min(v, R.slow_profiles[p]);
+    return v / 3.6;  // m/s
+  }
+  function adaptations() {
+    const out = [], pr = profile || {}, profs = modelProfiles();
+    if (profs.includes("donna") || profs.includes("lgbtq")) out.push("Di sera do più peso alla luce, alle persone in giro e ai negozi aperti.");
+    if (profs.includes("over75") || profs.includes("disabilita")) out.push("Preferisco marciapiedi comodi, evito scale e calcolo tempi di cammino più lunghi.");
+    if (profs.includes("giovani_16_34")) out.push("Tengo conto che di notte conta molto trovare gente e locali aperti.");
+    for (const s of SITUAZIONI) if ((pr.situazioni || []).includes(s.k) && !["disabilita"].includes(s.k)) out.push(s.h);
+    out.push({ poco: "Ti propongo deviazioni brevi: allungo poco la strada.", medio: "Allungo un po' la strada quando evita tratti bui o deserti.", molto: "Accetto deviazioni anche lunghe pur di stare su strade più tranquille." }[detour()]);
+    if (!profs.length) out.unshift("Uso il profilo di base: puoi aggiungere dettagli quando vuoi.");
+    return [...new Set(out)];
+  }
+
+  // ------------------------------------------------------------ questions
+  const ETA = [["16_34", "16–34 anni"], ["35_64", "35–64 anni"], ["65_74", "65–74 anni"], ["75", "75 anni o più"], ["nd", "Preferisco non dirlo"]];
+  const GENERE = [["donna", "Donna"], ["uomo", "Uomo"], ["nonbinaria", "Persona non binaria"], ["nd", "Preferisco non dirlo"]];
+  const wiz = { i: 0, ans: {} };
+  const STEPS = [
+    { k: "nome", t: "Come vuoi che ti chiami?", h: "Un nome o un soprannome, solo per salutarti. Puoi lasciarlo vuoto.", type: "text", ph: "Nome o soprannome" },
+    { k: "genere", t: "Come ti descrivi?", h: "Di sera donne e uomini vivono la strada in modo diverso (ISTAT 2022-23): ci serve per pesare luce e persone. Resta sul telefono.", type: "one", opts: GENERE },
+    { k: "eta", t: "Quanti anni hai?", h: "Con l'età cambiano i tempi di cammino e quanto contano marciapiedi e scale.", type: "one", opts: ETA },
+    { k: "situazioni", t: "Qualcosa di questo ti riguarda?", h: "Puoi sceglierne più d'una o nessuna. Serve solo ad adattare i percorsi e non lascia il telefono.", type: "many", opts: SITUAZIONI.map(s => [s.k, s.t]) },
+    { k: "deviazione", t: "Quanto vuoi allungare la strada per stare su vie più tranquille?", h: "Lo puoi cambiare a ogni percorso.", type: "one", opts: [["poco", "Il meno possibile"], ["medio", "Un po', se ne vale la pena"], ["molto", "Anche parecchio"]] },
+    { k: "pw", t: "Vuoi un codice per proteggere i tuoi dati?", h: "Lo chiediamo per fermare la condivisione della posizione o cambiare le impostazioni. Il pulsante SOS non lo chiede mai.", type: "pin", ph: "Almeno 4 cifre o lettere" }
+  ];
+  function renderWiz() {
+    const n = STEPS.length, st = STEPS[wiz.i], left = n - wiz.i - 1, a = wiz.ans[st.k];
+    $("wzFill").style.width = Math.round((wiz.i + 1) / n * 100) + "%";
+    $("wzCount").textContent = "Domanda " + (wiz.i + 1) + " di " + n;
+    $("wzLeft").textContent = left === 0 ? "Ultima" : "Circa " + Math.max(10, left * 8) + " secondi";
+    let h = '<h2 class="q-title">' + esc(st.t) + '</h2><p class="q-help">' + esc(st.h) + "</p>";
+    if (st.type === "one" || st.type === "many") {
+      const sel = st.type === "many" ? (a || []) : [a];
+      h += '<div class="opts" role="' + (st.type === "many" ? "group" : "radiogroup") + '">' + st.opts.map(([v, t]) =>
+        '<button class="opt' + (sel.includes(v) ? " on" : "") + '" data-act="wiz-opt" data-v="' + v + '" aria-pressed="' + sel.includes(v) + '">' +
+        (st.type === "many" ? '<span class="chk"></span>' : "") + "<span>" + esc(t) + "</span></button>").join("") + "</div>";
+    } else {
+      h += '<div class="field"><input id="wzIn" type="' + (st.type === "pin" ? "password" : "text") + '" placeholder="' + esc(st.ph) + '" value="' + esc(st.type === "pin" ? "" : a || "") + '" autocomplete="off" aria-label="' + esc(st.t) + '"></div><div class="err" id="wzErr"></div>';
+    }
+    h += '<div class="btn-row" style="margin-top:18px;"><button class="btn ghost" data-act="wiz-skip">Salta</button><button class="btn" data-act="wiz-next">' + (wiz.i === n - 1 ? "Fatto" : "Avanti") + "</button></div>";
+    $("wiz").innerHTML = h;
+  }
+  async function wizNext(skip) {
+    const st = STEPS[wiz.i];
+    if (!skip && (st.type === "text" || st.type === "pin")) {
+      const v = $("wzIn").value.trim();
+      if (st.type === "pin" && v && v.length < 4) { $("wzErr").textContent = "Il codice deve avere almeno 4 caratteri."; return; }
+      wiz.ans[st.k] = v;
+    }
+    if (skip) delete wiz.ans[st.k];
+    if (wiz.i < STEPS.length - 1) { wiz.i++; renderWiz(); return; }
+    const a = wiz.ans, gen = a.genere || "nd";
+    profile = { nome: (a.nome || "").slice(0, 30), genere: gen, eta: a.eta || "nd", situazioni: a.situazioni || [], deviazione: a.deviazione || "medio",
+                forma: gen === "donna" ? "f" : gen === "uomo" ? "m" : "n" };
+    store.set("profile", profile);
+    if (a.pw) { prefs.pwHash = await hashPw(a.pw); savePrefs(); }
+    applyForma(); refreshScores();
+    if (store.get("done", false)) { toast("Profilo aggiornato", true); stack = []; go("s-settings", false); return; }
+    renderTut(0); go("s-tut");
+  }
+
+  // ------------------------------------------------------------ tutorial
+  const TUT = [
+    { pose: "hero", t: () => "Ciao" + (profile && profile.nome ? " " + profile.nome : "") + ", sono Lumi", p: () => "Ti aiuto a scegliere strade dove sentirti più a tuo agio, quando cammini a Vicenza." },
+    { pose: "act1", t: () => "Dimmi dove vai", p: () => "Cerca una via o un luogo, oppure tocca la mappa. Ti propongo il percorso che preferisce strade illuminate e vissute." },
+    { pose: "act2", t: () => "Leggi i colori", p: () => "Verde: strade illuminate e frequentate. Giallo: più tranquille. Rosso: poca luce o poche persone. I colori cambiano con l'ora." },
+    { pose: "act3", t: () => "Cammina con me", p: () => "Ti guido svolta per svolta. Il pulsante SOS mostra subito il 112, senza codici." },
+    { pose: "emo3", t: () => "Una stima, non una garanzia", p: () => "Lumi stima come ci si sente in una strada a partire da dati pubblici. Non misura la sicurezza reale: fidati anche di quello che vedi." }
+  ];
+  let tutIdx = 0;
+  function renderTut(i) {
+    tutIdx = i; const st = TUT[i];
+    $("tutImg").dataset.m = st.pose; applyGuide();
+    $("tutT").textContent = st.t(); $("tutP").textContent = st.p();
+    $("tutDots").innerHTML = TUT.map((_, k) => '<i class="' + (k === i ? "on" : "") + '"></i>').join("");
+    $("tutBack").style.visibility = i === 0 ? "hidden" : "visible";
+    $("tutNext").textContent = i === TUT.length - 1 ? "Ho capito" : "Avanti";
+  }
+  function renderEnd() {
+    $("endT").textContent = profile && profile.nome ? "Fatto, " + profile.nome + "!" : "Ho adattato i percorsi a te";
+    $("endList").innerHTML = adaptations().map(t => "<li>" + esc(t) + "</li>").join("");
+  }
+
+  // ------------------------------------------------------------ screens
+  let stack = [], current = "";
+  const NAV = [
+    { id: "home", label: "Home", go: "s-home", icon: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>' },
+    { id: "map", label: "Mappa", go: "s-plan", icon: '<path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/>' },
+    { id: "sos", label: "SOS", sos: true },
+    { id: "support", label: "Supporto", go: "s-support", icon: '<path d="M12 20s-7-4.4-7-9.5A3.8 3.8 0 0 1 12 8a3.8 3.8 0 0 1 7 2.5C19 15.6 12 20 12 20z"/>' },
+    { id: "diary", label: "Diario", go: "s-diary", icon: '<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/>' }
+  ];
+  function renderNav(cur) {
+    const bar = $("bnav"), active = { "s-home": "home", "s-support": "support", "s-diary": "diary" }[cur];
+    bar.hidden = !active;
+    if (!active) return;
+    bar.innerHTML = NAV.map(n => n.sos
+      ? '<button class="sosc" data-act="sos" aria-label="SOS, chiama il 112"><svg class="ico" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1z"/></svg>SOS</button>'
+      : '<button class="' + (n.id === active ? "on" : "") + '" data-go="' + n.go + '"><svg class="ico" viewBox="0 0 24 24">' + n.icon + "</svg>" + n.label + "</button>").join("");
+  }
+  function go(id, push) {
+    if (current === "s-note" && id !== "s-note") purgeEmptyNote();
+    if (push !== false && current && current !== id) stack.push(current);
+    current = id;
+    document.querySelectorAll(".scr").forEach(s => s.classList.toggle("on", s.id === id));
+    const el = $(id); if (el && !el.classList.contains("map")) el.scrollTop = 0;
+    renderNav(id);
+    if (id === "s-form") { wiz.i = 0; wiz.ans = profile ? { nome: profile.nome, genere: profile.genere, eta: profile.eta, situazioni: [...(profile.situazioni || [])], deviazione: profile.deviazione } : {}; renderWiz(); }
+    if (id === "s-end") renderEnd();
+    if (id === "s-home") renderHome();
+    if (id === "s-support") { renderNumbers(); renderContacts(); $("supTag").textContent = g("Non sei sola. ", "Non sei solo. ", "") + "Qui trovi chi ascolta, sempre."; }
+    if (id === "s-report") renderReport();
+    if (id === "s-diary") { renderTrips(); renderNotes(); renderReports(); }
+    if (id === "s-share") renderShare();
+    if (id === "s-settings") renderSettings();
+    if (id === "s-arrive") renderArrive();
+    if (id === "s-plan") { renderPlan(); setYouMode(false); if (map) map.resize(); }
+    if (id === "s-nav") { setYouMode(true); if (map) map.resize(); }
+    if (id === "s-search") { $("q").value = ""; renderResults(""); setTimeout(() => $("q").focus(), 80); }
+  }
+  function back() { go(stack.pop() || "s-home", false); }
+
+  // ------------------------------------------------------------ sheet
+  let pendingForm = null;
+  function sheet(title, text, body) {
+    pendingForm = null;
+    $("sheetT").textContent = title; $("sheetP").textContent = text || "";
+    $("sheetBody").innerHTML = (body || "") + '<button class="btn ghost" data-act="sheet-close" style="margin-top:8px">Chiudi</button>';
+    $("sheet").classList.add("on"); $("scrim").classList.add("on");
+  }
+  function closeSheet() { $("sheet").classList.remove("on"); $("scrim").classList.remove("on"); pendingForm = null; }
+  function openForm(title, text, fields, btn, fn) {
+    sheet(title, text, fields.map(f => '<div class="field" style="margin-bottom:10px;"><label for="sf_' + f.id + '" style="font-size:13px;font-weight:700;display:block;margin-bottom:6px;">' + f.label + '</label><input id="sf_' + f.id + '" type="' + (f.type || "text") + '" placeholder="' + (f.ph || "") + '" autocomplete="off"></div>').join("")
+      + '<div class="err" id="sfErr"></div><button class="btn" data-act="sheet-submit">' + btn + "</button>");
+    pendingForm = { fields, fn };
+  }
+  async function submitForm() {
+    const f = pendingForm; if (!f) return;
+    const vals = {}; f.fields.forEach(x => { vals[x.id] = $("sf_" + x.id).value.trim(); });
+    const err = await f.fn(vals);
+    if (err) { $("sfErr").textContent = err; return; }
+    if (pendingForm === f) closeSheet();
+  }
+  async function hashPw(s) {
+    try { const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("lumi:" + s)); return Array.from(new Uint8Array(d)).map(x => x.toString(16).padStart(2, "0")).join(""); }
+    catch (e) { return "p:" + s; }
+  }
+  function askPw(title, text, btn, ok) {
+    if (!prefs.pwHash) { ok(); return; }
+    openForm(title, text, [{ id: "pw", label: "Codice", type: "password" }], btn, async v => {
+      if ((await hashPw(v.pw)) !== prefs.pwHash) return "Codice errato.";
+      closeSheet(); ok(); return null;
+    });
+  }
+
+  // ------------------------------------------------------------ SOS: never behind a code
+  function sos() {
+    sheet("Emergenza", "Se sei in pericolo chiama il 112. Se puoi, entra in un locale aperto o avvicinati ad altre persone.",
+      '<div class="big112"><div><b>112</b><br><span>Numero unico di emergenza</span></div><a class="btn danger" href="tel:112" style="width:auto;">Chiama</a></div>' +
+      '<div class="big112" style="background:var(--pl);"><div><b style="color:var(--p);">1522</b><br><span>Antiviolenza e stalking, 24 ore su 24</span></div><a class="btn" href="tel:1522" style="width:auto;">Chiama</a></div>' +
+      (sharing ? "" : '<button class="btn ghost" data-act="share-start">Manda la posizione a una persona di fiducia</button>'));
+  }
+
+  // ------------------------------------------------------------ numbers
+  const NUM = {
+    em: [["112", "Numero unico di emergenza", "Carabinieri, Polizia, ambulanza, vigili del fuoco"], ["113", "Polizia di Stato", ""], ["118", "Emergenza sanitaria", ""], ["115", "Vigili del fuoco", ""]],
+    sup: [["1522", "Antiviolenza e stalking", "Gratuito, 24 ore su 24, anche in altre lingue"]]
+  };
+  const numRow = ([n, t, d]) => '<div class="item"><span class="tx"><b>' + esc(t) + "</b>" + (d ? "<span>" + esc(d) + "</span>" : "") + '</span><span class="num">' + n + '</span><a class="callp" href="tel:' + n + '">Chiama</a></div>';
+  function renderNumbers() { $("numEm").innerHTML = NUM.em.map(numRow).join(""); $("numSup").innerHTML = NUM.sup.map(numRow).join(""); }
+
+  // ------------------------------------------------------------ info pages
+  const INFO = {
+    tips: () => ({ t: "Consigli", intro: "Piccole abitudini che aiutano, prima, durante e dopo.", items: [
+      ["Prima di uscire", "Di' a una persona di fiducia dove vai e quando pensi di arrivare. Con Lumi puoi mandarle la posizione."],
+      ["Scegli il percorso", "Preferisci vie illuminate, frequentate e con negozi aperti. Controlla il colore delle strade all'ora in cui esci: cambia con il buio."],
+      ["Telefono pronto", "Batteria carica, una sola cuffia o volume basso, così senti cosa succede intorno."],
+      [g("Se ti senti seguita", "Se ti senti seguito", "Se senti che qualcuno ti segue"), "Non restare in una strada vuota: entra in un locale aperto (bar, farmacia, negozio), avvicinati ad altre persone e chiama il 112."],
+      ["Mezzi pubblici", "Siediti vicino a chi guida o dove ci sono altre persone. Se qualcuno ti infastidisce, avvisa l'autista."],
+      ["Dopo un episodio", "Annota luogo e ora finché ricordi bene. Puoi parlarne con il 1522 o con un centro antiviolenza anche senza denunciare."]
+    ] }),
+    guide: () => ({ t: "Come funziona Lumi", intro: "Cosa significano i colori, da dove vengono i dati e cosa Lumi non può fare.", items: [
+      ["I colori", "Ogni tratto di strada ha un punteggio da 0 a 100 che stima la sicurezza percepita. Verde sopra 65, giallo tra 40 e 65, rosso sotto 40. Il punteggio cambia con l'ora, il giorno e il tuo profilo."],
+      ["Cosa conta", "Luce, presenza di persone, negozi e locali aperti, visuale libera, vie d'uscita, uso del suolo, qualità del marciapiede, posti dove chiedere aiuto, mezzi pubblici. Di notte il buio pesa di più."],
+      ["Da dove vengono i dati", "OpenStreetMap, ISTAT, Comune di Vicenza, Overture Maps. Dove la luce non è mappata è stimata con un modello statistico."],
+      ["Il percorso consigliato", "Cerca il giusto equilibrio tra lunghezza e strade più tranquille, secondo quanto vuoi allungare. Ti mostriamo anche il più breve, così scegli tu."],
+      ["Cosa non può garantire", "È una stima basata su dati pubblici, che possono essere incompleti. Non misura la sicurezza reale di un luogo e non sostituisce il tuo giudizio."],
+      ["I tuoi diritti", "Le molestie insistenti possono essere reato (art. 660 c.p.); lo stalking è reato (art. 612-bis c.p.) e si può chiedere l'ammonimento del questore; la violenza sessuale è reato (art. 609-bis c.p.). Un centro antiviolenza può spiegarti tutele e percorsi, gratuitamente."]
+    ] }),
+    privacy: () => ({ t: "Privacy", intro: "Dove restano i tuoi dati.", items: [
+      ["Sul tuo telefono", "Risposte, percorsi, note, segnalazioni e contatti restano su questo dispositivo. Lumi non ha ancora un server."],
+      ["La mappa", "La mappa e i punteggi sono già dentro l'app: per cercare una via o calcolare un percorso non mandiamo nulla a servizi esterni."],
+      ["Posizione", "La usiamo solo per mostrarti dove sei e guidarti. La condividi con qualcuno solo se lo decidi tu."],
+      ["Cancellare tutto", "In Impostazioni, «Cancella tutti i miei dati» elimina ogni cosa salvata da Lumi su questo telefono."]
+    ] })
+  };
+  function renderInfo(v) {
+    const d = INFO[v](); $("infoT").textContent = d.t; $("infoIntro").textContent = d.intro;
+    $("infoBody").innerHTML = d.items.map(x => '<details class="acc"><summary>' + esc(x[0]) + "</summary><p>" + esc(x[1]) + "</p></details>").join("");
+  }
+
+  // ------------------------------------------------------------ contacts and sharing
+  function renderContacts() {
+    const list = store.get("contacts", []);
+    $("myContacts").innerHTML = list.length
+      ? '<div class="card">' + list.map((c, i) => '<div class="item"><span class="tx"><b>' + esc(c.name) + "</b><span>" + esc(c.phone) + '</span></span><a class="callp" href="tel:' + esc(c.phone) + '">Chiama</a><button data-act="del-contact" data-i="' + i + '" style="color:var(--red);font-weight:700;font-size:13px;padding:6px;">Rimuovi</button></div>').join("") + "</div>"
+      : '<div class="empty">Nessuna persona ancora. Aggiungi qualcuno a cui mandare la posizione in pochi secondi.</div>';
+  }
+  function addContact() {
+    openForm("Nuova persona di fiducia", "La puoi chiamare o mandarle la posizione durante un percorso.", [{ id: "name", label: "Nome", ph: "Es. Marta" }, { id: "phone", label: "Telefono", type: "tel", ph: "Es. 333 1234567" }], "Salva", v => {
+      if (!v.name) return "Scrivi un nome.";
+      const digits = v.phone.replace(/[^\d+]/g, "");
+      if (digits.replace(/\D/g, "").length < 6) return "Scrivi un numero valido.";
+      const l = store.get("contacts", []); l.push({ name: v.name.slice(0, 40), phone: digits }); store.set("contacts", l); renderContacts(); toast("Persona aggiunta", true); return null;
+    });
+  }
+  let sharing = null;
+  function shareStart() {
+    const list = store.get("contacts", []);
+    if (!list.length) { sheet("Nessuna persona di fiducia", "Aggiungine una in Supporto, nella scheda «Persone di fiducia».", '<button class="btn" data-act="goto-contacts">Aggiungi ora</button>'); return; }
+    sheet("A chi mandi la posizione?", "Riceverà un link con il punto in cui ti trovi.", '<div class="card" style="margin:0 0 6px;">' + list.map((c, i) => '<button class="item" data-act="share-pick" data-i="' + i + '"><span class="tx"><b>' + esc(c.name) + "</b><span>" + esc(c.phone) + '</span></span><span class="chev">›</span></button>').join("") + "</div>");
+  }
+  function sharePick(i) {
+    const c = store.get("contacts", [])[i], p = you();
+    if (!c) return;
+    if (!p) { toast("Non conosco ancora la tua posizione", true); return; }
+    sharing = { name: c.name, t: Date.now() };
+    $("liveBar").classList.add("on"); $("liveTxt").textContent = "Posizione condivisa con " + c.name;
+    const link = "https://www.openstreetmap.org/?mlat=" + p[1].toFixed(5) + "&mlon=" + p[0].toFixed(5) + "#map=18/" + p[1].toFixed(5) + "/" + p[0].toFixed(5);
+    const text = "Sono qui: " + link;
+    sheet("Manda il link a " + c.name, "Il link mostra dove sei adesso. Copialo e mandalo con il messaggio che preferisci.",
+      '<div class="inputrow" style="margin:0;width:100%;word-break:break-all;font-size:13px;user-select:all;">' + esc(text) + '</div><button class="btn" data-act="share-copy" data-t="' + esc(text) + '">Copia il messaggio</button>' +
+      '<a class="btn ghost" href="sms:' + esc(c.phone) + "?&body=" + encodeURIComponent(text) + '">Apri i messaggi</a>');
+  }
+  function stopSharing() { askPw("Ferma la condivisione", "Inserisci il codice per fermarla.", "Ferma", () => { sharing = null; $("liveBar").classList.remove("on"); toast("Condivisione fermata", true); }); }
+
+  function renderShare() { document.querySelectorAll("#s-share [data-tg]").forEach(t => t.classList.toggle("on", !!prefs.share[t.dataset.tg])); }
+  function toggleShare(k) {
+    if (!prefs.share[k]) { prefs.share[k] = true; savePrefs(); renderShare(); return; }
+    askPw("Disattiva", "Inserisci il codice per disattivare.", "Disattiva", () => { prefs.share[k] = false; savePrefs(); renderShare(); });
+  }
+
+  // ------------------------------------------------------------ settings
+  function profileSummary() {
+    const pr = profile || {};
+    const parts = [];
+    const gl = GENERE.find(x => x[0] === pr.genere); if (gl && pr.genere !== "nd") parts.push(gl[1]);
+    const el = ETA.find(x => x[0] === pr.eta); if (el && pr.eta !== "nd") parts.push(el[1]);
+    for (const s of pr.situazioni || []) parts.push(M.profiles[s] ? M.profiles[s].label.toLowerCase() : s);
+    parts.push("deviazioni: " + { poco: "brevi", medio: "medie", molto: "anche lunghe" }[detour()]);
+    return parts.join(" · ");
+  }
+  function renderSettings() {
+    document.querySelectorAll("#s-settings [data-tg]").forEach(t => t.classList.toggle("on", !!prefs[t.dataset.tg]));
+    $("pinState").textContent = prefs.pwHash ? "Attivo" : "Non impostato";
+    $("profTxt").textContent = profileSummary();
+    $("formaTxt").textContent = { f: "Al femminile (sei arrivata)", m: "Al maschile (sei arrivato)", n: "In modo neutro (sei a destinazione)" }[forma()];
+    $("themeTxt").textContent = { auto: "Automatico", light: "Chiaro", dark: "Scuro" }[prefs.theme];
+    const info = DATA.info || {};
+    $("dataInfo").textContent = "Dati: OpenStreetMap al " + String(info.osm || "").slice(0, 10) + ", ISTAT 2021, Comune di Vicenza, Overture Maps. Altezze degli edifici indicative.";
+  }
+  function changePin() {
+    const has = !!prefs.pwHash;
+    openForm(has ? "Cambia il codice" : "Imposta un codice", "Protegge la condivisione e le impostazioni. Il pulsante SOS non lo chiede mai.",
+      (has ? [{ id: "old", label: "Codice attuale", type: "password" }] : []).concat([{ id: "n1", label: "Nuovo codice", type: "password", ph: "Almeno 4 caratteri" }, { id: "n2", label: "Ripeti il nuovo codice", type: "password" }]), "Salva", async v => {
+        if (has && (await hashPw(v.old)) !== prefs.pwHash) return "Codice attuale errato.";
+        if (v.n1.length < 4) return "Il codice deve avere almeno 4 caratteri.";
+        if (v.n1 !== v.n2) return "I due codici non coincidono.";
+        prefs.pwHash = await hashPw(v.n1); savePrefs(); renderSettings(); toast("Codice aggiornato", true); return null;
+      });
+  }
+  function wipe() {
+    sheet("Cancellare tutto?", "Elimina da questo telefono risposte, percorsi, note, segnalazioni, contatti e codice. Non si può annullare.", '<button class="btn danger" data-act="wipe-yes">Cancella tutto</button>');
+  }
+  function wipeNow() {
+    const run = () => {
+      store.wipe(); profile = null; prefs = { discreet: false, big: false, voice: true, theme: "auto", pwHash: "", share: { reports: true, demo: false, routes: true } };
+      applyTheme(); applyForma(); refreshScores(); closeSheet(); stack = []; go("s-welcome", false); toast("Dati cancellati", true);
+    };
+    if (prefs.pwHash) askPw("Cancella tutto", "Inserisci il codice per confermare.", "Cancella", run); else run();
+  }
+
+  // ------------------------------------------------------------ diary
+  function renderTrips() {
+    const trips = store.get("trips", []);
+    $("tripList").innerHTML = trips.length ? trips.map(t => {
+      const d = new Date(t.t);
+      return '<div class="trip"><span class="ti"><svg class="ico" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span><div><b>' + esc(t.from) + " → " + esc(t.to) + "</b><span>" + d.toLocaleDateString("it-IT") + ", " + hhmm(d) + " · " + Math.max(1, Math.round(t.dur / 60)) + " min · " + fmtKm(t.dist) + "</span></div></div>";
+    }).join("") : '<div class="empty">Ancora nessun percorso. Quando avvii una navigazione la trovi qui.</div>';
+  }
+  let curNote = null;
+  const notes = () => store.get("notes", []);
+  function renderNotes() {
+    const l = notes().slice().sort((a, b) => b.t - a.t);
+    $("noteList").innerHTML = l.length ? l.map(n => '<button class="item" data-act="note-open" data-id="' + n.id + '"><span class="tx"><b>' + esc(n.title || "Nota senza titolo") + "</b><span>" + new Date(n.t).toLocaleDateString("it-IT") + " · " + esc((n.body || "").replace(/\s+/g, " ").slice(0, 60) || "Nessun testo") + '</span></span><span class="chev">›</span></button>').join("")
+      : '<div class="empty" style="margin:14px 16px;">Nessuna nota. Tocca + per scriverne una: resta solo qui.</div>';
+  }
+  function openNote(id) {
+    const l = notes(); let n = id ? l.find(x => x.id === id) : null;
+    if (!n) { n = { id: Date.now().toString(36), title: "", body: "", t: Date.now() }; l.push(n); store.set("notes", l); }
+    curNote = n.id; $("ntTitle").value = n.title; $("ntBody").value = n.body; $("ntMeta").textContent = "Modificata il " + new Date(n.t).toLocaleDateString("it-IT");
+    go("s-note");
+  }
+  function saveNote() {
+    const l = notes(), n = l.find(x => x.id === curNote); if (!n) return;
+    n.title = $("ntTitle").value; n.body = $("ntBody").value; n.t = Date.now(); store.set("notes", l); $("ntMeta").textContent = "Salvata alle " + hhmm(new Date());
+  }
+  function purgeEmptyNote() {
+    if (!curNote) return;
+    const l = notes(), n = l.find(x => x.id === curNote);
+    if (n && !n.title.trim() && !n.body.trim()) store.set("notes", l.filter(x => x !== n));
+    curNote = null;
+  }
+  $("ntTitle").addEventListener("input", saveNote);
+  $("ntBody").addEventListener("input", saveNote);
+
+  // ------------------------------------------------------------ reports (types of the brief, section 8)
+  const REPORT_TYPES = [
+    ["luce_scarsa", "Poca luce", '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>'],
+    ["lampione_guasto", "Lampione spento o guasto", '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3z"/><path d="M4 4l16 16"/>'],
+    ["poca_gente", "Strada deserta", '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-3.8 3.8-6 7-6s6 2.2 7 6"/>'],
+    ["angoli_ciechi", "Angoli nascosti, poca visuale", '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><path d="M4 4l16 16"/>'],
+    ["luogo_isolato", "Luogo isolato, senza vie d'uscita", '<path d="M4 20V10l8-6 8 6v10"/><path d="M9 20v-6h6v6"/>'],
+    ["molestie", "Molestie o comportamenti che mettono a disagio", '<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/>'],
+    ["degrado", "Incuria o rifiuti", '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>'],
+    ["marciapiede_ostacoli", "Marciapiede rotto o con ostacoli", '<path d="M3 18h18M6 18l3-8h6l3 8"/><path d="M11 6l2 2"/>'],
+    ["attesa_mezzi", "Fermata scomoda dove aspettare", '<rect x="5" y="3" width="14" height="13" rx="2"/><path d="M5 10h14M8 19v2M16 19v2"/>'],
+    ["luogo_positivo", "Qui mi sono sentit<span class=\"gx\">a</span> bene", '<path d="M12 20s-7-4.4-7-9.5A3.8 3.8 0 0 1 12 8a3.8 3.8 0 0 1 7 2.5C19 15.6 12 20 12 20z"/>']
+  ];
+  const rep = { type: "", when: "now", vote: 0, pos: null };
+  const WHEN = [["now", "Adesso"], ["giorno", "Di giorno"], ["sera", "Di sera"], ["notte", "Di notte"]];
+  function renderReport() {
+    $("repTypes").innerHTML = REPORT_TYPES.map(([k, t, ic]) => '<button class="type' + (k === "luogo_positivo" ? " good" : "") + (rep.type === k ? " on" : "") + '" data-act="rep-type" data-v="' + k + '"><svg class="ico" viewBox="0 0 24 24">' + ic + "</svg><span>" + t + "</span></button>").join("");
+    $("repWhen").innerHTML = WHEN.map(([k, t]) => '<button class="' + (rep.when === k ? "on" : "") + '" data-act="rep-when" data-v="' + k + '">' + t + "</button>").join("");
+    $("repVote").innerHTML = [1, 2, 3, 4, 5].map(v => '<button class="face' + (rep.vote === v ? " on" : "") + '" data-act="rep-vote" data-v="' + v + '">' + v + "<small>" + (v === 1 ? "per niente" : v === 5 ? "molto" : "") + "</small></button>").join("");
+    if (!rep.pos && you()) rep.pos = you();
+    $("repLoc").textContent = rep.pos ? placeName(rep.pos) : "Scegli il punto sulla mappa";
+    $("repErr").textContent = "";
+    applyForma();
+  }
+  function submitReport() {
+    if (!rep.pos) { $("repErr").textContent = "Scegli il punto sulla mappa."; return; }
+    if (!rep.type) { $("repErr").textContent = "Scegli cosa hai notato."; return; }
+    const m = QV.moment(M, new Date());
+    const bandMap = { giorno: "giorno", prima_ora_buio: "sera", sera: "sera", notte_fonda: "notte", mattina_buia: "notte" };
+    const r = { id: Date.now().toString(36), timestamp: new Date().toISOString(), lat: +rep.pos[1].toFixed(5), lon: +rep.pos[0].toFixed(5),
+                fascia: rep.when === "now" ? bandMap[m.band] : rep.when, tipo: rep.type, voto_sicurezza: rep.vote || null };
+    if (prefs.share.demo && profile) { r.genere = profile.genere === "nd" ? null : profile.genere; r.fascia_eta = profile.eta === "nd" ? null : profile.eta; }
+    const l = store.get("reports", []); l.unshift(r); store.set("reports", l.slice(0, 200));
+    Object.assign(rep, { type: "", when: "now", vote: 0, pos: null });
+    drawReports();
+    toast("Segnalazione salvata. Grazie!", true);
+    stack = []; go("s-home", false);
+  }
+  const typeLabel = k => REPORT_TYPES.find(x => x[0] === k)[1].replace('<span class="gx">a</span>', g("a", "o", "o/a")).replace(/<[^>]+>/g, "");
+  function renderReports() {
+    const l = store.get("reports", []);
+    $("repList").innerHTML = l.length ? l.map(r => '<div class="item"><span class="tx"><b>' + esc(typeLabel(r.tipo)) + "</b><span>" + new Date(r.timestamp).toLocaleDateString("it-IT") + " · " + r.fascia + (r.voto_sicurezza ? " · voto " + r.voto_sicurezza + "/5" : "") + " · " + esc(placeName([r.lon, r.lat])) + "</span></span></div>").join("")
+      : '<div class="empty" style="margin:14px 16px;">Nessuna segnalazione.</div>';
+  }
+
+  // ------------------------------------------------------------ home
+  function renderHome() {
+    $("hello").textContent = profile && profile.nome ? "Ciao " + profile.nome + "!" : "Ciao!";
+    if (!ctx) return;
+    const m = QV.moment(M, new Date());
+    const st = stateNow || computeState(new Date());
+    let tot = 0; const km = [0, 0, 0];
+    for (let i = 0; i < ctx.N; i++) { const L = ctx.S.lunghezza[i]; tot += L; km[st.cls[i]] += L; }
+    $("nowT").textContent = "Adesso a Vicenza: " + M.bands[m.band].label.toLowerCase();
+    $("nowS").textContent = "Alba " + QV.clock(m.sunrise) + " · tramonto " + QV.clock(m.sunset) + " · colori per il tuo profilo";
+    $("nowPct").textContent = Math.round(100 * (km[0] + km[1]) / tot) + "%";
+    $("nowBar").innerHTML = km.map((k, c) => '<i style="width:' + (100 * k / tot).toFixed(1) + "%;background:var(--" + ["green", "amber", "red"][c] + ')"></i>').join("");
+    $("nowLegend").innerHTML = ["verdi", "gialle", "rosse"].map((t, c) => '<span><i style="background:var(--' + ["green", "amber", "red"][c] + ')"></i>' + t + " " + Math.round(100 * km[c] / tot) + "%</span>").join("");
+  }
+
+  // ------------------------------------------------------------ map + data
+  let ctx = null, grid = null, G = null, map = null, mapReady = false, stateNow = null, nightMap = null;
+  let segFC = null;
+  const PAL = {
+    day: { bg: "#d6d2df", water: "#b9cbe3", park: "#c6dbbd", road: "#bdb6c9", bld: "#fbfaff", edge: "#8a83a0", c: ["#1f9455", "#e8941f", "#d93a33"], glow: 0.3 },
+    night: { bg: "#15131f", water: "#1b2740", park: "#16231b", road: "#3a3549", bld: "#2a2638", edge: "#6b6585", c: ["#4fd18b", "#f4b74e", "#ff6b5e"], glow: 0.5 }
+  };
+  function computeState(date) {
+    const m = QV.moment(M, date);
+    return QV.scores(ctx, { band: m.band, day: m.day, hour: m.hour, rain: trip.rain, profiles: modelProfiles() });
+  }
+  function refreshScores() {
+    if (!ctx) return;
+    const when = trip.when || new Date();
+    stateNow = computeState(when);
+    const dark = M.bands[stateNow.band].dark;
+    for (let i = 0; i < ctx.N; i++) segFC.features[i].properties.c = stateNow.cls[i];
+    if (mapReady) {
+      map.getSource("seg").setData(segFC);
+      if (dark !== nightMap) paintMap(dark);
+    }
+    if (current === "s-home") renderHome();
+    if (route && !nav) planRoutes(true);
+  }
+  function paintMap(dark) {
+    nightMap = dark;
+    const P = dark ? PAL.night : PAL.day;
+    map.setPaintProperty("bg", "background-color", P.bg);
+    map.setPaintProperty("water", "fill-color", P.water);
+    map.setPaintProperty("parks", "fill-color", P.park);
+    map.setPaintProperty("roads", "line-color", P.road);
+    map.setPaintProperty("bld", "fill-extrusion-color", P.bld);
+    map.setPaintProperty("confine", "line-color", P.edge);
+    const color = ["match", ["get", "c"], 0, P.c[0], 1, P.c[1], 2, P.c[2], "#999"];
+    map.setPaintProperty("seg", "line-color", color);
+    map.setPaintProperty("seg-glow", "line-color", color);
+    map.setPaintProperty("seg-glow", "line-opacity", P.glow);
+    $("whenChip").classList.toggle("night", dark);
+  }
+
+  async function decodeBuildings() {
+    const B = DATA.buildings, feats = [];
+    if (!B) return { type: "FeatureCollection", features: feats };
+    const rings = await QV.unpack(B.rings, Uint8Array), counts = await QV.unpack(B.counts, Uint16Array);
+    const d = await QV.unpack(B.coords, Int32Array), h = await QV.unpack(B.heights, Uint8Array);
+    let x = 0, y = 0, p = 0, r = 0;
+    for (let b = 0; b < rings.length; b++) {
+      const poly = [];
+      for (let k = 0; k < rings[b]; k++) {
+        const n = counts[r++], ring = new Array(n + 1);
+        for (let j = 0; j < n; j++) { x += d[p++]; y += d[p++]; ring[j] = [x / 1e5, y / 1e5]; }
+        ring[n] = ring[0]; poly.push(ring);
+      }
+      feats.push({ type: "Feature", properties: { h: h[b] }, geometry: { type: "Polygon", coordinates: poly } });
+    }
+    return { type: "FeatureCollection", features: feats };
+  }
+  const EMPTY = { type: "FeatureCollection", features: [] };
+
+  async function initData() {
+    ctx = await QV.load(DATA);
+    grid = QV.spatialIndex(ctx);
+    G = QV.graph(ctx);
+    segFC = { type: "FeatureCollection", features: Array.from({ length: ctx.N }, (_, i) => ({ type: "Feature", properties: { c: 1 }, geometry: { type: "LineString", coordinates: QV.line(ctx, i) } })) };
+    refreshScores();
+    initMap(await decodeBuildings());
+  }
+
+  function initMap(buildings) {
+    if (typeof maplibregl === "undefined") { $("loading").textContent = "La mappa non si è caricata: controlla la connessione."; return; }
+    const L = DATA.layers;
+    map = new maplibregl.Map({
+      container: "map", center: CENTRO, zoom: 15.4, pitch: 45, bearing: -18, maxPitch: 70, minZoom: 11.5, maxZoom: 19.5,
+      attributionControl: false, dragRotate: true, pitchWithRotate: true,
+      maxBounds: [[11.40, 45.47], [11.68, 45.62]],
+      style: { version: 8, sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": PAL.day.bg } }] }
+    });
+    map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: "© OpenStreetMap contributors · ISTAT · Comune di Vicenza · Overture Maps" }));
+    map.on("load", () => {
+      map.addSource("water", { type: "geojson", data: L.acqua });
+      map.addSource("parks", { type: "geojson", data: L.parchi });
+      map.addSource("roads", { type: "geojson", data: L.non_pedonali });
+      map.addSource("confine", { type: "geojson", data: L.confine });
+      map.addSource("seg", { type: "geojson", data: segFC, tolerance: 0.2 });
+      map.addSource("bld", { type: "geojson", data: buildings, tolerance: 0.3 });
+      map.addSource("route", { type: "geojson", data: EMPTY });
+      map.addSource("route-dots", { type: "geojson", data: EMPTY });
+      map.addSource("alt", { type: "geojson", data: EMPTY });
+      map.addSource("reports", { type: "geojson", data: EMPTY });
+      map.addSource("trail", { type: "geojson", data: EMPTY });
+      const w = (a, b) => ["interpolate", ["exponential", 1.6], ["zoom"], 12, a, 18, b];
+      // streets are drawn wide enough to stay visible in the canyons between the 3D buildings
+      map.addLayer({ id: "water", type: "fill", source: "water", paint: { "fill-color": PAL.day.water } });
+      map.addLayer({ id: "parks", type: "fill", source: "parks", paint: { "fill-color": PAL.day.park } });
+      map.addLayer({ id: "confine", type: "line", source: "confine", paint: { "line-color": PAL.day.edge, "line-width": 1.2, "line-dasharray": [3, 3] } });
+      map.addLayer({ id: "roads", type: "line", source: "roads", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": PAL.day.road, "line-width": w(1.2, 9) } });
+      map.addLayer({ id: "seg-glow", type: "line", source: "seg", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#999", "line-width": w(5, 22), "line-blur": w(4, 14), "line-opacity": 0 } });
+      map.addLayer({ id: "seg", type: "line", source: "seg", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#999", "line-width": w(1.5, 9) } });
+      map.addLayer({ id: "alt", type: "line", source: "alt", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#6b6585", "line-width": w(2, 6), "line-dasharray": [1.2, 1.4], "line-opacity": 0.9 } });
+      map.addLayer({ id: "route-glow", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#c5ef3c", "line-width": w(8, 26), "line-blur": w(4, 10), "line-opacity": 0.55 } });
+      map.addLayer({ id: "route-line", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#1b1b1b", "line-width": w(2, 6), "line-opacity": 0.85 } });
+      map.addLayer({ id: "route-dots", type: "circle", source: "route-dots", paint: { "circle-color": "#c5ef3c", "circle-stroke-color": "#1b1b1b", "circle-stroke-width": 1.2, "circle-radius": ["interpolate", ["linear"], ["zoom"], 13, 2.4, 17, 4.6, 19, 6.5] } });
+      map.addLayer({ id: "trail", type: "line", source: "trail", paint: { "line-color": "#c5ef3c", "line-width": 4, "line-opacity": 0.8 } });
+      map.addLayer({ id: "reports", type: "circle", source: "reports", paint: { "circle-color": "#6a3fd0", "circle-stroke-color": "#fff", "circle-stroke-width": 2, "circle-radius": 6 } });
+      map.addLayer({ id: "bld", type: "fill-extrusion", source: "bld", minzoom: 13.5, paint: {
+        "fill-extrusion-color": PAL.day.bld, "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 13.5, 0, 15, ["get", "h"]],
+        "fill-extrusion-base": 0, "fill-extrusion-opacity": 0.88, "fill-extrusion-vertical-gradient": true } });
+      map.setLight({ anchor: "viewport", color: "#ffffff", intensity: 0.32, position: [1.2, 200, 35] });
+      mapReady = true;
+      paintMap(M.bands[stateNow.band].dark);
+      map.getSource("seg").setData(segFC);
+      drawReports();
+      $("loading").remove();
+      if (route) drawRoute();
+    });
+    map.on("click", onMapClick);
+    map.on("dragstart", () => { follow = false; });
+  }
+
+  // ------------------------------------------------------------ places
+  function placeName(p) {
+    if (!ctx) return p[1].toFixed(4) + ", " + p[0].toFixed(4);
+    const hit = QV.nearest(ctx, grid, p[0], p[1], 120);
+    if (!hit) return "Punto sulla mappa";
+    const via = DATA.names.via[ctx.S.via[hit.i]];
+    return (via === M.unnamed_label ? "Percorso pedonale" : via) + " · " + DATA.names.quartiere[ctx.S.quartiere[hit.i]];
+  }
+  function drawReports() {
+    if (!mapReady) return;
+    const l = store.get("reports", []);
+    map.getSource("reports").setData({ type: "FeatureCollection", features: l.map(r => ({ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [r.lon, r.lat] } })) });
+  }
+
+  // ------------------------------------------------------------ position (GPS or simulated)
+  let gps = null, youM = null, follow = true, sim = null;
+  const you = () => sim ? sim.pos : gps;
+  function makeYou() {
+    const el = document.createElement("div"); el.className = "you";
+    el.innerHTML = '<div class="dot"></div><svg class="arr" viewBox="0 0 24 24"><path d="M12 2L21 21L12 17L3 21Z"/></svg>';
+    return el;
+  }
+  function placeYou(p, heading) {
+    if (!map || !p) return;
+    if (!youM) youM = new maplibregl.Marker({ element: makeYou(), rotationAlignment: "map" }).setLngLat(p).addTo(map);
+    youM.setLngLat(p);
+    if (heading != null) youM.setRotation(heading);
+  }
+  function setYouMode(nav) { if (youM) youM.getElement().className = "you" + (nav ? " nav" : ""); }
+  function startGps() {
+    if (!window.isSecureContext || !navigator.geolocation) return;
+    navigator.geolocation.watchPosition(pos => {
+      const p = [pos.coords.longitude, pos.coords.latitude];
+      if (!ctx || !QV.nearest(ctx, grid, p[0], p[1], M.routing.max_snap_m)) { gps = null; return; }  // outside Vicenza
+      gps = p;
+      if (!sim) { placeYou(p, pos.coords.heading); onPosition(p); }
+      if (!from) { from = { pos: p, name: "La tua posizione", gps: true }; renderPlan(); }
+    }, () => { gps = null; }, { enableHighAccuracy: true, maximumAge: 3000, timeout: 20000 });
+  }
+
+  // ------------------------------------------------------------ planning
+  let from = null, to = null, route = null, routes = [], chosen = 0, searchField = "to", pickMode = null, tapField = null, destM = null, fromM = null;
+  function pinEl(color) {
+    const el = document.createElement("div"); el.className = "pin";
+    el.innerHTML = '<svg width="36" height="46" viewBox="0 0 44 56"><path d="M22 2C11 2 3 10 3 21c0 14 19 33 19 33s19-19 19-33C41 10 33 2 22 2z" fill="' + color + '" stroke="#1b1b1b" stroke-width="2"/><circle cx="22" cy="20" r="7" fill="#fff" stroke="#1b1b1b" stroke-width="2"/></svg>';
+    return el;
+  }
+  function drawPins() {
+    if (!map) return;
+    if (to) { if (!destM) destM = new maplibregl.Marker({ element: pinEl("#c5ef3c"), anchor: "bottom" }); destM.setLngLat(to.pos).addTo(map); } else if (destM) destM.remove();
+    if (from && !from.gps) { if (!fromM) fromM = new maplibregl.Marker({ element: pinEl("#9a7ae6"), anchor: "bottom" }); fromM.setLngLat(from.pos).addTo(map); } else if (fromM) fromM.remove();
+  }
+  function onMapClick(e) {
+    const p = [e.lngLat.lng, e.lngLat.lat];
+    if (current === "s-nav") return;
+    const hit = QV.nearest(ctx, grid, p[0], p[1], M.routing.max_snap_m);
+    if (!hit) { toast("Qui non ci sono strade pedonali: tocca più vicino a una via"); return; }
+    const snapped = [hit.lon, hit.lat];
+    if (pickMode === "report") { rep.pos = snapped; pickMode = null; back(); return; }
+    if (current !== "s-plan") return;
+    const name = placeName(snapped).split(" · ")[0];
+    if (tapField === "from" || (!tapField && !from)) { from = { pos: snapped, name }; if (!to) toast("Partenza scelta. Ora tocca la destinazione"); }
+    else { to = { pos: snapped, name }; }
+    tapField = null;
+    renderPlan(); planRoutes();
+  }
+  function setPlace(field, place) {
+    if (field === "from") from = place; else to = place;
+    renderPlan(); planRoutes();
+    if (map && !route) map.easeTo({ center: place.pos, zoom: 16, duration: 700 });
+  }
+  function renderPlan() {
+    $("fromTxt").textContent = from ? from.name : "Tocca la mappa o cerca"; $("fromTxt").classList.toggle("ph", !from);
+    $("toTxt").textContent = to ? to.name : "Dove vuoi andare?"; $("toTxt").classList.toggle("ph", !to);
+    $("companyTxt").textContent = trip.company ? "In compagnia" : g("Da sola", "Da solo", "Senza compagnia");
+    const m = QV.moment(M, trip.when || new Date());
+    $("whenTxt").textContent = (trip.when ? "Alle " + hhmm(trip.when) : "Adesso") + " · " + M.bands[m.band].label.toLowerCase() + (trip.rain ? " · pioggia" : "");
+    drawPins();
+    renderSheet();
+  }
+  function renderSheet() {
+    const el = $("pSheet");
+    if (pickMode === "report") { el.innerHTML = '<div class="grab"></div><div class="row"><div class="mini"><img class="mz" data-m="act1" alt=""></div><div class="st">Tocca il punto da segnalare<span>Sulla mappa, vicino a una strada</span></div></div><button class="btn ghost" style="margin-top:10px;" data-act="pick-cancel">Annulla</button>'; applyGuide(); return; }
+    if (!routes.length) {
+      const demo = demoPlaces();
+      el.innerHTML = '<div class="grab"></div><div class="row"><div class="mini"><img class="mz" data-m="act1" alt=""></div><div class="st">' + (from && to ? "Calcolo il percorso…" : !from ? "Da dove parti?" : "Dove vuoi andare?") + "<span>" +
+        (from && to ? "" : "Cerca in alto o tocca una strada sulla mappa") + "</span></div></div>" +
+        (demo && !to ? '<div class="demo"><button class="pchip" data-act="demo-route">Prova di sera: ' + esc(demo[0].name) + " → " + esc(demo[1].name) + "</button></div>" : "");
+      applyGuide(); return;
+    }
+    const st = routeState, speed = walkSpeed(st.profs);
+    const opt = (r, k) => {
+      const min = Math.max(1, Math.round(r.length / speed / 60)), tot = r.length || 1;
+      const label = k === 0 ? "Consigliato" + (routes.length > 1 ? "" : '<span class="badge">anche il più breve</span>') : "Più breve";
+      const crit = r.redM >= 5 ? Math.round(r.redM) + " m con criticità percepite" : "nessun tratto rosso";
+      return '<button class="ropt' + (chosen === k ? " on" : "") + '" data-act="choose" data-v="' + k + '"><b>' + label + '</b><span class="t">' + min + " min</span>" +
+        '<span class="d">' + fmtKm(r.length) + " · " + Math.round(100 * r.greenM / tot) + "% su strade verdi · " + crit + "</span>" +
+        '<span class="bar3">' + [r.greenM, r.yellowM, r.redM].map((v, c) => '<i style="width:' + (100 * v / tot).toFixed(1) + "%;background:var(--" + ["green", "amber", "red"][c] + ')"></i>').join("") + "</span></button>";
+    };
+    el.innerHTML = '<div class="grab"></div>' + routes.map(opt).join("") + '<p class="why">' + esc(whyText()) + '</p><button class="btn" style="margin-top:12px;" data-act="start"><svg class="ico w" viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M12 3l7 17-7-4-7 4z"/></svg>Avvia</button>';
+  }
+  function whyText() {
+    if (routes.length < 2) return routes[0].redM < 5 ? "Il percorso più breve passa già su strade senza criticità a quest'ora." : "Non c'è un'alternativa ragionevole: ti avviso quando passi sui tratti rossi.";
+    const [a, b] = routes, extra = Math.round(a.length - b.length);
+    const avoided = new Set();
+    const inA = new Set(a.parts.map(q => q.i));
+    for (const q of b.parts) {
+      if (inA.has(q.i) || routeState.cls[q.i] !== 2) continue;
+      const v = DATA.names.via[ctx.S.via[q.i]];
+      if (v !== M.unnamed_label) avoided.add(v);
+      else if (ctx.H.bits[routeState.off + q.i] & 4) avoided.add("un parco al buio");
+      else avoided.add("percorsi pedonali isolati");
+    }
+    const names = [...avoided].slice(0, 2);
+    return "Il consigliato allunga di " + fmtKm(extra) + " ma evita " + Math.round(b.redM - a.redM) + " m di tratti rossi" + (names.length ? " (" + names.join(", ") + ")" : "") + ".";
+  }
+  let routeState = null;
+  function planRoutes(silent) {
+    if (!ctx || !from || !to) { routes = []; route = null; drawRoute(); renderSheet(); return; }
+    const a = QV.nearest(ctx, grid, from.pos[0], from.pos[1], M.routing.max_snap_m), b = QV.nearest(ctx, grid, to.pos[0], to.pos[1], M.routing.max_snap_m);
+    if (!a || !b) { toast("Non trovo strade pedonali vicino a quel punto"); return; }
+    routeState = computeState(trip.when || new Date());
+    const lam = routeState.lam * M.routing.detour_preference[detour()];
+    const best = QV.route(ctx, G, routeState, a, b, lam), short = QV.route(ctx, G, routeState, a, b, 0);
+    if (!best) { toast("Non trovo un percorso a piedi tra questi due punti"); routes = []; route = null; drawRoute(); renderSheet(); return; }
+    routes = [best];
+    if (short && best.length - short.length >= M.routing.min_alternative_gain_m) routes.push(short);
+    chosen = Math.min(chosen, routes.length - 1);
+    if (!silent) chosen = 0;
+    route = Object.assign({}, routes[chosen], QV.itinerary(ctx, routes[chosen]));
+    drawRoute(!silent);
+    renderSheet();
+  }
+  function choose(k) { chosen = k; route = Object.assign({}, routes[k], QV.itinerary(ctx, routes[k])); drawRoute(false); renderSheet(); }
+  function sample(coords, step) {
+    const out = [coords[0]]; let next = step, s0 = 0;
+    for (let i = 1; i < coords.length; i++) {
+      const a = coords[i - 1], b = coords[i], L = QV.distM(a, b);
+      while (next < s0 + L) { const f = (next - s0) / L; out.push([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]); next += step; }
+      s0 += L;
+    }
+    return out;
+  }
+  function drawRoute(fit) {
+    if (!mapReady) return;
+    const line = c => ({ type: "FeatureCollection", features: c ? [{ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: c } }] : [] });
+    if (!route) { ["route", "route-dots", "alt"].forEach(s => map.getSource(s).setData(EMPTY)); return; }
+    map.getSource("route").setData(line(route.coords));
+    map.getSource("route-dots").setData({ type: "FeatureCollection", features: sample(route.coords, 12).map(p => ({ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: p } })) });
+    const other = routes.length > 1 ? QV.itinerary(ctx, routes[1 - chosen]).coords : null;
+    map.getSource("alt").setData(line(other));
+    if (fit) {
+      const xs = route.coords.map(c => c[0]), ys = route.coords.map(c => c[1]);
+      map.fitBounds([[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]], { padding: { top: 190, bottom: Math.round(innerHeight * 0.42), left: 50, right: 70 }, pitch: 45, bearing: -18, duration: 900, maxZoom: 17 });
+    }
+  }
+  // example for demos: at 22:00 the shortest way cuts through Campo Marzo, the recommended one stays on lit streets
+  function demoPlaces() {
+    if (!DATA.search) return null;
+    const a = DATA.search.find(r => r[0] === "Piazzale della Stazione" && r[4] === 0), b = DATA.search.find(r => r[0] === "Corso Fogazzaro");
+    if (!a || !b) return null;
+    const P = (r, name) => ({ pos: [r[2] / 1e5, r[3] / 1e5], name });
+    return [P(a, "Stazione"), P(b, "Corso Fogazzaro")];
+  }
+
+  // ------------------------------------------------------------ search (offline: streets and places of the payload)
+  const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  let searchIdx = null;
+  function renderResults(q) {
+    if (!searchIdx && DATA.search) searchIdx = DATA.search.map(r => [norm(r[0]), r]);
+    const qq = norm(q.trim()), tokens = qq.split(/\s+/).filter(Boolean);
+    $("qHint").textContent = searchField === "from" ? "Da dove parti?" : searchField === "report" ? "Dove vuoi segnalare?" : "Dove vuoi andare?";
+    let out = [];
+    if (!tokens.length) {
+      const first = [];
+      if (gps && searchField !== "to") first.push('<button class="item" data-act="pick-gps"><span class="ii"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/></svg></span><span class="tx"><b>La tua posizione</b></span></button>');
+      first.push('<button class="item" data-act="pick-map"><span class="ii"><svg class="ico" viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/></svg></span><span class="tx"><b>Scegli sulla mappa</b><span>Tocca una strada</span></span></button>');
+      $("qRes").innerHTML = first.join("");
+      return;
+    }
+    for (const [n, r] of searchIdx || []) {
+      if (!tokens.every(t => n.includes(t))) continue;
+      const score = (n.startsWith(qq) ? 0 : n.includes(" " + tokens[0]) ? 1 : 2) + (r[4] === 0 ? 0 : r[1] === "fermata del bus" ? 0.8 : 0.4) + n.length / 200;
+      out.push([score, r]);
+    }
+    out.sort((a, b) => a[0] - b[0]);
+    out = out.slice(0, 12);
+    $("qRes").innerHTML = out.length ? out.map(([, r], k) => '<button class="item" data-act="pick-res" data-i="' + DATA.search.indexOf(r) + '"><span class="ii"><svg class="ico" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span><span class="tx"><b>' + esc(r[0]) + "</b><span>" + esc(r[4] === 0 ? "Via o piazza · " + r[1] : r[1]) + "</span></span></button>").join("")
+      : '<div class="empty" style="margin:14px 16px;">Nessun risultato a Vicenza. Prova con un altro nome o tocca la mappa.</div>';
+  }
+  $("q").addEventListener("input", () => renderResults($("q").value));
+  $("q").addEventListener("keydown", e => { if (e.key === "Enter") { const b = $("qRes").querySelector("[data-act]"); if (b) b.click(); } });
+  function pickResult(i) {
+    const r = DATA.search[i], place = { pos: [r[2] / 1e5, r[3] / 1e5], name: r[0] };
+    if (searchField === "report") { rep.pos = place.pos; back(); return; }
+    back(); setPlace(searchField, place);
+  }
+
+  // ------------------------------------------------------------ navigation
+  let nav = null;
+  const TURN = {
+    straight: ['<path d="M12 20V5M6 11l6-6 6 6"/>', "Prosegui dritto"], uturn: ['<path d="M8 20V9a4 4 0 0 1 8 0v4"/><path d="M12 10l4 4 4-4"/>', "Torna indietro"],
+    left: ['<path d="M17 20V12a4 4 0 0 0-4-4H6"/><path d="M10 4L6 8l4 4"/>', "Gira a sinistra"], right: ['<path d="M7 20V12a4 4 0 0 1 4-4h7"/><path d="M14 4l4 4-4 4"/>', "Gira a destra"],
+    slight_left: ['<path d="M15 20v-6L8 7"/><path d="M8 12V7h5"/>', "Tieni la sinistra"], slight_right: ['<path d="M9 20v-6l7-7"/><path d="M16 12V7h-5"/>', "Tieni la destra"],
+    arrive: ['<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>', "Arrivo"]
+  };
+  const WHY = { luce: "poca luce", persone: "poche persone in giro", fronti_attivi: "pochi negozi o locali aperti", visuale: "visuale chiusa", vie_di_fuga: "poche vie d'uscita",
+                uso_suolo: "zona poco vissuta a quest'ora", percorso: "marciapiede scomodo", punti_aiuto: "pochi posti aperti dove chiedere aiuto", trasporto: "fermate lontane" };
+  const GOOD = { luce: "illuminata", persone: "frequentata", fronti_attivi: "con negozi aperti", visuale: "con buona visuale", vie_di_fuga: "con molte vie d'uscita", punti_aiuto: "con posti dove chiedere aiuto" };
+  function startNav() {
+    if (!route) return;
+    const trips = store.get("trips", []);
+    trips.unshift({ t: Date.now(), from: from.name, to: to.name, dist: route.length, dur: route.length / walkSpeed(routeState.profs) });
+    store.set("trips", trips.slice(0, 30));
+    nav = { along: 0, step: 1, spoken: -1, offCount: 0, done: false, speed: walkSpeed(routeState.profs) };
+    follow = true; go("s-nav");
+    const gpsUsable = gps && QV.distM(gps, route.coords[0]) < 150;
+    $("simChip").hidden = false;
+    $("navMode").textContent = gpsUsable ? "In cammino" : "Simulazione";
+    if (!gpsUsable) startSim(); else { stopSim(); onPosition(gps); }
+    say(TURN.straight[1] + (route.steps[0].name !== M.unnamed_label ? " su " + route.steps[0].name : ""));
+  }
+  function stopNav() { stopSim(); nav = null; if (window.speechSynthesis) window.speechSynthesis.cancel(); go("s-plan", false); drawRoute(true); }
+  function startSim() {
+    stopSim();
+    sim = { pos: route.coords[0], along: 0, timer: null };
+    $("simTxt").textContent = "Ferma la simulazione";
+    const step = 0.25, speedUp = 6;
+    sim.timer = setInterval(() => {
+      sim.along += nav.speed * speedUp * step;
+      sim.pos = pointAlong(route.coords, sim.along);
+      placeYou(sim.pos, headingAt(sim.along));
+      onPosition(sim.pos);
+    }, step * 1000);
+    $("navMode").textContent = "Simulazione";
+  }
+  function stopSim() { if (sim && sim.timer) clearInterval(sim.timer); sim = null; $("simTxt").textContent = "Simula la camminata"; if (gps) placeYou(gps); }
+  function pointAlong(c, d) {
+    let acc = 0;
+    for (let i = 1; i < c.length; i++) { const L = QV.distM(c[i - 1], c[i]); if (acc + L >= d) { const f = L ? (d - acc) / L : 0; return [c[i - 1][0] + (c[i][0] - c[i - 1][0]) * f, c[i - 1][1] + (c[i][1] - c[i - 1][1]) * f]; } acc += L; }
+    return c[c.length - 1];
+  }
+  function headingAt(d) { const a = pointAlong(route.coords, Math.max(0, d - 8)), b = pointAlong(route.coords, d + 12); return QV.bearing(a, b); }
+  function project(c, p) {
+    // distance along the polyline of the closest point to p, and how far p is from it
+    const [kx, ky] = [111320 * Math.cos(p[1] * Math.PI / 180), 110540];
+    let best = Infinity, bestAlong = 0, acc = 0;
+    for (let i = 1; i < c.length; i++) {
+      const ax = (c[i - 1][0] - p[0]) * kx, ay = (c[i - 1][1] - p[1]) * ky, bx = (c[i][0] - p[0]) * kx, by = (c[i][1] - p[1]) * ky;
+      const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy, L = Math.sqrt(l2);
+      const t = l2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / l2)) : 0, d = Math.hypot(ax + t * dx, ay + t * dy);
+      if (d < best) { best = d; bestAlong = acc + t * L; }
+      acc += L;
+    }
+    return { along: bestAlong, off: best };
+  }
+  function say(text) {
+    if (!prefs.voice || !text || !("speechSynthesis" in window)) return;
+    try { const u = new SpeechSynthesisUtterance(text); u.lang = "it-IT"; speechSynthesis.speak(u); } catch (e) { /* no voice available */ }
+  }
+  function onPosition(p) {
+    if (!nav || !route || current !== "s-nav") return;
+    const pr = project(route.coords, p);
+    if (!sim && pr.off > 40) {
+      if (++nav.offCount >= 3) {
+        from = { pos: p, name: "La tua posizione", gps: true }; planRoutes(true);
+        Object.assign(nav, { offCount: 0, along: 0, step: 1, spoken: -1 }); toast("Ricalcolo il percorso"); return;
+      }
+    }
+    else nav.offCount = 0;
+    nav.along = Math.max(nav.along - 5, pr.along);
+    const steps = route.steps, left = route.length - nav.along;
+    while (nav.step < steps.length - 1 && steps[nav.step].at < nav.along + 3) nav.step++;
+    const s = steps[nav.step], dist = Math.max(0, s.at - nav.along);
+    const [icon, verb] = s.type === "arrive" ? TURN.arrive : TURN[s.dir];
+    $("turnSvg").innerHTML = icon;
+    $("tDist").textContent = fmtDist(dist);
+    $("tStreet").textContent = s.type === "arrive" ? "Arrivo a destinazione" : verb + (s.name !== M.unnamed_label ? " in " + s.name : " sul percorso pedonale");
+    $("tProg").style.width = (100 * nav.along / route.length).toFixed(1) + "%";
+    $("tLeft").textContent = Math.max(1, Math.round(left / nav.speed / 60)) + " min · " + fmtKm(left);
+    $("tArr").textContent = "Arrivo alle " + hhmm(new Date(Date.now() + left / nav.speed * 1000));
+    if (dist < 35 && nav.spoken !== nav.step) { nav.spoken = nav.step; say(s.type === "arrive" ? "Stai per arrivare" : verb + (s.name !== M.unnamed_label ? " in " + s.name : "")); }
+    statusAt(nav.along);
+    if (follow && map) map.easeTo({ center: p, bearing: headingAt(nav.along), pitch: 60, zoom: 17.6, duration: sim ? 240 : 800, padding: { top: Math.round(innerHeight * 0.45), bottom: 90, left: 0, right: 0 } });
+    if (left < 15 && !nav.done) { nav.done = true; stopSim(); say(g("Sei arrivata", "Sei arrivato", "Sei a destinazione")); setTimeout(() => go("s-arrive"), 600); }
+  }
+  function statusAt(along) {
+    let acc = 0, i = route.parts[0].i;
+    for (const q of route.parts) { const L = G.len[q.i] * Math.abs(q.f1 - q.f0); if (acc + L >= along) { i = q.i; break; } acc += L; }
+    const c = routeState.cls[i], ex = QV.explain(ctx, routeState, i), K = ctx.K;
+    let txt;
+    if (c === 0) {
+      const good = K.map((k, j) => [k, ex.x[j]]).filter(([k, v]) => GOOD[k] && v > 0.6).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k]) => GOOD[k]);
+      txt = "Strada " + (good.length ? good.join(" e ") : "tranquilla");
+    } else {
+      const worst = K.map((k, j) => [k, ex.loss[j]]).filter(([k, v]) => WHY[k] && !Number.isNaN(v)).sort((a, b) => b[1] - a[1])[0];
+      txt = (c === 2 ? "Tratto con criticità: " : "Tratto più tranquillo: ") + (worst ? WHY[worst[0]] : "");
+      if (c === 2) txt += ". Resta dove c'è luce";
+    }
+    $("nState").className = "nstate c" + c;
+    $("nStateTxt").textContent = txt;
+  }
+  function renderArrive() {
+    $("arrT").textContent = g("Sei arrivata.", "Sei arrivato.", "Sei a destinazione.");
+    if (!route) { $("arriveSummary").innerHTML = ""; return; }
+    const tot = route.length || 1;
+    const row = (t, v) => '<div class="kv"><span>' + t + "</span><span>" + v + "</span></div>";
+    $("arriveSummary").innerHTML = row("Distanza", fmtKm(route.length)) + row("Su strade verdi", Math.round(100 * route.greenM / tot) + "%") +
+      row("Tratti con criticità", route.redM < 5 ? "nessuno" : Math.round(route.redM) + " m") + row("Punteggio medio", Math.round(route.mean) + " su 100");
+  }
+
+  // ------------------------------------------------------------ time and company
+  function whenSheet() {
+    const now = new Date(), hours = [];
+    for (let h = 0; h < 24; h++) hours.push(h);
+    const sel = trip.when ? trip.when.getHours() : -1;
+    sheet("Quando parti?", "I colori e il percorso cambiano con l'ora: di sera conta di più la luce.",
+      '<div class="seg" style="margin:0 0 12px;"><button class="' + (!trip.when ? "on" : "") + '" data-act="when-now">Adesso</button><button class="' + (trip.rain ? "" : "on") + '" data-act="rain" data-v="0">Sereno</button><button class="' + (trip.rain ? "on" : "") + '" data-act="rain" data-v="1">Pioggia</button></div>' +
+      '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;">' + hours.map(h => {
+        const d = new Date(now); d.setHours(h, 0, 0, 0); if (h < now.getHours()) d.setDate(d.getDate() + 1);
+        const dark = M.bands[QV.moment(M, d).band].dark;
+        return '<button class="face' + (sel === h ? " on" : "") + '" style="min-height:44px;' + (dark ? "background:#2b2545;color:#f1edfa;" : "") + '" data-act="when-h" data-v="' + h + '">' + String(h).padStart(2, "0") + "</button>";
+      }).join("") + '</div><p class="note-s" style="padding:0;">Le ore scure sono quelle dopo il tramonto.</p>');
+  }
+  function setWhen(h) {
+    if (h == null) trip.when = null;
+    else { const d = new Date(); d.setHours(h, 0, 0, 0); if (h < new Date().getHours()) d.setDate(d.getDate() + 1); trip.when = d; }
+    closeSheet(); refreshScores(); renderPlan();
+    if (!route) planRoutes();
+  }
+  function legend() {
+    sheet("I colori delle strade", "Stima della sicurezza percepita da 0 a 100, per il tuo profilo e l'ora scelta.",
+      '<div class="card" style="margin:0;">' +
+      '<div class="item"><span style="width:28px;height:8px;border-radius:4px;background:var(--green);flex:none;"></span><span class="tx"><b>Verde, sopra 65</b><span>Illuminata, frequentata, con negozi o locali aperti</span></span></div>' +
+      '<div class="item"><span style="width:28px;height:8px;border-radius:4px;background:var(--amber);flex:none;"></span><span class="tx"><b>Giallo, 40–65</b><span>Più tranquilla: manca qualcosa, per esempio gente o negozi</span></span></div>' +
+      '<div class="item"><span style="width:28px;height:8px;border-radius:4px;background:var(--red);flex:none;"></span><span class="tx"><b>Rosso, sotto 40</b><span>Criticità percepite: poca luce, poche persone, visuale chiusa</span></span></div>' +
+      '<div class="item"><span style="width:28px;height:8px;border-radius:4px;background:#b9b3c6;flex:none;"></span><span class="tx"><b>Grigio</b><span>Strade dove non si cammina (tangenziali, superstrade)</span></span></div></div>' +
+      '<p class="note-s" style="padding:0;">È una stima a partire da dati pubblici: non misura la sicurezza reale di un luogo.</p>');
+  }
+
+  // ------------------------------------------------------------ clicks
+  document.addEventListener("click", e => {
+    const t = e.target;
+    const tab = t.closest("[data-tab]");
+    if (tab) {
+      const grp = tab.dataset.group, v = tab.dataset.tab;
+      document.querySelectorAll('[data-tab][data-group="' + grp + '"]').forEach(b => b.classList.toggle("on", b.dataset.tab === v));
+      document.querySelectorAll('[data-panel][data-group="' + grp + '"]').forEach(p => p.classList.toggle("on", p.dataset.panel === v));
+      return;
+    }
+    const gg = t.closest("[data-go]"); if (gg) { closeSheet(); go(gg.dataset.go); return; }
+    if (t.closest("[data-back]")) { back(); return; }
+    const el = t.closest("[data-act]"); if (!el) return;
+    const v = el.dataset.v;
+    switch (el.dataset.act) {
+      case "guide": guide = v; store.set("guide", v); document.querySelectorAll('[data-act="guide"]').forEach(x => x.classList.toggle("on", x === el)); applyGuide(); break;
+      case "skip-all": profile = { nome: "", genere: "nd", eta: "nd", situazioni: [], deviazione: "medio", forma: "n" }; store.set("profile", profile); applyForma(); refreshScores(); renderTut(0); go("s-tut"); break;
+      case "wiz-opt": {
+        const st = STEPS[wiz.i];
+        if (st.type === "many") { const s = new Set(wiz.ans[st.k] || []); s.has(v) ? s.delete(v) : s.add(v); wiz.ans[st.k] = [...s]; renderWiz(); }
+        else { wiz.ans[st.k] = v; renderWiz(); const i = wiz.i; setTimeout(() => { if (wiz.i === i) wizNext(false); }, 220); }
+        break;
+      }
+      case "wiz-next": wizNext(false); break;
+      case "wiz-skip": wizNext(true); break;
+      case "wiz-prev": if (wiz.i > 0) { wiz.i--; renderWiz(); } else back(); break;
+      case "tut-next": if (tutIdx < TUT.length - 1) renderTut(tutIdx + 1); else go("s-end"); break;
+      case "tut-back": if (tutIdx > 0) renderTut(tutIdx - 1); else back(); break;
+      case "tut-skip": go("s-end"); break;
+      case "end-finish": store.set("done", true); stack = []; go("s-home", false); break;
+      case "sos": sos(); break;
+      case "sheet-close": closeSheet(); break;
+      case "sheet-submit": submitForm(); break;
+      case "search": searchField = v; go("s-search"); break;
+      case "pick-res": pickResult(+v || +el.dataset.i); break;
+      case "pick-gps": back(); setPlace(searchField, { pos: gps, name: "La tua posizione", gps: true }); break;
+      case "pick-map":
+        back();
+        if (searchField === "report") { pickMode = "report"; go("s-plan"); } else { tapField = searchField; toast("Tocca una strada sulla mappa"); }
+        break;
+      case "swap": [from, to] = [to, from]; renderPlan(); planRoutes(); break;
+      case "when": whenSheet(); break;
+      case "when-now": setWhen(null); break;
+      case "when-h": setWhen(+v); break;
+      case "rain": trip.rain = v === "1"; closeSheet(); refreshScores(); renderPlan(); break;
+      case "company": trip.company = !trip.company; refreshScores(); renderPlan(); toast(trip.company ? "In compagnia il buio pesa la metà" : "Percorsi per chi cammina da solo"); break;
+      case "legend": legend(); break;
+      case "locate": follow = true; if (you()) map.easeTo({ center: you(), zoom: 17, duration: 700 }); else toast("Posizione non disponibile: tocca la mappa"); break;
+      case "view3d": { const flat = map.getPitch() > 10; map.easeTo({ pitch: flat ? 0 : 55, bearing: flat ? 0 : -18, duration: 700 }); $("b3d").classList.toggle("on", flat); break; }
+      case "demo-route": { const d = demoPlaces(); from = d[0]; to = d[1]; setWhen(22); break; }
+      case "choose": choose(+v); break;
+      case "start": startNav(); break;
+      case "stop": stopNav(); break;
+      case "sim": if (sim) { stopSim(); $("navMode").textContent = "In cammino"; } else startSim(); break;
+      case "voice": prefs.voice = !prefs.voice; savePrefs(); el.classList.toggle("on", prefs.voice); toast(prefs.voice ? "Indicazioni a voce attive" : "Indicazioni a voce spente"); break;
+      case "arrive-home": stack = []; route = null; routes = []; to = null; drawRoute(); go("s-home", false); break;
+      case "report-pick": pickMode = "report"; go("s-plan"); toast("Tocca il punto da segnalare"); break;
+      case "pick-cancel": pickMode = null; back(); break;
+      case "rep-type": rep.type = v; renderReport(); break;
+      case "rep-when": rep.when = v; renderReport(); break;
+      case "rep-vote": rep.vote = rep.vote === +v ? 0 : +v; renderReport(); break;
+      case "report-send": submitReport(); break;
+      case "info": renderInfo(v); go("s-info"); break;
+      case "add-contact": addContact(); break;
+      case "del-contact": askPw("Rimuovi", "Inserisci il codice per rimuovere questa persona.", "Rimuovi", () => { const l = store.get("contacts", []); l.splice(+el.dataset.i, 1); store.set("contacts", l); renderContacts(); }); break;
+      case "goto-contacts": closeSheet(); go("s-support"); document.querySelector('[data-tab="contacts"]').click(); break;
+      case "share-start": shareStart(); break;
+      case "share-pick": sharePick(+el.dataset.i); break;
+      case "share-copy": {
+        const text = el.dataset.t;
+        if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast("Messaggio copiato", true), () => toast("Seleziona il testo e copialo", true));
+        else toast("Seleziona il testo e copialo", true);
+        break;
+      }
+      case "share-stop": stopSharing(); break;
+      case "share": toggleShare(el.dataset.k); break;
+      case "pref": { const k = el.dataset.k; prefs[k] = !prefs[k]; savePrefs(); applyTheme(); renderSettings(); break; }
+      case "theme": prefs.theme = { auto: "light", light: "dark", dark: "auto" }[prefs.theme]; savePrefs(); applyTheme(); renderSettings(); break;
+      case "forma": profile = Object.assign(profile || {}, { forma: { f: "m", m: "n", n: "f" }[forma()] }); store.set("profile", profile); applyForma(); renderSettings(); break;
+      case "edit-profile": go("s-form"); break;
+      case "pin": changePin(); break;
+      case "wipe": wipe(); break;
+      case "wipe-yes": wipeNow(); break;
+      case "new-note": openNote(null); break;
+      case "note-open": openNote(el.dataset.id); break;
+      case "note-del": store.set("notes", notes().filter(x => x.id !== curNote)); curNote = null; toast("Nota eliminata", true); stack = []; go("s-diary", false); break;
+      default: break;
+    }
+  });
+  window.addEventListener("resize", () => { if (map) map.resize(); });
+
+  // ------------------------------------------------------------ start
+  applyTheme(); applyGuide(); applyForma();
+  document.querySelectorAll('[data-act="guide"]').forEach(x => x.classList.toggle("on", x.dataset.v === guide));
+  $("bVoice").classList.toggle("on", prefs.voice);
+  go(store.get("done", false) ? "s-home" : "s-welcome", false);
+  initData().then(() => { startGps(); if (current === "s-home") renderHome(); setInterval(() => { if (!trip.when) refreshScores(); }, 300000); })
+    .catch(err => { $("loading").textContent = "Non riesco a caricare i dati: " + err.message + ". Serve un browser aggiornato."; });
+  window.LUMI = { get ctx() { return ctx; }, get route() { return route; }, get routes() { return routes; }, get state() { return stateNow; }, get map() { return map; } };  // for automated checks
+})();
+</script>
+<!--PAGE-END-->
+</body>
+</html>

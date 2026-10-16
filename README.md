@@ -18,7 +18,7 @@ Serve Python 3.11.
 python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-python -m pytest                      # test (73, nessuna rete richiesta)
+python -m pytest                      # test (81, nessuna rete richiesta; 3 usano Node.js se c'è)
 python -m pipeline.run_all            # pipeline completa, con cache dei download
 ```
 
@@ -26,7 +26,7 @@ I risultati sono già nel repository: per guardarli non serve eseguire la pipeli
 
 | Per… | Apri |
 |---|---|
-| **provare l'interfaccia beta** | `frontend/index.html` nel browser (vedi sotto) |
+| **provare le interfacce** | `frontend/index.html` nel browser: porta alla mappa per gli enti (`enti.html`) e all'app Lumi (`lumi.html`) |
 | vedere la mappa | `reports/check_map.html` nel browser (serve internet per Leaflet e lo sfondo OSM). In alto a destra si scelgono fascia e profilo; passando sopra un tratto si leggono via, S, affidabilità, i 3 parametri che pesano di più e da dove viene il dato sulla luce |
 | controllare i risultati in kepler.gl o geojson.io | `exports/segments_{fascia}_{profilo}.geojson` (proprietà `S`, `classe_colore`, `colore`, `affidabilita`, `parametri_peggiori`, `fonte_luce`) |
 | leggere i controlli | `reports/validation.md` e `reports/osm_coverage.md` |
@@ -34,33 +34,28 @@ I risultati sono già nel repository: per guardarli non serve eseguire la pipeli
 | sapere da dove vengono i dati | `DATA_SOURCES.md`, `docs/illuminazione.md` |
 | sapere come passare ai dati reali | `docs/piano_dati_reali.md` |
 
-### Interfaccia beta
-
-`frontend/index.html` è una pagina unica, senza server: mappa di Vicenza con **tutti i
-13.728 tratti pedonali colorati** (rosso, giallo, verde), ricalcolati nel browser quando
-si cambiano:
-
-- **ora** (0–23, con alba e tramonto del 18/11/2026 e la fascia corrispondente) e
-  **giorno** feriale o weekend;
-- **meteo** (sereno o pioggia);
-- **sesso** e **età** (16–34, 35–74, 75+), più i profili aggiuntivi del PDF (disabilità,
-  LGBTQ+, molestie recenti, conosce la zona, in compagnia).
-
-Cliccando un tratto si leggono via, quartiere, S, affidabilità, i parametri che pesano
-di più e da dove viene il dato sulla luce. Nessun tratto pedonale è grigio: dove manca
-un dato misurato c'è una stima dichiarata (`proxy`), indicata nella scheda. In grigio ci
-sono solo le strade non percorribili a piedi (tangenziali, superstrade). Il calcolo nel
-browser è lo stesso di `model/scoring.py` (differenza massima 0,18 punti, classe uguale
-in oltre il 99,9% dei tratti). Serve internet solo per Leaflet e i caratteri; lo sfondo
-(confine, quartieri, parchi, acqua) è dentro la pagina.
+### Le due interfacce
 
 ```bash
-python -m pipeline.frontend    # rigenera frontend/index.html dopo la pipeline
+python -m pipeline.frontend                  # rigenera frontend/enti.html, lumi.html e index.html dopo la pipeline
+python -m http.server -d frontend 8000       # facoltativo: serve per il GPS del telefono (http://localhost:8000)
 ```
 
-I parametri che dipendono dall'ora (persone, fronti attivi, punti di aiuto, trasporto)
-sono precalcolati per le 24 ore di un mercoledì e di un sabato di novembre; il resto è
-statico. Prossimo passo: profili più flessibili (pesi regolabili) e l'API della fase 4.
+- **Mappa per gli enti** (`frontend/enti.html`): tutte le 13.728 strade pedonali colorate,
+  ricalcolate nel browser per ora (0–23), giorno feriale o weekend, meteo, sesso, età e i
+  profili aggiuntivi del PDF. Cliccando un tratto si leggono via, quartiere, S, affidabilità,
+  parametri e fonte della luce. In grigio solo le strade dove non si cammina.
+- **Lumi** (`frontend/lumi.html`), l'app per chi cammina, dalla demo del team: domande
+  iniziali facoltative, mappa 3D (di notte diventa scura), percorso consigliato contro il
+  più breve con il costo C del modello, navigatore svolta per svolta con voce e simulazione,
+  SOS sempre senza codice, segnalazioni con i tipi del brief, supporto, diario. Scelte,
+  limiti e punti da decidere: [`docs/app_lumi.md`](docs/app_lumi.md).
+
+Le due pagine usano lo stesso calcolo (`frontend/src/core.js`), uguale a quello Python:
+differenza massima 0,19 punti, classe uguale in oltre il 99,9% dei tratti
+(`tests/test_frontend_js.py` confronta anche fasce orarie e percorsi). I parametri che
+dipendono dall'ora sono precalcolati per le 24 ore di un mercoledì e di un sabato di
+novembre; fascia e tramonto sono quelli della data vera.
 
 ### Scenari per la demo
 
@@ -109,8 +104,11 @@ L'API FastAPI (`uvicorn api.main:app`) è prevista nella fase 4 e non c'è ancor
 | `pipeline/aggregate.py` | punteggi delle combinazioni standard, aggregati per via e quartiere, residenti esposti, export |
 | `pipeline/validate.py` | report di copertura, `validation.md`, mappa di controllo |
 | `pipeline/scenario.py` | punteggi per data/ora/profilo/meteo qualsiasi, scenario demo |
-| `pipeline/frontend.py` | costruisce l'interfaccia beta (`frontend/index.html`) dai dati elaborati |
-| `frontend/` | modello della pagina (`template.html`), CSS di Leaflet, pagina generata |
+| `model/routing.py` | percorso a costo minimo `C = L·(1 + λ·((100−S)/100)²)` (navigatore) |
+| `pipeline/frontend.py` | costruisce le due interfacce dai dati elaborati (con edifici 3D e indice di ricerca per Lumi) |
+| `frontend/src/` | modelli delle pagine (`enti.html`, `lumi.html`, `index.html`) e calcolo condiviso nel browser (`core.js`) |
+| `frontend/assets/lumi/` | illustrazioni della mascotte (dalla demo del team) |
+| `frontend/*.html` | pagine generate, da aprire nel browser |
 | `data/processed/` | `segments.parquet`, `params.parquet`, `scores.parquet`, `quartieri.parquet` (GeoParquet) |
 | `data/demo/` | solo dati **simulati** per la demo (eventi), usati solo con `--demo` |
 | `tests/` | test del modello, delle fasce, dei parametri, del modulo dinamico (dati sintetici) e del percorso Overpass simulato |
@@ -200,11 +198,13 @@ Aggiornato alla fine di ogni fase.
 - **Residenti esposti** (sezioni ISTAT attraversate da almeno un tratto rosso, di sera,
   riferimento): 59.480 su 110.293 (54%), di cui circa 30.600 donne e 20.000 over 60.
   Contano anche tratti rossi molto brevi: è un indicatore di priorità, non di rischio.
-- **Interfaccia beta** (`frontend/index.html`): mappa con tutti i tratti colorati, ora,
-  giorno, meteo, sesso, età e profili aggiuntivi.
+- **Interfacce**: mappa per gli enti (`frontend/enti.html`) e app **Lumi**
+  (`frontend/lumi.html`) con mappa 3D, navigatore sul costo C del modello, domande iniziali
+  inclusive, SOS, segnalazioni con i tipi del brief (sez. 8), supporto e diario.
+  `model/routing.py` fa lo stesso percorso in Python.
 - **Corretto** un bug della fase 2: la normalizzazione delle persone, dalla seconda fascia
   in poi, finiva sulla colonna del trasporto. Un test di regressione lo copre.
-- Test: 73, tutti verdi (`python -m pytest`).
+- Test: 81, tutti verdi (`python -m pytest`).
 
 ### Stimato
 - Pesi, moltiplicatori dei profili, λ e **penalità di buio**: proposta ricavata dalla
@@ -231,6 +231,8 @@ Aggiornato alla fine di ogni fase.
   punti luce non sono pubblici.
 - **Fase 3** — integrare GTFS SVT, eventi reali, Punti Viola, confini e zonizzazione dal
   SIT quando arrivano i file; Mapillary e SDGSAT-1 per la luce.
-- **Fase 4** — API FastAPI (`api/main.py`) con i suoi test; profili più flessibili
-  nell'interfaccia.
+- **Fase 4** — API FastAPI (`api/main.py`) con i suoi test, anche per il percorso;
+  profili più flessibili nelle interfacce.
+- **Lumi** — i punti da decidere insieme sono in `docs/app_lumi.md`; GPS solo da https o
+  localhost; segnalazioni e condivisione della posizione aspettano il server.
 - **Fase 5** — segnalazioni (SQLite), `S_percepito`, simulazione in database separato.

@@ -210,36 +210,16 @@ summary { cursor: pointer; font-size: 0.85rem; font-weight: 700; }
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
+/*__CORE__*/
+</script>
+<script>
 const DATA = /*__DATA__*/null;
-
-async function unpack(b64, Type) {
-  const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-  const stream = new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"));
-  return new Type(await new Response(stream).arrayBuffer());
-}
 const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 (async function main() {
-  const M = DATA.model, N = DATA.n, K = M.keys, idx = Object.fromEntries(K.map((k, i) => [k, i]));
-  const S = {}, H = {};
-  for (const [k, v] of Object.entries(DATA.static)) S[k] = await unpack(v, k === "via" || k === "lunghezza" ? Uint16Array : Uint8Array);
-  for (const [k, v] of Object.entries(DATA.hourly)) H[k] = await unpack(v, Uint8Array);
-  const counts = await unpack(DATA.geometry.counts, Uint16Array);
-  const coords = await unpack(DATA.geometry.coords, Int32Array);
-
-  // decode geometry (delta-encoded, 1e-5 degrees) into Leaflet latlngs
-  const lines = new Array(N), bbox = new Float64Array(N * 4);
-  let p = 0;
-  for (let i = 0; i < N; i++) {
-    let x = 0, y = 0; const pts = [];
-    let minx = 1e9, miny = 1e9, maxx = -1e9, maxy = -1e9;
-    for (let j = 0; j < counts[i]; j++) {
-      x += coords[p++]; y += coords[p++];
-      const lon = x / 1e5, lat = y / 1e5; pts.push([lat, lon]);
-      minx = Math.min(minx, lon); maxx = Math.max(maxx, lon); miny = Math.min(miny, lat); maxy = Math.max(maxy, lat);
-    }
-    lines[i] = pts; bbox.set([minx, miny, maxx, maxy], i * 4);
-  }
+  const ctx = await QV.load(DATA);
+  const M = ctx.M, N = ctx.N, K = ctx.K, idx = ctx.idx, S = ctx.S, H = ctx.H;
+  const lines = Array.from({ length: N }, (_, i) => QV.line(ctx, i).map(([lon, lat]) => [lat, lon]));
 
   // ---------------- map
   const map = L.map("map", { preferCanvas: true, zoomControl: true, minZoom: 11, maxZoom: 18, zoomSnap: 0.25, zoomDelta: 0.5 });
@@ -279,63 +259,12 @@ const css = name => getComputedStyle(document.documentElement).getPropertyValue(
     return list;
   }
 
-  // ---------------- scoring (mirrors model/scoring.py)
-  const scale = M.scale, NA = M.na;
-  const S_arr = new Float32Array(N), R_arr = new Float32Array(N), P_dark = new Float32Array(N);
-  const cls = new Uint8Array(N); // 0 green 1 yellow 2 red
-  let state = {};
+  // ---------------- scoring (frontend/src/core.js, mirrors model/scoring.py)
+  let state = {}, S_arr = new Float32Array(N), R_arr = new Float32Array(N), P_dark = new Float32Array(N), cls = new Uint8Array(N);
   function compute() {
     const hour = +document.getElementById("hour").value, day = val("day"), rain = val("meteo") === "pioggia";
-    const band = DATA.bands[day][hour], B = M.bands[band];
-    const profs = profiles();
-    const w = B.weights.slice(); let darkFactor = 1;
-    for (const p of profs) {
-      for (const [k, m] of Object.entries(M.profiles[p].multipliers)) w[idx[k]] *= m;
-      darkFactor *= M.profiles[p].dark_factor;
-    }
-    const excluded = new Set(M.excluded.map(k => idx[k]));
-    const off = ((day === "feriale" ? 0 : 24) + hour) * N;
-    const D = M.penalties.dark, intensity = D.band_intensity[band] || 0;
-    const rel = M.reliability, base = B.weights;
-    const red = M.classes.red_below, green = M.classes.green_above;
-    const x = new Float32Array(K.length);
-    for (let i = 0; i < N; i++) {
-      const sb = S.bits[i], hb = H.bits[off + i];
-      const get = (arr, j) => arr[j] === NA ? NaN : arr[j] / scale;
-      x[idx.luce] = get(S.luce, i);
-      x[idx.persone] = get(H.persone, off + i) * (rain ? M.rain.persone : 1);
-      x[idx.fronti_attivi] = get(H.fronti_attivi, off + i);
-      x[idx.visuale] = get(S.visuale, i) * (rain ? M.rain.visuale : 1);
-      x[idx.vie_di_fuga] = get(S.vie_di_fuga, i);
-      x[idx.uso_suolo] = get(B.dark ? S.suolo_notte : S.suolo_giorno, i);
-      x[idx.percorso] = get(S.percorso, i);
-      x[idx.punti_aiuto] = get(H.punti_aiuto, off + i);
-      x[idx.trasporto] = get(H.trasporto, off + i);
-      let num = 0, den = 0;
-      for (let j = 0; j < K.length; j++) {
-        if (excluded.has(j) || Number.isNaN(x[j])) continue;
-        num += w[j] * Math.min(1, Math.max(0, x[j])); den += w[j];
-      }
-      const light = Number.isNaN(x[idx.luce]) ? 0.5 : x[idx.luce];
-      const pd = Math.min(D.max, intensity * (D.base + D.poor_light * (1 - light)) * darkFactor);
-      const pen = ((sb & 8) ? 1 - M.penalties.blocking : 1) * ((hb & 4) ? 1 - M.penalties.park_dark : 1) * (1 - pd);
-      const s = Math.min(100, Math.max(0, den > 0 ? 100 * num / den * pen : 0));
-      S_arr[i] = s; P_dark[i] = pd;
-      cls[i] = s < red ? 2 : s > green ? 0 : 1;
-      // reliability: base weights x origin factor (measured 1, proxy 0.5, excluded 0)
-      const f = new Array(K.length).fill(rel.measured);
-      f[idx.luce] = (sb & 1) ? rel.proxy : rel.measured;
-      f[idx.persone] = rel.proxy; f[idx.visuale] = rel.proxy;
-      f[idx.fronti_attivi] = (hb & 1) ? rel.proxy : rel.measured;
-      f[idx.punti_aiuto] = (hb & 2) ? rel.proxy : rel.measured;
-      f[idx.trasporto] = (hb & 8) ? rel.proxy : rel.measured;
-      f[idx.percorso] = (sb & 2) ? rel.proxy : rel.measured;
-      f[idx.uso_suolo] = (sb & 4) ? rel.excluded : rel.measured;
-      for (const j of excluded) f[j] = rel.excluded;
-      let r = 0; for (let j = 0; j < K.length; j++) r += base[j] * f[j];
-      R_arr[i] = r / 100;
-    }
-    state = { hour, day, band, profs, w, x, rain, off, darkFactor };
+    state = QV.scores(ctx, { band: DATA.bands[day][hour], day, hour, rain, profiles: profiles() });
+    S_arr = state.S; R_arr = state.R; P_dark = state.Pd; cls = state.cls;
     return state;
   }
 
@@ -380,38 +309,11 @@ const css = name => getComputedStyle(document.documentElement).getPropertyValue(
   }
 
   // ---------------- selection
-  const cell = 0.004, grid = new Map();
-  for (let i = 0; i < N; i++) {
-    for (let gx = Math.floor(bbox[i * 4] / cell); gx <= Math.floor(bbox[i * 4 + 2] / cell); gx++)
-      for (let gy = Math.floor(bbox[i * 4 + 1] / cell); gy <= Math.floor(bbox[i * 4 + 3] / cell); gy++) {
-        const key = gx + ":" + gy; if (!grid.has(key)) grid.set(key, []); grid.get(key).push(i);
-      }
-  }
-  function nearest(latlng, maxMeters) {
-    const kx = 111320 * Math.cos(latlng.lat * Math.PI / 180), ky = 110540;
-    const gx0 = Math.floor(latlng.lng / cell), gy0 = Math.floor(latlng.lat / cell);
-    let best = -1, bestD = maxMeters;
-    const seen = new Set();
-    for (let gx = gx0 - 1; gx <= gx0 + 1; gx++) for (let gy = gy0 - 1; gy <= gy0 + 1; gy++) {
-      for (const i of grid.get(gx + ":" + gy) || []) {
-        if (seen.has(i)) continue; seen.add(i);
-        const pts = lines[i];
-        for (let j = 1; j < pts.length; j++) {
-          const ax = (pts[j - 1][1] - latlng.lng) * kx, ay = (pts[j - 1][0] - latlng.lat) * ky;
-          const bx = (pts[j][1] - latlng.lng) * kx, by = (pts[j][0] - latlng.lat) * ky;
-          const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
-          const t = l2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / l2)) : 0;
-          const d = Math.hypot(ax + t * dx, ay + t * dy);
-          if (d < bestD) { bestD = d; best = i; }
-        }
-      }
-    }
-    return best;
-  }
+  const grid = QV.spatialIndex(ctx);
   map.on("click", e => {
     const metersPerPx = 40075016 * Math.cos(e.latlng.lat * Math.PI / 180) / Math.pow(2, map.getZoom() + 8);
-    const i = nearest(e.latlng, Math.max(8, 14 * metersPerPx));
-    select(i);
+    const hit = QV.nearest(ctx, grid, e.latlng.lng, e.latlng.lat, Math.max(8, 14 * metersPerPx));
+    select(hit ? hit.i : -1);
   });
   function select(i) {
     selected = i;
@@ -431,7 +333,7 @@ const css = name => getComputedStyle(document.documentElement).getPropertyValue(
       .filter(r => !Number.isNaN(r.loss)).sort((a, b) => b.loss - a.loss);
     const estimated = new Set(["persone", "visuale"]);
     if (S.bits[i] & 1) estimated.add("luce");
-    const lam = M.lambda_base * state.profs.reduce((a, p) => a * M.profiles[p].lambda_factor, 1);
+    const lam = state.lam;
     const cost = 1 + lam * Math.pow((100 - s) / 100, 2);
     const pens = [];
     if (S.bits[i] & 8) pens.push("sottopasso, tratto coperto o passaggio senza uscita −30%");
@@ -452,24 +354,12 @@ const css = name => getComputedStyle(document.documentElement).getPropertyValue(
       <p class="note" style="margin-top:8px">Luce: ${DATA.names.fonte_luce[S.fonte_luce[i]]}.${pens.length ? " Penalità: " + pens.join("; ") + "." : ""}</p>
       <p class="note">I parametri sono ordinati per quanto abbassano il punteggio. "n/d": arriveranno con le segnalazioni dei cittadini.</p>`;
   }
-  function compute1(i) {
-    // parameter values and points lost for one segment, with the current weights
-    const st = state, off = st.off, x = new Array(K.length).fill(NaN);
-    const get = (arr, j) => arr[j] === NA ? NaN : arr[j] / scale;
-    const B = M.bands[st.band];
-    x[idx.luce] = get(S.luce, i); x[idx.persone] = get(H.persone, off + i) * (st.rain ? M.rain.persone : 1);
-    x[idx.fronti_attivi] = get(H.fronti_attivi, off + i); x[idx.visuale] = get(S.visuale, i) * (st.rain ? M.rain.visuale : 1);
-    x[idx.vie_di_fuga] = get(S.vie_di_fuga, i); x[idx.uso_suolo] = get(B.dark ? S.suolo_notte : S.suolo_giorno, i);
-    x[idx.percorso] = get(S.percorso, i); x[idx.punti_aiuto] = get(H.punti_aiuto, off + i); x[idx.trasporto] = get(H.trasporto, off + i);
-    let den = 0; for (let j = 0; j < K.length; j++) if (!Number.isNaN(x[j])) den += st.w[j];
-    const loss = x.map((v, j) => Number.isNaN(v) ? NaN : 100 * st.w[j] / den * (1 - Math.min(1, Math.max(0, v))));
-    return { x, loss };
-  }
+  function compute1(i) { return QV.explain(ctx, state, i); }
 
   // ---------------- wiring
   function update() { compute(); draw(); summary(); renderCard(); }
   document.querySelectorAll("input").forEach(el => el.addEventListener("input", update));
-  window.QV = { compute, S_arr, R_arr, profiles, ids: DATA.segment_ids };  // used by the automated check
+  window.QVcheck = { compute: () => { compute(); return { S: S_arr, R: R_arr }; }, profiles, ids: DATA.segment_ids };  // used by the automated check
   update();
   document.getElementById("loading").remove();
   const info = DATA.info, lm = info.luce_modello || {};

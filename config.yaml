@@ -151,6 +151,17 @@ scoring:
       band_intensity: {giorno: 0.0, prima_ora_buio: 0.5, sera: 1.0, notte_fonda: 1.0, mattina_buia: 1.0}
 
 # -----------------------------------------------------------------------------
+# Navigatore (app per i cittadini): percorso a costo minimo C = L·(1 + λ·((100−S)/100)²)
+# -----------------------------------------------------------------------------
+routing:
+  walking_speed_kmh: 4.5
+  slow_profiles: {over75: 3.5, disabilita: 3.5}   # velocità più bassa per questi profili
+  # "quanto vuoi allungare per stare su vie più tranquille?": moltiplica λ del profilo
+  detour_preference: {poco: 0.5, medio: 1.0, molto: 2.0}
+  max_snap_m: 250            # distanza massima tra il punto scelto e la rete pedonale
+  min_alternative_gain_m: 20 # il percorso più breve si mostra solo se fa risparmiare almeno questi metri
+
+# -----------------------------------------------------------------------------
 # Combinazioni standard precalcolate ed esportate (sez. 6.6)
 # -----------------------------------------------------------------------------
 standard:

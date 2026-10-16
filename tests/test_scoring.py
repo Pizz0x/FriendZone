@@ -201,3 +201,38 @@ def test_worst_parameters_rank_by_points_lost():
     assert len(worst) == 3
     assert worst[0] == "persone"  # 14 points of weight at 0.2
     assert not set(worst) & {"episodi", "cura", "folla"}
+
+
+# --------------------------------------------------------------------------- #
+# Darkness penalty (team decision, 16/10/2026)
+# --------------------------------------------------------------------------- #
+def test_dark_penalty_is_zero_by_day_and_grows_with_darkness():
+    light = np.array([1.0, 0.5, 0.0, np.nan])
+    assert scoring.dark_penalty(light, "giorno").tolist() == [0.0, 0.0, 0.0, 0.0]
+    p = scoring.dark_penalty(light, "sera")
+    assert p[0] == pytest.approx(0.05) and p[2] == pytest.approx(0.25)
+    assert p[0] < p[1] < p[2] and p[3] == pytest.approx(p[1])       # unknown light counts as 0.5
+    assert scoring.dark_penalty(light, "prima_ora_buio") == pytest.approx(p / 2)
+
+
+def test_dark_penalty_by_profile():
+    light = np.array([0.0, 1.0])
+    ref = scoring.dark_penalty(light, "sera", "riferimento")
+    assert scoring.dark_penalty(light, "sera", "donna") == pytest.approx(2 * ref)
+    assert scoring.dark_penalty(light, "sera", "in_compagnia") == pytest.approx(0.5 * ref)
+    assert scoring.dark_penalty(np.array([0.0]), "sera", "donna+over75")[0] <= CFG["scoring"]["penalties"]["dark"]["max"]
+
+
+def test_dark_penalty_keeps_women_score_below_reference_on_poor_light():
+    """With the darkness penalty the coherence check of section 10 holds on typical poorly lit segments."""
+    rng = np.random.default_rng(3)
+    x = rng.uniform(0, 1, size=(2000, 12))
+    x[:, KEYS.index("luce")] = rng.uniform(0, 0.5, size=2000)
+    available = np.ones_like(x, dtype=bool)
+    for key in ("episodi", "cura", "folla"):
+        available[:, KEYS.index(key)] = False
+    s = {}
+    for prof in ("riferimento", "donna"):
+        dark = scoring.dark_penalty(x[:, KEYS.index("luce")], "sera", prof)
+        s[prof] = scoring.segment_scores(x, available, "sera", prof, 1.0 - dark)
+    assert (s["donna"] <= s["riferimento"] + 1e-9).all()

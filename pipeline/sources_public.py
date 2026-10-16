@@ -80,20 +80,75 @@ def load_lamps(cfg: dict[str, Any] | None = None) -> gpd.GeoDataFrame | None:
 # --------------------------------------------------------------------------- #
 # ISTAT census sections with population (manual or download)
 # --------------------------------------------------------------------------- #
-def load_istat_population(cfg: dict[str, Any] | None = None) -> gpd.GeoDataFrame | None:
-    """Census sections of the municipality with a ``popolazione`` column.
+ISTAT_CACHE = Path("data/raw/istat/sezioni_vicenza.parquet")
 
-    Expects the ISTAT "basi territoriali" shapefile and the "variabili
-    censuarie" CSV in data/manual/istat/ (joined on the section code).
+
+def download_istat_sections(cfg: dict[str, Any]) -> gpd.GeoDataFrame:
+    """Census sections 2021 of the municipality from the ISTAT "basi territoriali".
+
+    The regional archive includes, for every section, the 2021 population
+    (POP21) and the sub-municipal area code (COM_ASC1 = circoscrizione).
+    """
+    import zipfile
+
+    from pipeline.common import http_get
+
+    icfg = cfg["sources"]["istat"]
+    raw_dir = resolve(Path("data/raw/istat"))
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    zip_path = raw_dir / Path(icfg["basi_territoriali_url"]).name
+    if not zip_path.exists():
+        zip_path.write_bytes(http_get(icfg["basi_territoriali_url"], timeout=600))
+    with zipfile.ZipFile(zip_path) as zf:
+        shp = next(n for n in zf.namelist() if n.lower().endswith(".shp"))
+        extract_dir = raw_dir / "shp"
+        zf.extractall(extract_dir, members=[n for n in zf.namelist() if Path(n).stem == Path(shp).stem])
+    sections = gpd.read_file(extract_dir / shp, where=f"PRO_COM={int(cfg['area']['istat_pro_com'])}")
+    keep = ["SEZ21_ID", "COM_ASC1", "POP21", "FAM21", "EDI21", "geometry"]
+    return sections[[c for c in keep if c in sections.columns]]
+
+
+def load_istat_sections(cfg: dict[str, Any] | None = None, *, force: bool = False) -> gpd.GeoDataFrame | None:
+    """ISTAT sections with ``popolazione`` and ``circoscrizione`` (EPSG:32632).
+
+    Order: files supplied by hand in data/manual/istat/, then the ISTAT
+    download (cached). None if neither is available.
     """
     cfg = cfg or load_config()
+    manual = load_istat_population_manual(cfg)
+    if manual is not None:
+        return manual
+    cache = resolve(ISTAT_CACHE)
+    try:
+        if cache.exists() and not force:
+            sections = gpd.read_parquet(cache)
+        else:
+            sections = download_istat_sections(cfg)
+            cache.parent.mkdir(parents=True, exist_ok=True)
+            sections.to_parquet(cache, index=False)
+    except Exception as exc:  # noqa: BLE001 - optional source
+        record_source("istat", status="non disponibile", detail=f"{type(exc).__name__}: {exc}"[:200])
+        return None
+    out = sections.rename(columns={"POP21": "popolazione", "SEZ21_ID": "sezione"})
+    if "COM_ASC1" in out:
+        out["circoscrizione"] = out["COM_ASC1"].astype(int) % 1000
+    record_source("istat", status="ok", url=cfg["sources"]["istat"]["basi_territoriali_url"], sezioni=len(out),
+                  popolazione_2021=int(out["popolazione"].sum()))
+    return out
+
+
+def load_istat_population(cfg: dict[str, Any] | None = None) -> gpd.GeoDataFrame | None:
+    """Census sections with a ``popolazione`` column (manual files or ISTAT download)."""
+    sections = load_istat_sections(cfg)
+    return None if sections is None else sections[["popolazione", "geometry"]]
+
+
+def load_istat_population_manual(cfg: dict[str, Any]) -> gpd.GeoDataFrame | None:
+    """Sections supplied by hand in data/manual/istat/ (shapefile + optional CSV)."""
     folder = resolve(cfg["sources"]["manual_dirs"]["istat"])
-    shapes = _manual_files(folder)
-    shapes = [p for p in shapes if p.suffix.lower() in {".shp", ".gpkg", ".geojson"}]
+    shapes = [p for p in _manual_files(folder) if p.suffix.lower() in {".shp", ".gpkg", ".geojson"}]
     tables = [p for p in _manual_files(folder) if p.suffix.lower() == ".csv"]
     if not shapes:
-        record_source("istat", status="non disponibile",
-                      detail="sezioni di censimento non presenti in data/manual/istat (download bloccato)")
         return None
     sections = gpd.read_file(shapes[0])
     sections = sections.set_crs("EPSG:32632") if sections.crs is None else sections
@@ -110,11 +165,67 @@ def load_istat_population(cfg: dict[str, Any] | None = None) -> gpd.GeoDataFrame
             sections = sections.merge(table[[tcode, tpop]], left_on=code, right_on=tcode, how="left")
             pop_col = tpop
     if pop_col is None:
-        record_source("istat", status="incompleto", detail="sezioni senza colonna di popolazione")
         return None
     sections = sections.rename(columns={pop_col: "popolazione"})
-    record_source("istat", status="ok", file=str(shapes[0]), n=len(sections))
-    return sections[["popolazione", "geometry"]]
+    record_source("istat", status="ok (file manuale)", file=str(shapes[0]), n=len(sections))
+    return sections
+
+
+# --------------------------------------------------------------------------- #
+# Comune di Vicenza open data (dati.veneto.it, CKAN datastore dumps)
+# --------------------------------------------------------------------------- #
+def load_comune_table(name: str, cfg: dict[str, Any] | None = None) -> pd.DataFrame | None:
+    """A table published by the Comune di Vicenza on dati.veneto.it (cached CSV)."""
+    from pipeline.common import http_get
+
+    cfg = cfg or load_config()
+    ccfg = cfg["sources"]["comune_vicenza"]
+    resource = ccfg["tables"][name]
+    cache = resolve(Path("data/raw/comune")) / f"{name}.csv"
+    try:
+        if not cache.exists():
+            cache.parent.mkdir(parents=True, exist_ok=True)
+            cache.write_bytes(http_get(ccfg["datastore_dump_url"].format(resource=resource), timeout=180))
+        df = pd.read_csv(cache, sep=";")
+    except Exception as exc:  # noqa: BLE001 - optional source
+        record_source(f"comune_{name}", status="non disponibile", detail=f"{type(exc).__name__}: {exc}"[:200])
+        return None
+    df = df.loc[:, ~df.columns.str.startswith("Unnamed")]
+    record_source(f"comune_{name}", status="ok", righe=len(df), risorsa=resource)
+    return df
+
+
+# --------------------------------------------------------------------------- #
+# Geocoding (Nominatim: 1 request per second, dedicated user agent, cache)
+# --------------------------------------------------------------------------- #
+def geocode(query: str, cfg: dict[str, Any] | None = None) -> tuple[float, float] | None:
+    """(lat, lon) of a place in the study area, cached on disk."""
+    import json
+    import time
+
+    import requests
+
+    cfg = cfg or load_config()
+    cache = resolve(Path("data/raw/geocode.json"))
+    data = json.loads(cache.read_text(encoding="utf-8")) if cache.exists() else {}
+    if query in data:
+        return tuple(data[query]) if data[query] else None
+    west, south, east, north = cfg["area"]["extract_bbox"]
+    time.sleep(1.1)
+    try:
+        resp = requests.get("https://nominatim.openstreetmap.org/search",
+                            params={"q": query, "format": "json", "limit": 1, "viewbox": f"{west},{north},{east},{south}",
+                                    "bounded": 1}, headers={"User-Agent": cfg["sources"]["user_agent"]}, timeout=30)
+        resp.raise_for_status()
+        hits = resp.json()
+    except Exception as exc:  # noqa: BLE001
+        log.warning("geocodifica di %s non riuscita: %s", query, exc)
+        return None
+    result = [float(hits[0]["lat"]), float(hits[0]["lon"])] if hits else None
+    data[query] = result
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    cache.write_text(json.dumps(data, indent=1, ensure_ascii=False), encoding="utf-8")
+    return tuple(result) if result else None
 
 
 # --------------------------------------------------------------------------- #

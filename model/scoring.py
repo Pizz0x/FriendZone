@@ -190,6 +190,35 @@ def segment_scores(
     return np.clip(100.0 * s * factor, 0.0, 100.0)
 
 
+def profile_dark_factor(profiles: str | Iterable[str] | None, cfg: dict[str, Any] | None = None) -> float:
+    """Product of the ``dark_factor`` of the selected profiles (default 1)."""
+    cfg = cfg or load_config()
+    factor = 1.0
+    for name in parse_profiles(profiles, cfg):
+        factor *= float(cfg["profiles"][name].get("dark_factor", 1.0))
+    return factor
+
+
+def dark_penalty(light: np.ndarray, band: str, profiles: str | Iterable[str] | None = None,
+                 cfg: dict[str, Any] | None = None) -> np.ndarray:
+    """Darkness penalty P in [0, max] per segment.
+
+    P = intensity(band) × (base + poor_light × (1 − light)) × Π dark_factor,
+    zero by day. Unknown light (NaN) counts as 0.5.
+    """
+    cfg = cfg or load_config()
+    d = cfg["scoring"]["penalties"].get("dark")
+    light = np.asarray(light, dtype=float)
+    if not d:
+        return np.zeros(light.shape)
+    intensity = float(d["band_intensity"].get(band, 0.0))
+    if intensity == 0.0:
+        return np.zeros(light.shape)
+    lack = 1.0 - np.clip(np.nan_to_num(light, nan=0.5), 0.0, 1.0)
+    p = intensity * (float(d["base"]) + float(d["poor_light"]) * lack) * profile_dark_factor(profiles, cfg)
+    return np.clip(p, 0.0, float(d["max"]))
+
+
 def path_cost(length: np.ndarray | float, score: np.ndarray | float, lam: float) -> np.ndarray | float:
     """C = L * (1 + lambda * ((100 - S) / 100) ** 2)."""
     s = np.asarray(score, dtype=float)

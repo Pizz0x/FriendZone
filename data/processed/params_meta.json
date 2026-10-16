@@ -1,8 +1,8 @@
 {
   "reference_date": "2026-11-18",
-  "people_norm": 0.8256932054382982,
-  "residents_saturation": 380.13299646377556,
-  "residents_source": "HRSL",
+  "people_norm": 0.8348889787398976,
+  "residents_saturation": 366.43854304464344,
+  "residents_source": "ISTAT 2021 (sezioni di censimento)",
   "luce_fonti": {
     "stima_modello": 9387,
     "lampioni_osm": 1697,
@@ -15,11 +15,11 @@
     "non_illuminati": 138,
     "fold": 5,
     "validazione": "GroupKFold per quartiere",
-    "auc": 0.859,
-    "accuratezza": 0.928,
+    "auc": 0.874,
+    "accuratezza": 0.93,
     "accuratezza_baseline_sempre_illuminato": 0.908,
     "brier": 0.0632,
-    "recall_non_illuminati": 0.471,
+    "recall_non_illuminati": 0.413,
     "quota_stimata_illuminata": 0.935
   },
   "attivita": {

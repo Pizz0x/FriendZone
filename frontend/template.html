@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<!--PAGE-START-->
+<title>Quartieri Vivi</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/*__LEAFLET_CSS__*/
+</style>
+<style>
+/* Layout: map fills the screen, a control panel docks left (stacks under the map on phones). */
+:root {
+  --bg: #f6f4f8;
+  --panel: #ffffff;
+  --ink: #1f1a27;
+  --muted: #625b6e;
+  --line: #e2dde9;
+  --accent: #6a3ea1;
+  --accent-ink: #ffffff;
+  --map-bg: #ece8f0;
+  --water: #c9d9e6;
+  --park: #d9e6cf;
+  --road-grey: #a29cab;
+  --s-green: #1d8a4e;
+  --s-yellow: #e39a2d;
+  --s-red: #cf3a2b;
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15131a; --panel: #1d1a24; --ink: #ece8f2; --muted: #a59eb2; --line: #322d3c;
+    --accent: #b48be0; --accent-ink: #1a1222; --map-bg: #1b1922; --water: #1f3140; --park: #1f2b20;
+    --road-grey: #5d5768; --s-green: #45c07c; --s-yellow: #f0b155; --s-red: #f0675a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15131a; --panel: #1d1a24; --ink: #ece8f2; --muted: #a59eb2; --line: #322d3c;
+  --accent: #b48be0; --accent-ink: #1a1222; --map-bg: #1b1922; --water: #1f3140; --park: #1f2b20;
+  --road-grey: #5d5768; --s-green: #45c07c; --s-yellow: #f0b155; --s-red: #f0675a; color-scheme: dark;
+}
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.app { height: 100%; display: grid; grid-template-columns: minmax(300px, 360px) 1fr; }
+.panel { background: var(--panel); border-right: 1px solid var(--line); overflow-y: auto; display: flex; flex-direction: column; gap: 18px;
+  padding-block: 18px 24px; padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: 18px; min-width: 0; }
+#map { height: 100%; background: var(--map-bg); }
+.brand h1 { font-family: var(--font-display); font-weight: 800; font-size: 1.45rem; letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+.brand p { margin: 2px 0 0; color: var(--muted); font-size: 0.86rem; }
+.beta { font-family: var(--font-display); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--accent-ink); background: var(--accent); border-radius: 4px; padding: 2px 6px; vertical-align: 3px; margin-left: 6px; }
+section h2 { font-family: var(--font-display); font-size: 0.74rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--muted); margin: 0 0 8px; }
+.field { display: grid; gap: 6px; margin-bottom: 12px; }
+.field > label, .field > span { font-size: 0.85rem; font-weight: 700; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { flex: 1; text-align: center; padding: 7px 4px; font-size: 0.86rem; cursor: pointer; border-left: 1px solid var(--line); user-select: none; }
+.seg label:first-of-type { border-left: 0; }
+.seg input:checked + label { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.seg input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: -3px; }
+.hour-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.hour-value { font-family: var(--font-display); font-weight: 800; font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.band-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--muted); }
+.band-chip .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--s-yellow); }
+.band-chip.dark .dot { background: var(--ink); box-shadow: inset -3px 0 0 var(--accent); }
+details { border-top: 1px solid var(--line); padding-top: 8px; }
+summary { cursor: pointer; font-size: 0.85rem; font-weight: 700; }
+.checks { display: grid; gap: 4px; margin-top: 8px; font-size: 0.86rem; }
+.checks label { display: flex; gap: 8px; align-items: center; }
+.checks input { accent-color: var(--accent); }
+.legend { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 0.84rem; align-items: center; }
+.legend i { display: block; width: 26px; height: 4px; border-radius: 2px; }
+.bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--line); }
+.bar span { display: block; height: 100%; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+.stat b { display: block; font-family: var(--font-display); font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 0.74rem; color: var(--muted); }
+.worst { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 4px; font-size: 0.86rem; }
+.worst li { display: flex; justify-content: space-between; gap: 8px; }
+.worst li span:last-child { font-variant-numeric: tabular-nums; color: var(--muted); }
+.card { border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+.card.empty { color: var(--muted); font-size: 0.86rem; }
+.card h3 { font-family: var(--font-display); font-size: 1.05rem; margin: 0; text-wrap: balance; }
+.card .sub { color: var(--muted); font-size: 0.82rem; margin: 2px 0 10px; }
+.score { display: flex; align-items: baseline; gap: 10px; }
+.score b { font-family: var(--font-display); font-weight: 800; font-size: 2.2rem; font-variant-numeric: tabular-nums; }
+.pill { font-size: 0.74rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; color: #fff; }
+.pill.verde { background: var(--s-green); } .pill.gialla { background: var(--s-yellow); color: #2b1d05; } .pill.rossa { background: var(--s-red); }
+.params { display: grid; gap: 6px; margin-top: 10px; font-size: 0.84rem; }
+.prow { display: grid; grid-template-columns: 1fr 86px 34px; gap: 8px; align-items: center; }
+.prow .track { display: block; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.prow .fill { display: block; height: 100%; background: var(--accent); }
+.prow .v { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+.prow.est .name::after { content: " · stima"; color: var(--muted); font-size: 0.75rem; }
+.prow.off { color: var(--muted); }
+.note { font-size: 0.78rem; color: var(--muted); margin: 0; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--font-display); color: var(--muted); z-index: 500; pointer-events: none; }
+.mapwrap { position: relative; min-width: 0; }
+.leaflet-container { font-family: var(--font-body); background: var(--map-bg); }
+.leaflet-control-attribution { background: color-mix(in srgb, var(--panel) 85%, transparent) !important; color: var(--muted); }
+.leaflet-control-attribution a { color: var(--accent); }
+.leaflet-bar a { background: var(--panel); color: var(--ink); border-color: var(--line); }
+.qlabel { font-family: var(--font-display); font-weight: 700; font-size: 11px; color: var(--muted); white-space: nowrap; text-shadow: 0 0 3px var(--map-bg), 0 0 3px var(--map-bg); }
+@media (max-width: 760px) {
+  .app { grid-template-columns: 1fr; grid-template-rows: 58vh auto; height: auto; }
+  .mapwrap { order: -1; height: 58vh; }
+  .panel { border-right: 0; border-top: 1px solid var(--line); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="app">
+  <aside class="panel" aria-label="Controlli della mappa">
+    <header class="brand">
+      <h1>Quartieri Vivi<span class="beta">beta</span></h1>
+      <p>Sicurezza percepita stimata, tratto per tratto, a Vicenza</p>
+    </header>
+
+    <section aria-labelledby="h-quando">
+      <h2 id="h-quando">Quando</h2>
+      <div class="field">
+        <div class="hour-row"><label for="hour">Ora</label><span class="hour-value" id="hourLabel">20:30</span></div>
+        <input type="range" id="hour" min="0" max="23" step="1" value="20">
+        <span class="band-chip" id="bandChip"><span class="dot"></span><span id="bandText">Sera</span></span>
+      </div>
+      <div class="field">
+        <span id="l-day">Giorno</span>
+        <div class="seg" role="radiogroup" aria-labelledby="l-day">
+          <input type="radio" name="day" id="day-f" value="feriale" checked><label for="day-f">Feriale</label>
+          <input type="radio" name="day" id="day-w" value="weekend"><label for="day-w">Sabato</label>
+        </div>
+      </div>
+      <div class="field">
+        <span id="l-meteo">Meteo</span>
+        <div class="seg" role="radiogroup" aria-labelledby="l-meteo">
+          <input type="radio" name="meteo" id="m-s" value="sereno" checked><label for="m-s">Sereno</label>
+          <input type="radio" name="meteo" id="m-p" value="pioggia"><label for="m-p">Pioggia</label>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-chi">
+      <h2 id="h-chi">Chi cammina</h2>
+      <div class="field">
+        <span id="l-sex">Sesso</span>
+        <div class="seg" role="radiogroup" aria-labelledby="l-sex">
+          <input type="radio" name="sex" id="sx-d" value="donna" checked><label for="sx-d">Donna</label>
+          <input type="radio" name="sex" id="sx-u" value="uomo"><label for="sx-u">Uomo</label>
+          <input type="radio" name="sex" id="sx-n" value="nd"><label for="sx-n">Non indicato</label>
+        </div>
+      </div>
+      <div class="field">
+        <span id="l-age">Età</span>
+        <div class="seg" role="radiogroup" aria-labelledby="l-age">
+          <input type="radio" name="age" id="a-1" value="giovani_16_34"><label for="a-1">16–34</label>
+          <input type="radio" name="age" id="a-2" value="adulti" checked><label for="a-2">35–74</label>
+          <input type="radio" name="age" id="a-3" value="over75"><label for="a-3">75+</label>
+        </div>
+      </div>
+      <details>
+        <summary>Altre situazioni</summary>
+        <div class="checks" id="extraProfiles"></div>
+      </details>
+    </section>
+
+    <section aria-labelledby="h-rete">
+      <h2 id="h-rete">La rete in questo momento</h2>
+      <div class="bar" id="classBar" aria-hidden="true"></div>
+      <div class="stats">
+        <div class="stat"><b id="stRed">–</b><span>km in rosso</span></div>
+        <div class="stat"><b id="stMean">–</b><span>S medio</span></div>
+        <div class="stat"><b id="stRel">–</b><span>affidabilità</span></div>
+      </div>
+      <p class="note" style="margin-top:10px">Quartieri con S medio più basso</p>
+      <ul class="worst" id="worstQ"></ul>
+    </section>
+
+    <section aria-labelledby="h-tratto">
+      <h2 id="h-tratto">Tratto selezionato</h2>
+      <div class="card empty" id="segCard">Tocca una strada sulla mappa per vedere il punteggio e cosa lo determina.</div>
+    </section>
+
+    <section aria-labelledby="h-leg">
+      <h2 id="h-leg">Legenda</h2>
+      <div class="legend">
+        <i style="background:var(--s-green)"></i><span>S oltre 65</span>
+        <i style="background:var(--s-yellow)"></i><span>S da 40 a 65</span>
+        <i style="background:var(--s-red)"></i><span>S sotto 40: priorità di intervento</span>
+        <i style="background:var(--road-grey)"></i><span>Strada non percorribile a piedi</span>
+      </div>
+    </section>
+
+    <p class="note" id="footNote">Il punteggio stima la sicurezza percepita a partire dai dati disponibili. Non misura la sicurezza reale di un luogo.</p>
+  </aside>
+  <div class="mapwrap">
+    <div id="map" role="application" aria-label="Mappa dei tratti pedonali di Vicenza"></div>
+    <div class="loading" id="loading">Carico i dati di Vicenza…</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const DATA = /*__DATA__*/null;
+
+async function unpack(b64, Type) {
+  const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const stream = new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"));
+  return new Type(await new Response(stream).arrayBuffer());
+}
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+(async function main() {
+  const M = DATA.model, N = DATA.n, K = M.keys, idx = Object.fromEntries(K.map((k, i) => [k, i]));
+  const S = {}, H = {};
+  for (const [k, v] of Object.entries(DATA.static)) S[k] = await unpack(v, k === "via" || k === "lunghezza" ? Uint16Array : Uint8Array);
+  for (const [k, v] of Object.entries(DATA.hourly)) H[k] = await unpack(v, Uint8Array);
+  const counts = await unpack(DATA.geometry.counts, Uint16Array);
+  const coords = await unpack(DATA.geometry.coords, Int32Array);
+
+  // decode geometry (delta-encoded, 1e-5 degrees) into Leaflet latlngs
+  const lines = new Array(N), bbox = new Float64Array(N * 4);
+  let p = 0;
+  for (let i = 0; i < N; i++) {
+    let x = 0, y = 0; const pts = [];
+    let minx = 1e9, miny = 1e9, maxx = -1e9, maxy = -1e9;
+    for (let j = 0; j < counts[i]; j++) {
+      x += coords[p++]; y += coords[p++];
+      const lon = x / 1e5, lat = y / 1e5; pts.push([lat, lon]);
+      minx = Math.min(minx, lon); maxx = Math.max(maxx, lon); miny = Math.min(miny, lat); maxy = Math.max(maxy, lat);
+    }
+    lines[i] = pts; bbox.set([minx, miny, maxx, maxy], i * 4);
+  }
+
+  // ---------------- map
+  const map = L.map("map", { preferCanvas: true, zoomControl: true, minZoom: 11, maxZoom: 18, zoomSnap: 0.25, zoomDelta: 0.5 });
+  const renderer = L.canvas({ padding: 0.3, tolerance: 6 });
+  map.attributionControl.setPrefix(false);
+  map.attributionControl.addAttribution("© OpenStreetMap contributors (ODbL) · ISTAT 2021 · Comune di Vicenza · Overture Maps");
+  const L_ = DATA.layers;
+  const confine = L.geoJSON(L_.confine, { style: () => ({ color: css("--muted"), weight: 1.2, dashArray: "4 4", fill: false }), interactive: false }).addTo(map);
+  const water = L.geoJSON(L_.acqua, { renderer, style: () => ({ stroke: false, fillColor: css("--water"), fillOpacity: 1 }), interactive: false }).addTo(map);
+  const parks = L.geoJSON(L_.parchi, { renderer, style: () => ({ stroke: false, fillColor: css("--park"), fillOpacity: 1 }), interactive: false }).addTo(map);
+  const quart = L.geoJSON(L_.quartieri, { renderer, style: () => ({ color: css("--muted"), weight: 0.8, opacity: 0.45, fill: false }), interactive: false }).addTo(map);
+  const grey = L.geoJSON(L_.non_pedonali, { renderer, style: () => ({ color: css("--road-grey"), weight: 1.6, opacity: 0.9 }), interactive: false }).addTo(map);
+  map.fitBounds(confine.getBounds(), { padding: [12, 12] });
+  new ResizeObserver(() => map.invalidateSize()).observe(document.getElementById("map"));
+  const labels = L.layerGroup(L_.quartieri.features.map(f => {
+    const c = L.geoJSON(f).getBounds().getCenter();
+    return L.marker(c, { interactive: false, icon: L.divIcon({ className: "qlabel", html: f.properties.quartiere, iconSize: null }) });
+  }));
+  const syncLabels = () => map.getZoom() >= 13 ? labels.addTo(map) : labels.remove();
+  map.on("zoomend", syncLabels); syncLabels();
+  function restyleBase() {
+    confine.setStyle({ color: css("--muted") }); water.setStyle({ fillColor: css("--water") }); parks.setStyle({ fillColor: css("--park") });
+    quart.setStyle({ color: css("--muted") }); grey.setStyle({ color: css("--road-grey") });
+  }
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { restyleBase(); draw(); });
+
+  // ---------------- profiles from the controls
+  const extras = ["disabilita", "lgbtq", "molestie_recenti", "conosce_zona", "in_compagnia"];
+  document.getElementById("extraProfiles").innerHTML = extras.map(p =>
+    `<label><input type="checkbox" id="x-${p}" value="${p}"> ${M.profiles[p].label}</label>`).join("");
+  const val = name => document.querySelector(`input[name="${name}"]:checked`).value;
+  function profiles() {
+    const list = [];
+    if (val("sex") === "donna") list.push("donna");
+    const age = val("age"); if (age !== "adulti") list.push(age);
+    for (const p of extras) if (document.getElementById(`x-${p}`).checked) list.push(p);
+    return list;
+  }
+
+  // ---------------- scoring (mirrors model/scoring.py)
+  const scale = M.scale, NA = M.na;
+  const S_arr = new Float32Array(N), R_arr = new Float32Array(N), P_dark = new Float32Array(N);
+  const cls = new Uint8Array(N); // 0 green 1 yellow 2 red
+  let state = {};
+  function compute() {
+    const hour = +document.getElementById("hour").value, day = val("day"), rain = val("meteo") === "pioggia";
+    const band = DATA.bands[day][hour], B = M.bands[band];
+    const profs = profiles();
+    const w = B.weights.slice(); let darkFactor = 1;
+    for (const p of profs) {
+      for (const [k, m] of Object.entries(M.profiles[p].multipliers)) w[idx[k]] *= m;
+      darkFactor *= M.profiles[p].dark_factor;
+    }
+    const excluded = new Set(M.excluded.map(k => idx[k]));
+    const off = ((day === "feriale" ? 0 : 24) + hour) * N;
+    const D = M.penalties.dark, intensity = D.band_intensity[band] || 0;
+    const rel = M.reliability, base = B.weights;
+    const red = M.classes.red_below, green = M.classes.green_above;
+    const x = new Float32Array(K.length);
+    for (let i = 0; i < N; i++) {
+      const sb = S.bits[i], hb = H.bits[off + i];
+      const get = (arr, j) => arr[j] === NA ? NaN : arr[j] / scale;
+      x[idx.luce] = get(S.luce, i);
+      x[idx.persone] = get(H.persone, off + i) * (rain ? M.rain.persone : 1);
+      x[idx.fronti_attivi] = get(H.fronti_attivi, off + i);
+      x[idx.visuale] = get(S.visuale, i) * (rain ? M.rain.visuale : 1);
+      x[idx.vie_di_fuga] = get(S.vie_di_fuga, i);
+      x[idx.uso_suolo] = get(B.dark ? S.suolo_notte : S.suolo_giorno, i);
+      x[idx.percorso] = get(S.percorso, i);
+      x[idx.punti_aiuto] = get(H.punti_aiuto, off + i);
+      x[idx.trasporto] = get(H.trasporto, off + i);
+      let num = 0, den = 0;
+      for (let j = 0; j < K.length; j++) {
+        if (excluded.has(j) || Number.isNaN(x[j])) continue;
+        num += w[j] * Math.min(1, Math.max(0, x[j])); den += w[j];
+      }
+      const light = Number.isNaN(x[idx.luce]) ? 0.5 : x[idx.luce];
+      const pd = Math.min(D.max, intensity * (D.base + D.poor_light * (1 - light)) * darkFactor);
+      const pen = ((sb & 8) ? 1 - M.penalties.blocking : 1) * ((hb & 4) ? 1 - M.penalties.park_dark : 1) * (1 - pd);
+      const s = Math.min(100, Math.max(0, den > 0 ? 100 * num / den * pen : 0));
+      S_arr[i] = s; P_dark[i] = pd;
+      cls[i] = s < red ? 2 : s > green ? 0 : 1;
+      // reliability: base weights x origin factor (measured 1, proxy 0.5, excluded 0)
+      const f = new Array(K.length).fill(rel.measured);
+      f[idx.luce] = (sb & 1) ? rel.proxy : rel.measured;
+      f[idx.persone] = rel.proxy; f[idx.visuale] = rel.proxy;
+      f[idx.fronti_attivi] = (hb & 1) ? rel.proxy : rel.measured;
+      f[idx.punti_aiuto] = (hb & 2) ? rel.proxy : rel.measured;
+      f[idx.trasporto] = (hb & 8) ? rel.proxy : rel.measured;
+      f[idx.percorso] = (sb & 2) ? rel.proxy : rel.measured;
+      f[idx.uso_suolo] = (sb & 4) ? rel.excluded : rel.measured;
+      for (const j of excluded) f[j] = rel.excluded;
+      let r = 0; for (let j = 0; j < K.length; j++) r += base[j] * f[j];
+      R_arr[i] = r / 100;
+    }
+    state = { hour, day, band, profs, w, x, rain, off, darkFactor };
+    return state;
+  }
+
+  // ---------------- drawing
+  let classLayers = [], highlight = null, selected = -1;
+  const weightFor = z => z >= 17 ? 5 : z >= 16 ? 3.6 : z >= 15 ? 2.6 : z >= 14 ? 2 : 1.4;
+  function draw() {
+    for (const l of classLayers) l.remove();
+    const colors = [css("--s-green"), css("--s-yellow"), css("--s-red")];
+    const groups = [[], [], []];
+    for (let i = 0; i < N; i++) groups[cls[i]].push(lines[i]);
+    const wgt = weightFor(map.getZoom());
+    classLayers = groups.map((g, c) => L.polyline(g, { renderer, color: colors[c], weight: wgt, opacity: 0.95, interactive: false, lineCap: "round" }).addTo(map));
+    if (highlight) highlight.bringToFront();
+  }
+  map.on("zoomend", () => { const wgt = weightFor(map.getZoom()); classLayers.forEach(l => l.setStyle({ weight: wgt })); });
+
+  // ---------------- summary
+  const qNames = DATA.names.quartiere;
+  const CLASS_IT = { pedestrian: "area pedonale", footway: "percorso pedonale", living_street: "zona residenziale",
+    residential: "strada residenziale", primary: "strada principale", secondary: "strada secondaria", tertiary: "strada di quartiere",
+    unclassified: "strada locale", service: "strada di servizio", path: "sentiero", track: "strada sterrata",
+    steps: "scalinata", cycleway: "ciclopedonale", bridleway: "sentiero", corridor: "passaggio coperto" };
+  function summary() {
+    let tot = 0, km = [0, 0, 0], sumS = 0, sumR = 0;
+    const qS = new Float64Array(qNames.length), qL = new Float64Array(qNames.length);
+    for (let i = 0; i < N; i++) {
+      const len = S.lunghezza[i]; tot += len; km[cls[i]] += len; sumS += S_arr[i] * len; sumR += R_arr[i] * len;
+      qS[S.quartiere[i]] += S_arr[i] * len; qL[S.quartiere[i]] += len;
+    }
+    const colors = ["--s-green", "--s-yellow", "--s-red"];
+    document.getElementById("classBar").innerHTML = km.map((k, c) => `<span style="width:${(100 * k / tot).toFixed(2)}%;background:var(${colors[c]})"></span>`).join("");
+    document.getElementById("stRed").textContent = (km[2] / 1000).toFixed(0);
+    document.getElementById("stMean").textContent = (sumS / tot).toFixed(0);
+    document.getElementById("stRel").textContent = (sumR / tot).toFixed(2).replace(".", ",");
+    const order = [...qNames.keys()].sort((a, b) => qS[a] / qL[a] - qS[b] / qL[b]).slice(0, 5);
+    document.getElementById("worstQ").innerHTML = order.map(q => `<li><span>${qNames[q]}</span><span>${(qS[q] / qL[q]).toFixed(0)}</span></li>`).join("");
+    const st = state, B = M.bands[st.band], sun = DATA.sun[st.day];
+    document.getElementById("hourLabel").textContent = String(st.hour).padStart(2, "0") + ":30";
+    document.getElementById("bandText").textContent = `${B.label} · tramonto ${sun.tramonto}, alba ${sun.alba}`;
+    document.getElementById("bandChip").classList.toggle("dark", B.dark);
+  }
+
+  // ---------------- selection
+  const cell = 0.004, grid = new Map();
+  for (let i = 0; i < N; i++) {
+    for (let gx = Math.floor(bbox[i * 4] / cell); gx <= Math.floor(bbox[i * 4 + 2] / cell); gx++)
+      for (let gy = Math.floor(bbox[i * 4 + 1] / cell); gy <= Math.floor(bbox[i * 4 + 3] / cell); gy++) {
+        const key = gx + ":" + gy; if (!grid.has(key)) grid.set(key, []); grid.get(key).push(i);
+      }
+  }
+  function nearest(latlng, maxMeters) {
+    const kx = 111320 * Math.cos(latlng.lat * Math.PI / 180), ky = 110540;
+    const gx0 = Math.floor(latlng.lng / cell), gy0 = Math.floor(latlng.lat / cell);
+    let best = -1, bestD = maxMeters;
+    const seen = new Set();
+    for (let gx = gx0 - 1; gx <= gx0 + 1; gx++) for (let gy = gy0 - 1; gy <= gy0 + 1; gy++) {
+      for (const i of grid.get(gx + ":" + gy) || []) {
+        if (seen.has(i)) continue; seen.add(i);
+        const pts = lines[i];
+        for (let j = 1; j < pts.length; j++) {
+          const ax = (pts[j - 1][1] - latlng.lng) * kx, ay = (pts[j - 1][0] - latlng.lat) * ky;
+          const bx = (pts[j][1] - latlng.lng) * kx, by = (pts[j][0] - latlng.lat) * ky;
+          const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+          const t = l2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / l2)) : 0;
+          const d = Math.hypot(ax + t * dx, ay + t * dy);
+          if (d < bestD) { bestD = d; best = i; }
+        }
+      }
+    }
+    return best;
+  }
+  map.on("click", e => {
+    const metersPerPx = 40075016 * Math.cos(e.latlng.lat * Math.PI / 180) / Math.pow(2, map.getZoom() + 8);
+    const i = nearest(e.latlng, Math.max(8, 14 * metersPerPx));
+    select(i);
+  });
+  function select(i) {
+    selected = i;
+    if (highlight) { highlight.remove(); highlight = null; }
+    const card = document.getElementById("segCard");
+    if (i < 0) { card.className = "card empty"; card.textContent = "Nessuna strada pedonale in quel punto. Tocca più vicino a una linea colorata."; return; }
+    highlight = L.polyline(lines[i], { renderer, color: css("--ink"), weight: weightFor(map.getZoom()) + 4, opacity: 0.35, interactive: false }).addTo(map);
+    renderCard();
+  }
+  function renderCard() {
+    const i = selected, card = document.getElementById("segCard");
+    if (i < 0) return;
+    const st = compute1(i);
+    const s = S_arr[i], c = ["verde", "gialla", "rossa"][cls[i]];
+    const via = DATA.names.via[S.via[i]], q = qNames[S.quartiere[i]];
+    const rows = K.map((k, j) => ({ k, j, x: st.x[j], loss: st.loss[j] }))
+      .filter(r => !Number.isNaN(r.loss)).sort((a, b) => b.loss - a.loss);
+    const estimated = new Set(["persone", "visuale"]);
+    if (S.bits[i] & 1) estimated.add("luce");
+    const lam = M.lambda_base * state.profs.reduce((a, p) => a * M.profiles[p].lambda_factor, 1);
+    const cost = 1 + lam * Math.pow((100 - s) / 100, 2);
+    const pens = [];
+    if (S.bits[i] & 8) pens.push("sottopasso, tratto coperto o passaggio senza uscita −30%");
+    if (H.bits[state.off + i] & 4) pens.push("parco chiuso o buio −40%");
+    if (P_dark[i] > 0) pens.push(`buio −${Math.round(P_dark[i] * 100)}%`);
+    card.className = "card";
+    card.innerHTML = `
+      <h3>${via}</h3>
+      <p class="sub">${q} · ${CLASS_IT[DATA.names.classe[S.classe[i]]] || DATA.names.classe[S.classe[i]]} · ${S.lunghezza[i]} m</p>
+      <div class="score"><b>${s.toFixed(0)}</b><span class="pill ${c}">${c === "rossa" ? "priorità di intervento" : c === "gialla" ? "intermedio" : "buono"}</span></div>
+      <p class="note">Affidabilità ${R_arr[i].toFixed(2).replace(".", ",")} · costo per il navigatore ${cost.toFixed(2).replace(".", ",")} × la lunghezza</p>
+      <div class="params">${rows.map(r => `
+        <div class="prow ${estimated.has(r.k) ? "est" : ""}"><span class="name">${M.labels[r.j]}</span>
+          <span class="track"><span class="fill" style="width:${(100 * r.x).toFixed(0)}%"></span></span>
+          <span class="v">${r.x.toFixed(2).replace(".", ",")}</span></div>`).join("")}
+        ${M.excluded.map(k => `<div class="prow off"><span class="name">${M.labels[idx[k]]}</span><span></span><span class="v">n/d</span></div>`).join("")}
+      </div>
+      <p class="note" style="margin-top:8px">Luce: ${DATA.names.fonte_luce[S.fonte_luce[i]]}.${pens.length ? " Penalità: " + pens.join("; ") + "." : ""}</p>
+      <p class="note">I parametri sono ordinati per quanto abbassano il punteggio. "n/d": arriveranno con le segnalazioni dei cittadini.</p>`;
+  }
+  function compute1(i) {
+    // parameter values and points lost for one segment, with the current weights
+    const st = state, off = st.off, x = new Array(K.length).fill(NaN);
+    const get = (arr, j) => arr[j] === NA ? NaN : arr[j] / scale;
+    const B = M.bands[st.band];
+    x[idx.luce] = get(S.luce, i); x[idx.persone] = get(H.persone, off + i) * (st.rain ? M.rain.persone : 1);
+    x[idx.fronti_attivi] = get(H.fronti_attivi, off + i); x[idx.visuale] = get(S.visuale, i) * (st.rain ? M.rain.visuale : 1);
+    x[idx.vie_di_fuga] = get(S.vie_di_fuga, i); x[idx.uso_suolo] = get(B.dark ? S.suolo_notte : S.suolo_giorno, i);
+    x[idx.percorso] = get(S.percorso, i); x[idx.punti_aiuto] = get(H.punti_aiuto, off + i); x[idx.trasporto] = get(H.trasporto, off + i);
+    let den = 0; for (let j = 0; j < K.length; j++) if (!Number.isNaN(x[j])) den += st.w[j];
+    const loss = x.map((v, j) => Number.isNaN(v) ? NaN : 100 * st.w[j] / den * (1 - Math.min(1, Math.max(0, v))));
+    return { x, loss };
+  }
+
+  // ---------------- wiring
+  function update() { compute(); draw(); summary(); renderCard(); }
+  document.querySelectorAll("input").forEach(el => el.addEventListener("input", update));
+  window.QV = { compute, S_arr, R_arr, profiles, ids: DATA.segment_ids };  // used by the automated check
+  update();
+  document.getElementById("loading").remove();
+  const info = DATA.info, lm = info.luce_modello || {};
+  document.getElementById("footNote").textContent =
+    "Il punteggio stima la sicurezza percepita a partire dai dati disponibili. Non misura la sicurezza reale di un luogo. " +
+    `Dati: OpenStreetMap al ${String(info.osm).slice(0, 10)}, ${info.residenti}, attività OSM e Overture. ` +
+    `La luce è stimata dove OpenStreetMap non la conosce (modello statistico, accuratezza ${Math.round((lm.accuratezza || 0) * 100)}%). ` +
+    `Giorno di riferimento: metà novembre. Versione beta generata il ${info.generato}.`;
+})().catch(err => {
+  const el = document.getElementById("loading");
+  el.textContent = "Non riesco a caricare la mappa: " + err.message + ". Serve un browser recente (Chrome, Edge, Firefox o Safari aggiornati).";
+});
+</script>
+<!--PAGE-END-->
+</body>
+</html>

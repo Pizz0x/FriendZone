@@ -8,42 +8,31 @@ oggi e come arrivare al dato reale. Ogni sostituzione si fa mettendo un file in
 
 ## Perché alcune fonti non sono arrivate
 
-Il backend è stato sviluppato in un ambiente cloud con **rete limitata**: il gateway
-rifiuta le connessioni verso i domini non autorizzati (HTTP 403). Non è un blocco dei
-siti: da un computer del team le stesse richieste funzionano. Uno scraper non
-risolverebbe nulla, perché girerebbe nella stessa rete limitata.
+Con la rete dell'ambiente aperta (16/10/2026) sono arrivati ISTAT, le tabelle del Comune su
+dati.veneto.it e Nominatim. Restano fuori:
 
-Tre modi per sbloccare, dal più semplice:
+- **Overpass e SIT**: i loro server chiudono la connessione verso questo ambiente cloud.
+  Da un computer del team (meglio se in Italia) funzionano: `python -m pipeline.run_all --force`.
+- **Open-Meteo**: limite giornaliero superato dall'indirizzo condiviso; dal vostro computer funziona.
+- **Eventi del Comune**: il `robots.txt` vieta le API; serve un export o l'accesso dal Comune.
+- **GTFS SVT, Punti Viola, punti luce**: non sono pubblici; vanno chiesti.
 
-1. **Eseguire la pipeline su un computer del team**: `python -m pipeline.run_all --force`.
-   Overpass, Nominatim, Open-Meteo ecc. vengono usati direttamente.
-2. **Aprire la rete dell'ambiente cloud**: impostazioni dell'ambiente → *Network access* →
-   aggiungere i domini qui sotto (oppure scegliere un livello di accesso più ampio), poi
-   aprire una nuova sessione. Guida: <https://code.claude.com/docs/en/cloud-environments#network-access>.
-3. **Scaricare i file a mano** e metterli nelle cartelle di `data/manual/` indicate sotto.
-
-Domini da autorizzare: `overpass-api.de`, `overpass.kumi.systems`,
-`nominatim.openstreetmap.org`, `sit.comune.vicenza.it`, `www.comune.vicenza.it`,
-`servizi2.comune.vicenza.it`, `eventi.comune.vicenza.it`, `www.istat.it`,
-`esploradati.istat.it`, `dati.veneto.it`, `api.open-meteo.com`,
-`archive-api.open-meteo.com`, `geoportale.provincia.vicenza.it`,
-`idt2.regione.veneto.it`, `mobilitydatabase.org`, `www.transit.land`,
-`graph.mapillary.com`, `jeodpp.jrc.ec.europa.eu`.
+Ogni fonte si sblocca anche mettendo i file in `data/manual/` (cartelle indicate sotto).
 
 ## Fonte per fonte
 
-| Dato | Oggi (demo) | Natura | Dato reale da ottenere | Come | Dove metterlo | Priorità |
+| Dato | Oggi | Natura | Dato reale da ottenere | Come | Dove metterlo | Priorità |
 |---|---|---|---|---|---|---|
 | **Punti luce** | `lit` OSM (11% dei tratti), vie adiacenti (8%), lampioni OSM (12%), **modello statistico (68%)** | stima dichiarata (`proxy`, `fonte_luce`) | censimento dei punti luce City Green Light | richiesta al Comune / referente SIT (testo pronto sotto) | `data/manual/punti_luce/` (CSV `lat,lon` o shapefile) | **alta** |
-| Confini dei quartieri | celle di Voronoi attorno ai 38 punti `place` di OSM | approssimazione di dati reali | quartieri / circoscrizioni del SIT | download dal SIT o richiesta | `data/manual/sit/` (nome file con "quart") | media |
-| Popolazione | Meta/CIESIN HRSL a ~30 m (totale, donne, over 60) | dato pubblico reale (stima modellata) | sezioni di censimento ISTAT 2021 | download "basi territoriali" e "variabili censuarie" | `data/manual/istat/` | bassa |
-| Negozi e locali | OSM (1.174) + Overture Places (4.493) | dati reali | orari di apertura (oggi noti solo per il 16% in OSM) | mappatura in OSM (es. app StreetComplete), elenchi del SUAP comunale | OSM o `data/manual/` | media |
-| Frequenza dei bus | stima per fascia in `config.yaml` | stima dichiarata (`proxy`) | GTFS di SVT | non è nel catalogo Mobility Database (verificato il 16/10/2026): chiederlo a SVT o alla Regione | `data/manual/gtfs/` (da integrare, ~2 ore) | media |
-| Meteo | `sereno` se Open-Meteo non risponde; override `sereno`/`pioggia`/`nebbia` | nessun dato inventato | Open-Meteo (già implementato, senza chiave) | basta la rete | — | bassa |
-| Eventi | **3 eventi inventati** in `data/demo/eventi_demo.csv`, solo con `--demo` | simulato, etichettato | agenda "Viva" del Comune | verificare se esiste un feed (RSS/iCal); altrimenti CSV a mano | `data/manual/eventi.csv` (stesse colonne) | media |
-| Punti Viola | nessuno | **non simulati di proposito** | elenco DonneXStrada | accordo con l'associazione, nel rispetto delle condizioni d'uso | `data/manual/punti_viola.csv` | media |
-| Zonizzazione PI | `landuse` OSM (74% della superficie) | dato reale | Piano degli Interventi dal SIT + legenda | download o richiesta | `data/manual/sit/` + `pi_zone_map` in config | bassa |
-| OSM | planet su AWS, dati al 12/10/2026 | dato reale | — (Overpass dà gli stessi dati, solo più aggiornati) | `--force` su rete libera | — | — |
+| Confini dei quartieri | 22 zone ufficiali ricostruite da sezioni ISTAT e popolazione del Comune | ricostruzione da dati reali | confini delle zone dal SIT | download dal SIT (da un computer in Italia) o richiesta | `data/manual/sit/` (nome file con "quart") | media |
+| Popolazione | ISTAT 2021 per sezione; donne e over 60 dalle quote del Comune per quartiere | dato reale | — (già il dato del brief) | — | — | — |
+| Negozi e locali | OSM (1.174) + Overture Places (4.493) | dati reali | orari di apertura (noti solo per il 16% in OSM) | mappatura in OSM (es. app StreetComplete), elenchi del SUAP comunale | OSM o `data/manual/` | media |
+| Frequenza dei bus | stima per fascia in `config.yaml` (sera a chiamata ChiamaBus 20:30–23:30) | stima dichiarata (`proxy`) | GTFS di SVT | non è pubblico: chiederlo a SVT o alla Regione | `data/manual/gtfs/` (da integrare, ~2 ore) | media |
+| Meteo | Open-Meteo (dal computer del team); qui `sereno` dichiarato; override | nessun dato inventato | — | rete senza limiti | — | bassa |
+| Eventi | **3 eventi inventati** in `data/demo/eventi_demo.csv`, solo con `--demo` | simulato, etichettato | agenda "Viva" del Comune | export iCal/CSV o accesso al calendario (il robots.txt vieta le API) | `data/manual/eventi.csv` (stesse colonne) | media |
+| Punti Viola | nessuno | **non simulati di proposito** | elenco DonneXStrada | accordo con l'associazione | `data/manual/punti_viola.csv` | media |
+| Zonizzazione PI | `landuse` OSM (74% della superficie); attributi del PI scaricati da dati.veneto.it, senza geometria | dato reale | geometrie del PI dal SIT + legenda | download o richiesta | `data/manual/sit/` + `pi_zone_map` in config | bassa |
+| OSM | planet su AWS, dati al 12/10/2026 | dato reale | — (Overpass dà gli stessi dati, più aggiornati) | `--force` dal computer del team | — | — |
 
 I Punti Viola non vanno simulati: in una demo pubblica un punto di accoglienza inventato
 potrebbe indirizzare qualcuno verso un luogo che non offre aiuto. Lo stesso vale per
@@ -60,7 +49,7 @@ Un classificatore (gradient boosting, `pipeline/light_model.py`) è addestrato s
 tratti dove OSM dice se la via è illuminata. Usa solo dati presenti ovunque: classe
 della strada, edifici e popolazione vicini, uso del suolo, parchi, fondo sterrato,
 lampioni mappati, distanza dal centro. Validazione per quartiere (il modello è provato
-su quartieri che non ha visto): **AUC 0,86, accuratezza 93%** contro il 91% di chi
+su quartieri che non ha visto): **AUC 0,87, accuratezza 93%** contro il 91% di chi
 risponde sempre "illuminato"; riconosce circa metà dei tratti non illuminati. Il valore
 usato è la probabilità di essere illuminato. Ogni tratto porta `fonte_luce` (nel
 GeoJSON e nel tooltip della mappa), così la stima non si confonde mai con una misura.
@@ -99,8 +88,8 @@ cambiare codice e l'affidabilità sale».
 
 ## Altre stime e sostituti oggi in uso
 
-- **Residenti esposti**: residenti stimati da HRSL entro 100 m da un tratto rosso (il brief
-  li chiedeva per sezione ISTAT). Con ISTAT in `data/manual/istat/` si passa alle sezioni.
+- **Residenti esposti**: residenti ISTAT 2021 delle sezioni attraversate da tratti rossi
+  (come nel brief); donne e over 60 stimati con le quote per quartiere del Comune.
 - **Attività senza orario**: orari predefiniti per categoria (`config.yaml -> pois.default_hours`).
 - **Persone e visuale**: sempre `proxy` per definizione (nessuna misura diretta).
 - **Episodi, cura, composizione della folla**: esclusi finché non arrivano le segnalazioni (fase 5).

@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from model import scoring
-from model.config import load_config, param_labels
+from model.config import load_config, param_keys, param_labels
 from pipeline import params as params_mod
 from pipeline.common import EXPORTS, PROCESSED, log
 
@@ -23,7 +23,10 @@ def score_band(params: pd.DataFrame, band: str, profile: str, cfg: dict[str, Any
     """S, colour class, reliability, cost per metre and worst parameters for one combination."""
     cfg = cfg or load_config()
     rows, X, available = params_mod.matrices(params, band, cfg)
-    s = scoring.segment_scores(X, available, band, profile, rows["fattore_penalita"].to_numpy(), strategy=strategy, cfg=cfg)
+    keys = param_keys(cfg)
+    dark = scoring.dark_penalty(X[:, keys.index("luce")], band, profile, cfg)
+    penalty = rows["fattore_penalita"].to_numpy() * (1.0 - dark)
+    s = scoring.segment_scores(X, available, band, profile, penalty, strategy=strategy, cfg=cfg)
     lam = scoring.profile_lambda(profile, cfg)
     worst = scoring.worst_parameters(X, available, band, profile, k=3, cfg=cfg)
     return pd.DataFrame({
@@ -35,6 +38,7 @@ def score_band(params: pd.DataFrame, band: str, profile: str, cfg: dict[str, Any
         "affidabilita": rows["affidabilita"].to_numpy(),
         "costo_per_m": np.round(scoring.path_cost(1.0, s, lam), 4),
         "peggiori": [",".join(w) for w in worst],
+        "pen_buio": np.round(dark, 3),
     })
 
 
@@ -104,6 +108,62 @@ def aggregate_neighbourhoods(segments: pd.DataFrame, scores: pd.DataFrame, stree
 
 
 EXPOSURE_RADIUS_M = 100.0
+
+
+def exposure_istat(segments: gpd.GeoDataFrame, scores: pd.DataFrame, quartieri: gpd.GeoDataFrame,
+                   sections: gpd.GeoDataFrame, shares: pd.DataFrame | None, cfg: dict[str, Any]) -> pd.DataFrame:
+    """Residents of the census sections crossed by red segments (brief, 6.5).
+
+    Women and over-60 are estimated with the shares of each zone published by
+    the Comune (residents by zone, sex and age).
+    """
+    from shapely import STRtree
+
+    metric = cfg["area"]["crs_metric"]
+    sec = sections.to_crs(metric).reset_index(drop=True)
+    q = quartieri.to_crs(metric)
+    reps = gpd.GeoDataFrame(geometry=sec.geometry.representative_point(), crs=metric)
+    sec_q = gpd.sjoin(reps, q[["quartiere", "geometry"]], how="left", predicate="within")
+    sec_q = sec_q[~sec_q.index.duplicated()]["quartiere"].reindex(sec.index)
+    pop = sec["popolazione"].to_numpy(dtype=float)
+    totals = pd.Series(pop).groupby(sec_q.values).sum()
+    seg_geom = segments.set_index("segment_id").to_crs(metric).geometry
+    tree = STRtree(sec.geometry.values)
+    share = shares.set_index("quartiere") if shares is not None else None
+    rows = []
+    for (band, profile), sc in scores.groupby(["fascia", "profilo"], sort=False):
+        red = sc.loc[sc["classe_colore"] == "rossa", "segment_id"]
+        hit = np.zeros(len(sec), dtype=bool)
+        if len(red):
+            pairs = tree.query(seg_geom.loc[red].values, predicate="intersects")
+            hit[np.unique(pairs[1])] = True
+        exp = pd.Series(pop[hit]).groupby(sec_q.values[hit]).sum().reindex(totals.index, fill_value=0.0)
+        for quartiere, value in exp.items():
+            tot = totals.loc[quartiere]
+            row = {"fascia": band, "profilo": profile, "quartiere": quartiere,
+                   "residenti_stimati": int(round(tot)), "residenti_esposti": int(round(value)),
+                   "pct_residenti_esposti": round(100 * value / tot, 1) if tot else 0.0}
+            if share is not None and quartiere in share.index:
+                row["donne_esposte"] = int(round(value * share.at[quartiere, "quota_donne"]))
+                row["over60_esposti"] = int(round(value * share.at[quartiere, "quota_over60"]))
+            rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def zone_shares(cfg: dict[str, Any]) -> pd.DataFrame | None:
+    """Share of women and of people aged 60+ per zone (Comune, latest year)."""
+    from pipeline import sources_public
+
+    t = sources_public.load_comune_table("residenti_quartieri_eta", cfg)
+    if t is None:
+        return None
+    t = t[t["ANNO"] == t["ANNO"].max()].copy()
+    aliases = cfg["neighbourhoods"].get("zone_aliases", {})
+    total = t["MASCHI"] + t["FEMMINE"]
+    old = [c for c in t.columns if c.endswith("ANNI") or c.endswith("OLTRE")]
+    over60 = [c for c in old if c[:2].isdigit() and int(c[:2]) >= 60] + [c for c in old if c.startswith("100")]
+    return pd.DataFrame({"quartiere": t["QUARTIERE"].map(lambda n: aliases.get(n, n)),
+                         "quota_donne": t["FEMMINE"] / total, "quota_over60": t[over60].sum(axis=1) / total})
 
 
 def exposure(segments: gpd.GeoDataFrame, scores: pd.DataFrame, quartieri: gpd.GeoDataFrame,
@@ -198,7 +258,11 @@ def run(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
     from pipeline import segments as seg_mod
     from pipeline import sources_public
 
-    exposed = exposure(segments, scores, seg_mod.load_quartieri(), sources_public.load_population_grid(cfg), cfg)
+    sections = sources_public.load_istat_sections(cfg)
+    if sections is not None:
+        exposed = exposure_istat(segments, scores, seg_mod.load_quartieri(), sections, zone_shares(cfg), cfg)
+    else:
+        exposed = exposure(segments, scores, seg_mod.load_quartieri(), sources_public.load_population_grid(cfg), cfg)
     quartieri = aggregate_neighbourhoods(segments, scores, streets, exposed)
     EXPORTS.mkdir(parents=True, exist_ok=True)
     streets.to_csv(EXPORTS / "vie.csv", index=False)

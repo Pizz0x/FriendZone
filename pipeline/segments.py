@@ -146,6 +146,108 @@ def neighbourhoods_from_sit(cfg: dict[str, Any], boundary: Polygon) -> gpd.GeoDa
     return None
 
 
+def _split_zone_name(name: str) -> list[str]:
+    return [p.strip() for p in str(name).replace(" - ", "-").split("-") if p.strip()]
+
+
+def _official_zone_population(cfg: dict[str, Any]) -> dict[str, float]:
+    """Residents per zone from the Comune (latest year), keyed by zone name."""
+    from pipeline import sources_public
+
+    table = sources_public.load_comune_table("residenti_quartieri_eta", cfg)
+    if table is None or not {"MASCHI", "FEMMINE", "QUARTIERE", "ANNO"} <= set(table.columns):
+        return {}
+    last = table[table["ANNO"] == table["ANNO"].max()]
+    aliases = cfg["neighbourhoods"].get("zone_aliases", {})
+    return {aliases.get(q, q): float(m + f) for q, m, f in zip(last["QUARTIERE"], last["MASCHI"], last["FEMMINE"])}
+
+
+def _assign_sections(sec: gpd.GeoDataFrame, seeds: gpd.GeoDataFrame, targets: dict[str, float],
+                     iterations: int = 400) -> np.ndarray:
+    """Assign census sections to zones of one circoscrizione.
+
+    Nearest zone point, with additive weights tuned so that the population of
+    each zone approaches the official one (capacity-constrained Voronoi on
+    sections). Without official figures it is the plain nearest point.
+    """
+    names = list(dict.fromkeys(seeds["quartiere"]))
+    pts = sec.geometry.representative_point()
+    dist = np.column_stack([
+        np.min(np.column_stack([pts.distance(g).to_numpy() for g in seeds.loc[seeds["quartiere"] == n, "geometry"]]), axis=1)
+        for n in names])
+    pop = sec["popolazione"].to_numpy(dtype=float)
+    weights = np.zeros(len(names))
+    tgt = np.array([targets.get(n, np.nan) for n in names])
+    if len(names) > 1 and not np.isnan(tgt).any() and tgt.sum() > 0:
+        tgt = tgt * pop.sum() / tgt.sum()
+        step = 200.0
+        for _ in range(iterations):
+            choice = np.argmin(dist - weights, axis=1)
+            got = np.bincount(choice, weights=pop, minlength=len(names))
+            weights += step * (tgt - got) / np.maximum(tgt, 1.0)
+            step *= 0.99
+    choice = np.argmin(dist - weights, axis=1)
+    return np.array(names)[choice]
+
+
+def neighbourhoods_from_official_zones(cfg: dict[str, Any], boundary: Polygon, feats: gpd.GeoDataFrame) -> gpd.GeoDataFrame | None:
+    """The 22 official zones of the Comune, rebuilt from ISTAT census sections.
+
+    The Comune publishes the list of zones with their circoscrizione
+    (dati.veneto.it) but not their boundaries (SIT not reachable). ISTAT gives
+    the exact circoscrizione of every census section. Each section is assigned
+    to the nearest zone point *within its own circoscrizione*, then sections are
+    merged: circoscrizione boundaries are exact, zone boundaries follow
+    section boundaries.
+    """
+    from pipeline import sources_public
+
+    ncfg = cfg["neighbourhoods"]
+    if not ncfg.get("official_zones", True):
+        return None
+    zones = sources_public.load_comune_table("zone_amministrative", cfg)
+    sections = sources_public.load_istat_sections(cfg)
+    if zones is None or sections is None or "circoscrizione" not in sections:
+        return None
+    metric = cfg["area"]["crs_metric"]
+    places = feats[(feats.geom_type == "Point") & feats.get("place", pd.Series(index=feats.index, dtype=object)).notna()]
+    places = places.to_crs(metric)
+    place_pts = {str(n).lower(): g for n, g in zip(places["name"], places.geometry) if isinstance(n, str)}
+    streets = gpd.read_parquet(SEGMENTS).to_crs(metric) if SEGMENTS.exists() else None
+    seeds = []
+    for row in zones.itertuples():
+        name, circ = str(row.denominazione).strip(), int(row.circoscrizione)
+        street = ncfg.get("zone_seed_streets", {}).get(name)
+        parts = [street] if street else _split_zone_name(name)
+        for part in parts:
+            pt = place_pts.get(part.lower())
+            if pt is None and streets is not None:
+                same = streets[streets["nome"] == part]
+                pt = same.union_all().centroid if len(same) else None
+            if pt is None:
+                hit = sources_public.geocode(f"{part}, Vicenza", cfg)
+                pt = gpd.GeoSeries.from_xy([hit[1]], [hit[0]], crs="EPSG:4326").to_crs(metric).iloc[0] if hit else None
+            if pt is not None:
+                seeds.append({"quartiere": name, "circoscrizione": circ, "geometry": pt})
+    if not seeds:
+        return None
+    seeds = gpd.GeoDataFrame(seeds, crs=metric)
+    sec = sections.to_crs(metric).copy()
+    targets = _official_zone_population(cfg)
+    sec["quartiere"] = None
+    for circ, idx in sec.groupby("circoscrizione").groups.items():
+        cand = seeds[seeds["circoscrizione"] == circ]
+        cand = cand if len(cand) else seeds
+        sec.loc[idx, "quartiere"] = _assign_sections(sec.loc[idx], cand, targets)
+    out = sec.dissolve(by="quartiere", aggfunc={"popolazione": "sum", "circoscrizione": "first"}, as_index=False)
+    out = out.rename(columns={"popolazione": "popolazione_istat_2021"})
+    out["geometry"] = out.geometry.intersection(gpd.GeoSeries([boundary], crs="EPSG:4326").to_crs(metric).iloc[0])
+    out = out.to_crs("EPSG:4326")
+    out["fonte_quartiere"] = ("22 zone del Comune (dati.veneto.it) ricostruite con le sezioni e le circoscrizioni "
+                              "ISTAT 2021")
+    return out[["quartiere", "circoscrizione", "popolazione_istat_2021", "fonte_quartiere", "geometry"]]
+
+
 def neighbourhoods_from_osm(feats: gpd.GeoDataFrame, boundary: Polygon, cfg: dict[str, Any]) -> gpd.GeoDataFrame | None:
     ncfg = cfg["neighbourhoods"]
     metric = cfg["area"]["crs_metric"]
@@ -227,6 +329,7 @@ def build_neighbourhoods(cfg: dict[str, Any] | None = None) -> gpd.GeoDataFrame:
     feats = osm.load_features()
     for name, fn in (
         ("SIT", lambda: neighbourhoods_from_sit(cfg, boundary)),
+        ("zone ufficiali + ISTAT", lambda: neighbourhoods_from_official_zones(cfg, boundary, feats)),
         ("OSM", lambda: neighbourhoods_from_osm(feats, boundary, cfg)),
         ("ISTAT", lambda: neighbourhoods_from_istat(cfg, boundary)),
     ):

@@ -84,38 +84,47 @@ profiles:
     label: "Riferimento (neutro / uomo adulto)"
     multipliers: {}
     lambda_factor: 1.0
+    dark_factor: 1.0
   donna:
     label: "Donna"
     multipliers: {luce: 1.3, persone: 1.2, visuale: 1.3, uso_suolo: 1.3, episodi: 1.4, folla: 1.6}
     lambda_factor: 2.0
+    dark_factor: 2.0   # ISTAT 2022-23: insicure da sole di sera 16,4% contro 7,4% degli uomini
   giovani_16_34:
     label: "16–34 anni"
     multipliers: {trasporto: 1.4, episodi: 1.2}
     lambda_factor: 1.0
+    dark_factor: 1.0
   over75:
     label: "Over 75"
     multipliers: {percorso: 2.5, luce: 1.2, punti_aiuto: 1.5}
     lambda_factor: 1.3
+    dark_factor: 1.3
   disabilita:
     label: "Disabilità motoria o visiva"
     multipliers: {percorso: 2.5, luce: 1.3, vie_di_fuga: 1.3}
     lambda_factor: 1.3
+    dark_factor: 1.3
   lgbtq:
     label: "LGBTQ+"
     multipliers: {episodi: 1.5, folla: 1.3}
     lambda_factor: 1.3
+    dark_factor: 1.3
   molestie_recenti:
     label: "Molestie subite di recente"
     multipliers: {episodi: 1.5}
     lambda_factor: 1.3
+    dark_factor: 1.3
   conosce_zona:
     label: "Conosce bene la zona"
     multipliers: {}
     lambda_factor: 0.8
+    dark_factor: 0.8
   in_compagnia:
     label: "In compagnia"
     multipliers: {}
     lambda_factor: 0.5
+    dark_factor: 0.5   # in compagnia il buio pesa la metà
 
 # -----------------------------------------------------------------------------
 # Punteggio
@@ -132,6 +141,14 @@ scoring:
   penalties:
     blocking: 0.30     # sottopasso, tratto coperto o passaggio senza uscita
     park_dark: 0.40    # tratto in un parco nelle fasce di buio, se chiuso o non illuminato
+    # buio (decisione del team, 16/10/2026): nelle fasce di buio ogni tratto perde
+    # base + poor_light × (1 − luce), moltiplicato per l'intensità della fascia e
+    # per il dark_factor dei profili (PDF: "il buio è il moltiplicatore più forte")
+    dark:
+      base: 0.05
+      poor_light: 0.20
+      max: 0.60
+      band_intensity: {giorno: 0.0, prima_ora_buio: 0.5, sera: 1.0, notte_fonda: 1.0, mattina_buia: 1.0}
 
 # -----------------------------------------------------------------------------
 # Combinazioni standard precalcolate ed esportate (sez. 6.6)
@@ -250,6 +267,17 @@ sources:
       emergency_or_urgent_care_facility: hospital
       urgent_care_clinic: clinic
       police_station: police
+  # ISTAT, basi territoriali 2021 del Veneto: sezioni con popolazione 2021 e
+  # circoscrizioni (COM_ASC1)
+  istat:
+    basi_territoriali_url: "https://www.istat.it/storage/cartografia/basi_territoriali/2021/R05_21.zip"
+  # tabelle del Comune di Vicenza pubblicate su dati.veneto.it (CKAN, IODL/CC-BY)
+  comune_vicenza:
+    datastore_dump_url: "https://dati.veneto.it/SpodCkanApi/api/3/datastore/dump/{resource}.csv"
+    tables:
+      zone_amministrative: "0cd3215a-2efc-4748-a16d-60c6f53e0445"
+      residenti_quartieri_eta: "65bb7e72-314a-4b2e-adf7-d46b8c1d1083"
+      residenti_per_via: "b3d833b1-66b9-491a-8f00-6c656e26e31d"
   manual_dirs:
     sit: "data/manual/sit"
     istat: "data/manual/istat"
@@ -273,6 +301,20 @@ network:
 # Quartieri: SIT > OSM (place/admin_level 10) > ISTAT > griglia esagonale
 # -----------------------------------------------------------------------------
 neighbourhoods:
+  # quartieri ufficiali (22 zone del Comune, dati.veneto.it) ricostruiti unendo le
+  # sezioni ISTAT di ogni circoscrizione attorno al punto del quartiere
+  official_zones: true
+  # zone senza un nodo place in OSM: si usa il centro della via omonima (OSM),
+  # altrimenti Nominatim
+  zone_seed_streets:
+    "Riviera Berica": "Viale Riviera Berica"
+    "Via Quadri": "Via Giovanni Battista Quadri"
+  # nomi delle tabelle del Comune che differiscono da quelli delle zone
+  zone_aliases:
+    "Anconetta-Ospedaletto": "Ospedaletto"
+    "S. Pietro Intrigogna": "San Pietro Intrigogna"
+    "San Felice-Cattane": "San Felice - Cattane"
+    "Centro storico": "Centro Storico"
   osm_place_values: [suburb, quarter, neighbourhood]
   osm_admin_levels: ["9", "10"]
   hex_size_m: 800

@@ -545,7 +545,7 @@ def validation_markdown(segments, params, scores, streets, quartieri_agg, checks
                  "Places (senza doppioni; orari non noti → orari predefiniti per categoria, flag proxy).")
     aiuto = meta_p.get("punti_aiuto", {})
     lines.append(f"- **Punti di aiuto**: {aiuto.get('osm', 0):,} da OSM + {aiuto.get('overture', 0):,} da Overture.")
-    lines.append(f"- **Residenti**: {meta_p.get('residents_source')} (Meta/CIESIN HRSL ≈ 30 m al posto delle sezioni ISTAT).")
+    lines.append(f"- **Residenti**: {meta_p.get('residents_source')}.")
     fonti = meta_p.get("luce_fonti", {})
     tot = sum(fonti.values()) or 1
     lines.append("- **Luce**: " + "; ".join(f"{LIGHT_SOURCE_LABELS.get(k, k)} {v:,} tratti ({100 * v / tot:.0f}%)"
@@ -590,11 +590,12 @@ def validation_markdown(segments, params, scores, streets, quartieri_agg, checks
     if "residenti_esposti" in q and pd.api.types.is_numeric_dtype(q["residenti_esposti"]):
         cols += ["residenti_stimati", "residenti_esposti", "donne_esposte"]
         tot = q[["residenti_stimati", "residenti_esposti", "donne_esposte", "over60_esposti"]].sum()
-        lines += [f"Residenti stimati (HRSL) che vivono entro 100 m da almeno un tratto rosso, di sera: "
+        lines += [f"Residenti (ISTAT 2021) delle sezioni di censimento attraversate da almeno un tratto rosso, di sera: "
                   f"{int(tot['residenti_esposti']):,} su {int(tot['residenti_stimati']):,} "
                   f"({100 * tot['residenti_esposti'] / max(tot['residenti_stimati'], 1):.0f}%), di cui "
-                  f"{int(tot['donne_esposte']):,} donne e {int(tot['over60_esposti']):,} over 60. Conta anche tratti "
-                  "rossi molto brevi (passaggi senza uscita): è un indicatore di priorità, non di rischio.", ""]
+                  f"{int(tot['donne_esposte']):,} donne e {int(tot['over60_esposti']):,} over 60 (quote per quartiere del "
+                  "Comune). Conta anche tratti rossi molto brevi (passaggi senza uscita): è un indicatore di priorità, "
+                  "non di rischio.", ""]
     lines.append(_md_table(q.sort_values("S_medio")[cols], "{:.2f}"))
     for band in cfg["standard"]["bands"]:
         st = streets[(streets["fascia"] == band) & (streets["profilo"] == "riferimento")
@@ -625,7 +626,11 @@ def run(cfg: dict[str, Any] | None = None) -> None:
     streets = aggregate.aggregate_streets(segments, scores)
     from pipeline import sources_public
 
-    exposed = aggregate.exposure(segments, scores, quartieri, sources_public.load_population_grid(cfg), cfg)
+    sections = sources_public.load_istat_sections(cfg)
+    if sections is not None:
+        exposed = aggregate.exposure_istat(segments, scores, quartieri, sections, aggregate.zone_shares(cfg), cfg)
+    else:
+        exposed = aggregate.exposure(segments, scores, quartieri, sources_public.load_population_grid(cfg), cfg)
     q_agg = aggregate.aggregate_neighbourhoods(segments, scores, streets, exposed)
     meta = json.loads(osm_mod.META.read_text(encoding="utf-8"))
     cov = json.loads(COVERAGE_JSON.read_text(encoding="utf-8"))

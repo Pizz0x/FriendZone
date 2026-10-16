@@ -50,7 +50,8 @@ class Engine:
         events = dynamic.active_events(dynamic.load_events(demo, cfg), when, cfg)
         X, near_event = dynamic.apply_events(X, self.ctx.lines, events, cfg)
         X = np.where(F == scoring.EXCLUDED, np.nan, X)
-        penalty = scoring.penalty_factor(np.column_stack([res["pen_bloccante"], res["pen_parco_buio"]]))
+        dark = scoring.dark_penalty(X[:, keys.index("luce")], band, profile, cfg)
+        penalty = scoring.penalty_factor(np.column_stack([res["pen_bloccante"], res["pen_parco_buio"], dark]))
         S = scoring.segment_scores(X, F != scoring.EXCLUDED, band, profile, penalty, cfg=cfg)
         lam = scoring.profile_lambda(profile, cfg)
         out = pd.DataFrame({

@@ -20,7 +20,7 @@ porta la colonna `fonte_luce`, esportata nei GeoJSON e mostrata nella mappa.
 La stima è un classificatore addestrato sui 1.494 tratti con `lit` noto, con variabili
 presenti ovunque (classe della strada, edifici e popolazione vicini, uso del suolo,
 parchi, fondo sterrato, lampioni mappati, distanza dal centro). In validazione per
-quartiere: AUC 0,86, accuratezza 93% (91% rispondendo sempre "illuminato"); riconosce
+quartiere: AUC 0,87, accuratezza 93% (91% rispondendo sempre "illuminato"); riconosce
 circa metà dei tratti non illuminati. Dettagli e metriche aggiornate in
 `reports/validation.md`; piano per sostituirla con dati reali in
 [`piano_dati_reali.md`](piano_dati_reali.md).

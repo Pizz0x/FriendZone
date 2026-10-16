@@ -382,14 +382,19 @@ def residents_component(ctx: Context) -> np.ndarray:
     pc = ctx.cfg["params"]["persone"]
     r = pc["residents_radius_m"]
     if ctx.residents is not None and len(ctx.residents):
-        # ISTAT census sections: population density of the sections near the segment
-        sec = ctx.residents.to_crs(ctx.cfg["area"]["crs_metric"])
-        dens = (sec["popolazione"] / (sec.geometry.area / 10000.0)).to_numpy()
-        pairs = STRtree(sec.geometry.values).query(ctx.lines, predicate="intersects")
-        best = np.zeros(ctx.n)
-        np.maximum.at(best, pairs[0], dens[pairs[1]])
-        ctx.residents_source = "ISTAT"
-        return np.minimum(1.0, best / pc["residents_saturation_per_ha"])
+        # ISTAT 2021 census sections: residents within r metres, spread evenly over
+        # each section's area, normalised on the 90th percentile
+        sec = ctx.residents.to_crs(ctx.cfg["area"]["crs_metric"]).reset_index(drop=True)
+        polys = sec.geometry.values
+        dens = sec["popolazione"].to_numpy(dtype=float) / np.maximum(shapely.area(polys), 1.0)
+        buffers = shapely.buffer(ctx.lines, r)
+        pairs = STRtree(polys).query(buffers, predicate="intersects")
+        inter = shapely.area(shapely.intersection(buffers[pairs[0]], polys[pairs[1]]))
+        total = np.bincount(pairs[0], weights=inter * dens[pairs[1]], minlength=ctx.n)
+        sat = np.percentile(total[total > 0], 90) if (total > 0).any() else 1.0
+        ctx.residents_saturation = float(sat)
+        ctx.residents_source = "ISTAT 2021 (sezioni di censimento)"
+        return np.minimum(1.0, total / sat)
     if ctx.population is not None and len(ctx.population):
         # Meta / CIESIN HRSL: people living within r metres, normalised on the 90th percentile
         pop = ctx.population["popolazione"].to_numpy(dtype=float)

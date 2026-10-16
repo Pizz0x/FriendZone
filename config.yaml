@@ -1,0 +1,415 @@
+# =============================================================================
+# Quartieri Vivi — configurazione unica del modello e della pipeline
+# Tutti i numeri del modello stanno qui: il team può cambiarli senza toccare
+# il codice. Dopo una modifica: `python -m pipeline.run_all` ricalcola tutto.
+# =============================================================================
+
+project:
+  name: "Quartieri Vivi"
+  disclaimer: >-
+    Il punteggio stima la sicurezza percepita a partire dai dati disponibili.
+    Non misura la sicurezza reale di un luogo.
+
+# -----------------------------------------------------------------------------
+# Area di studio
+# -----------------------------------------------------------------------------
+area:
+  name: "Vicenza"
+  nominatim_query: "Vicenza, Veneto, Italia"
+  osm_admin_level: "8"            # confine comunale in OSM
+  istat_pro_com: "024116"         # codice ISTAT del Comune (da verificare con ISTAT)
+  center: {lat: 45.5455, lon: 11.5354}
+  timezone: "Europe/Rome"
+  # riquadro dell'estratto OSM locale (lon_min, lat_min, lon_max, lat_max),
+  # con ~5 km di margine attorno al Comune
+  extract_bbox: [11.38, 45.44, 11.70, 45.66]
+  crs_metric: "EPSG:32632"
+  crs_export: "EPSG:4326"
+
+# -----------------------------------------------------------------------------
+# I 12 parametri, nell'ordine del modello. Pesi base: somma 100 per colonna.
+# -----------------------------------------------------------------------------
+parameters:
+  - {key: luce,          label: "Luce",                     weight_night: 15, weight_day: 2}
+  - {key: persone,       label: "Presenza di persone",      weight_night: 14, weight_day: 12}
+  - {key: fronti_attivi, label: "Fronti attivi",            weight_night: 12, weight_day: 10}
+  - {key: visuale,       label: "Visuale libera",           weight_night: 10, weight_day: 10}
+  - {key: vie_di_fuga,   label: "Vie di fuga",              weight_night: 10, weight_day: 8}
+  - {key: uso_suolo,     label: "Uso del suolo",            weight_night: 9,  weight_day: 6}
+  - {key: episodi,       label: "Episodi segnalati",        weight_night: 8,  weight_day: 12}
+  - {key: cura,          label: "Cura e degrado",           weight_night: 7,  weight_day: 12}
+  - {key: percorso,      label: "Qualità del percorso",     weight_night: 5,  weight_day: 14}
+  - {key: folla,         label: "Composizione della folla", weight_night: 4,  weight_day: 6}
+  - {key: punti_aiuto,   label: "Punti di aiuto",           weight_night: 3,  weight_day: 4}
+  - {key: trasporto,     label: "Trasporto e attesa",       weight_night: 3,  weight_day: 4}
+
+# -----------------------------------------------------------------------------
+# Fasce orarie, calcolate ogni giorno dal tramonto a Vicenza (astral)
+# -----------------------------------------------------------------------------
+timebands:
+  order: [giorno, prima_ora_buio, sera, notte_fonda, mattina_buia]
+  boundaries:
+    twilight_start_before_sunset_min: 30   # inizio prima ora di buio
+    twilight_end_after_sunset_min: 60      # fine prima ora di buio
+    evening_end: "22:30"                   # fine sera / inizio notte fonda
+    deep_night_end: "05:00"                # fine notte fonda
+  bands:
+    giorno:         {label: "Giorno",             weights: day,   dark: false}
+    prima_ora_buio: {label: "Prima ora di buio",  weights: blend, day_share: 0.5, dark: true}
+    sera:           {label: "Sera",               weights: night, dark: true}
+    notte_fonda:    {label: "Notte fonda",        weights: night, dark: true, multipliers: {persone: 1.3}}
+    mattina_buia:   {label: "Mattina buia",       weights: night, dark: true}
+  # le segnalazioni usano tre fasce semplificate (sez. 8 del brief)
+  report_band_map:
+    giorno: [giorno]
+    sera: [prima_ora_buio, sera]
+    notte: [notte_fonda, mattina_buia]
+
+# giorni "weekend": sabato e domenica, più il venerdì dopo il tramonto
+# (0 = lunedì ... 6 = domenica). I festivi nazionali contano come weekend.
+calendar:
+  weekend_days: [5, 6]
+  weekend_evening_days: [4]
+  weekend_evening_bands: [sera, notte_fonda]
+  holidays_mmdd: ["01-01", "01-06", "04-25", "05-01", "06-02", "08-15", "09-08", "11-01", "12-08", "12-25", "12-26"]
+  easter_monday_is_holiday: true
+
+# -----------------------------------------------------------------------------
+# Profili (selezione multipla: i moltiplicatori si moltiplicano, poi si
+# rinormalizzano i pesi; i fattori di lambda si moltiplicano tra loro)
+# -----------------------------------------------------------------------------
+profiles:
+  riferimento:
+    label: "Riferimento (neutro / uomo adulto)"
+    multipliers: {}
+    lambda_factor: 1.0
+  donna:
+    label: "Donna"
+    multipliers: {luce: 1.3, persone: 1.2, visuale: 1.3, uso_suolo: 1.3, episodi: 1.4, folla: 1.6}
+    lambda_factor: 2.0
+  giovani_16_34:
+    label: "16–34 anni"
+    multipliers: {trasporto: 1.4, episodi: 1.2}
+    lambda_factor: 1.0
+  over75:
+    label: "Over 75"
+    multipliers: {percorso: 2.5, luce: 1.2, punti_aiuto: 1.5}
+    lambda_factor: 1.3
+  disabilita:
+    label: "Disabilità motoria o visiva"
+    multipliers: {percorso: 2.5, luce: 1.3, vie_di_fuga: 1.3}
+    lambda_factor: 1.3
+  lgbtq:
+    label: "LGBTQ+"
+    multipliers: {episodi: 1.5, folla: 1.3}
+    lambda_factor: 1.3
+  molestie_recenti:
+    label: "Molestie subite di recente"
+    multipliers: {episodi: 1.5}
+    lambda_factor: 1.3
+  conosce_zona:
+    label: "Conosce bene la zona"
+    multipliers: {}
+    lambda_factor: 0.8
+  in_compagnia:
+    label: "In compagnia"
+    multipliers: {}
+    lambda_factor: 0.5
+
+# -----------------------------------------------------------------------------
+# Punteggio
+# -----------------------------------------------------------------------------
+scoring:
+  lambda_base: 1.5
+  unmeasured_strategy: renormalize   # renormalize (default) | neutral
+  neutral_value: 0.5                 # valore usato dalla strategia "neutral"
+  classes:                           # S < 40 rossa; 40 <= S <= 65 gialla; S > 65 verde
+    red_below: 40
+    green_above: 65
+    colors: {rossa: "#d7301f", gialla: "#fdae61", verde: "#1a9850"}
+  reliability_factors: {measured: 1.0, proxy: 0.5, excluded: 0.0}
+  penalties:
+    blocking: 0.30     # sottopasso, tratto coperto o passaggio senza uscita
+    park_dark: 0.40    # tratto in un parco nelle fasce di buio, se chiuso o non illuminato
+
+# -----------------------------------------------------------------------------
+# Combinazioni standard precalcolate ed esportate (sez. 6.6)
+# -----------------------------------------------------------------------------
+standard:
+  reference_date: "2026-11-18"       # mercoledì (feriale) di metà novembre
+  bands: [giorno, sera, notte_fonda]
+  profiles: [riferimento, donna, donna+giovani_16_34, over75, disabilita]
+  weather: sereno
+  # ora usata per valutare orari di apertura, mezzi ecc. in ogni fascia
+  band_times:
+    giorno: "11:00"
+    prima_ora_buio: "17:00"
+    sera: "20:00"
+    notte_fonda: "23:30"
+    mattina_buia: "06:00"
+
+# -----------------------------------------------------------------------------
+# Fonti dati
+# -----------------------------------------------------------------------------
+sources:
+  user_agent: "QuartieriVivi/0.1 (hackathon TechWarriors Vicenza 2026; contatto: team)"
+  request_delay_s: 1.0
+  http_timeout_s: 60
+  overpass_endpoints:
+    - "https://overpass-api.de/api"
+    - "https://overpass.kumi.systems/api"
+    - "https://overpass.private.coffee/api"
+  # fallback quando Overpass non è raggiungibile: planet OSM sul registro
+  # AWS Open Data (bucket osm-pds), filtrato con osmium sul riquadro dell'area
+  planet_url: "https://osm-pds.s3.amazonaws.com/planet-latest.osm.pbf"
+  local_osm_pbf: "data/raw/osm/vicenza_bbox.osm.pbf"
+  manual_osm_pbf: "data/manual/osm/vicenza.osm.pbf"     # alternativa fornita a mano
+  probe_urls:
+    overpass: "https://overpass-api.de/api/status"
+    nominatim: "https://nominatim.openstreetmap.org/status"
+    sit_vicenza: "https://sit.comune.vicenza.it/"
+    istat: "https://www.istat.it/"
+    dati_veneto: "https://dati.veneto.it/api/3/action/package_search?q=vicenza&rows=1"
+    geoportale_provincia: "https://geoportale.provincia.vicenza.it/"
+    mobility_database: "https://mobilitydatabase.org/"
+    transitland: "https://www.transit.land/"
+    eventi_vicenza: "https://eventi.comune.vicenza.it/"
+    open_meteo: "https://api.open-meteo.com/v1/forecast?latitude=45.55&longitude=11.55&hourly=precipitation&forecast_days=1"
+    idt2_regione_veneto: "https://idt2.regione.veneto.it/"
+    osm_pds_aws: "https://osm-pds.s3.amazonaws.com/?list-type=2&delimiter=/"
+  manual_dirs:
+    sit: "data/manual/sit"
+    istat: "data/manual/istat"
+    punti_viola: "data/manual/punti_viola.csv"
+    lamps: "data/manual/punti_luce"     # punti luce (SIT / City Green Light), se arrivano
+
+# -----------------------------------------------------------------------------
+# Rete pedonale
+# -----------------------------------------------------------------------------
+network:
+  network_type: walk
+  retain_all: false                    # tiene solo la componente connessa principale
+  # oltre agli incroci, un tratto si spezza dove cambiano questi attributi
+  split_on_attribute_change: [name, highway]
+  unnamed_label: "percorso senza nome"
+
+# -----------------------------------------------------------------------------
+# Quartieri: SIT > OSM (place/admin_level 10) > ISTAT > griglia esagonale
+# -----------------------------------------------------------------------------
+neighbourhoods:
+  osm_place_values: [suburb, quarter, neighbourhood]
+  osm_admin_levels: ["9", "10"]
+  hex_size_m: 800
+
+# -----------------------------------------------------------------------------
+# Calcolo dei parametri (fase 2)
+# -----------------------------------------------------------------------------
+params:
+  luce:
+    sit_lamp_buffer_m: 20
+    lamp_spacing_m: 30                 # min(1, lampioni / (lunghezza / 30))
+    osm_lamp_buffer_m: 20
+    # il conteggio dei lampioni OSM si usa solo dove l'area risulta mappata
+    # (almeno un lampione entro questo raggio): altrove l'assenza non è un dato
+    osm_lamp_coverage_radius_m: 100
+    lit_values:
+      "yes": 1.0
+      "24/7": 1.0
+      "automatic": 1.0
+      "sunset-sunrise": 1.0
+      "dusk-dawn": 1.0
+      "interval": 0.8
+      "limited": 0.5
+      "disused": 0.0
+      "no": 0.0
+    # un tratto senza tag lit eredita il valore di una via vicina con lit
+    # (es. marciapiede mappato a parte) entro questa distanza: flag proxy
+    lit_inherit_distance_m: 12
+  persone:
+    poi_radius_m: 50
+    poi_saturation: 8                  # attività aperte entro 50 m per avere 1
+    stop_radius_m: 100
+    stop_saturation: 2
+    residents_radius_m: 100
+    # senza ISTAT si usa la superficie degli edifici residenziali OSM entro
+    # 100 m come proxy della densità di residenti
+    building_area_saturation_m2: 12000
+    residents_saturation_per_ha: 150   # usato quando c'è ISTAT
+    weights: {attivita: 0.5, fermate: 0.2, residenti: 0.3}
+    event_bonus: 0.3
+    park_winter_factor: 0.6            # parchi da ottobre ad aprile
+    park_winter_months: [10, 11, 12, 1, 2, 3, 4]
+    rain_factor: 0.7
+    weekend_nightlife_factor: 1.25     # locali nelle sere di weekend
+    nightlife_categories: [bar, pub, nightclub, restaurant, fast_food, ice_cream, cafe]
+  fronti_attivi:
+    radius_m: 25
+    saturation_per_100m: 6
+    min_length_m: 25                   # lunghezza minima per il calcolo per 100 m
+  visuale:
+    base: 0.7
+    barrier_buffer_m: 5
+    barrier_weights: {wall: 1.0, hedge: 1.0, fence: 0.5, retaining_wall: 0.8, city_wall: 1.0}
+    barrier_drop: 0.25                 # tratto interamente fiancheggiato da muri
+    covered_drop: 0.3
+    underpass_drop: 0.4
+    railway_buffer_m: 20
+    railway_drop: 0.15
+    rain_factor: 0.8
+    min_value: 0.05
+  vie_di_fuga:
+    target_per_100m: 1.0               # un incrocio ogni 100 m = 1
+    dead_end_value: 0.2
+    long_segment_m: 200
+    long_segment_factor: 0.8
+    steps_max: 0.5
+    min_length_m: 10
+  uso_suolo:
+    sample_step_m: 15
+    sample_offsets_m: [-25, 0, 25]
+    min_classified_share: 0.2
+    values:                            # valore di giorno; "notte" se diverso
+      residential: 1.0
+      commercial: 1.0
+      retail: 1.0
+      mixed: 1.0
+      education: 0.8
+      institutional: 0.8
+      civic: 0.8
+      religious: 0.7
+      parking: 0.3
+      cemetery: 0.2
+      farmland: 0.2
+      farmyard: 0.3
+      meadow: 0.2
+      orchard: 0.2
+      vineyard: 0.2
+      grass: 0.4
+      forest: 0.1
+      wood: 0.1
+      scrub: 0.1
+      allotments: 0.4
+      greenfield: 0.0
+      brownfield: 0.0
+      construction: 0.0
+      industrial: 0.0
+      railway: 0.0
+      landfill: 0.0
+      depot: 0.0
+      military: 0.0
+      quarry: 0.0
+      park: {day: 0.5, night: 0.3}
+      sport: {day: 0.6, night: 0.3}
+    # ordine di priorità quando più poligoni si sovrappongono (prima = vince)
+    priority: [construction, brownfield, industrial, railway, depot, military, landfill, quarry,
+               park, sport, parking, cemetery, education, institutional, civic, religious,
+               retail, commercial, mixed, residential, allotments, grass, farmyard, farmland,
+               meadow, orchard, vineyard, greenfield, forest, wood, scrub]
+  percorso:
+    pedestrian_classes: {pedestrian: 1.0, footway: 1.0, living_street: 1.0}
+    footway_values: {sidewalk: 0.95, crossing: 0.9}
+    sidewalk_values:
+      residential: {both: 0.9, left: 0.75, right: 0.75, "yes": 0.8, "no": 0.55}
+      major: {both: 0.8, left: 0.6, right: 0.6, "yes": 0.7, "no": 0.2}
+      minor: {both: 0.85, left: 0.7, right: 0.7, "yes": 0.75, "no": 0.4}
+    major_classes: [trunk, primary, secondary]
+    minor_classes: [tertiary, unclassified, service]
+    class_defaults:
+      trunk: 0.2
+      primary: 0.45
+      secondary: 0.5
+      tertiary: 0.55
+      unclassified: 0.5
+      residential: 0.7
+      service: 0.5
+      track: 0.4
+      path: 0.6
+      cycleway: 0.7
+      bridleway: 0.4
+      corridor: 0.8
+      steps: 0.3
+      elevator: 0.8
+    steps_value: 0.3
+    rough_surface_drop: 0.2
+    rough_surfaces: [unpaved, gravel, fine_gravel, dirt, earth, ground, grass, mud, sand, pebblestone,
+                     rock, woodchips, unhewn_cobblestone, cobblestone, grass_paver, compacted]
+    bad_smoothness: [bad, very_bad, horrible, very_horrible, impassable]
+    bench_radius_m: 20
+    bench_bonus_each: 0.05
+    bench_bonus_max: 0.1
+  punti_aiuto:
+    full_distance_m: 0
+    zero_distance_m: 400
+    amenities: [pharmacy, bar, police, hospital]
+  trasporto:
+    full_distance_m: 150
+    zero_distance_m: 600
+    no_shelter_factor: 0.85            # fermata senza pensilina né luce
+    # frequenza stimata per fascia (proxy) quando manca il GTFS: 1 = servizio pieno
+    frequency_estimate:
+      bus:   {giorno: 1.0, prima_ora_buio: 0.9, sera: 0.4, notte_fonda: 0.0, mattina_buia: 0.3}
+      train: {giorno: 1.0, prima_ora_buio: 1.0, sera: 0.8, notte_fonda: 0.3, mattina_buia: 0.6}
+  penalita:
+    underpass_classes: [footway, path, cycleway, steps, pedestrian, corridor]
+    covered_exempt_values: [arcade, colonnade]   # portici aperti su un lato
+    # "passaggio senza uscita": vicolo cieco su percorsi pedonali/di servizio
+    dead_end_classes: [footway, path, steps, pedestrian, corridor, service, track, cycleway, bridleway]
+    park_share_min: 0.5                # quota del tratto dentro il parco
+    park_unlit_threshold: 0.3          # luce sotto questa soglia = parco non illuminato
+    parks: [park, garden]
+
+# -----------------------------------------------------------------------------
+# Punti di interesse da OSM e orari predefiniti per categoria (flag proxy)
+# Formato degli orari: sintassi OSM opening_hours
+# -----------------------------------------------------------------------------
+pois:
+  amenities: [bar, cafe, restaurant, pub, fast_food, ice_cream, pharmacy, cinema, theatre,
+              library, police, hospital, clinic, nightclub]
+  default_hours:
+    shop: "Mo-Sa 09:00-19:30"
+    bar: "07:00-24:00"
+    cafe: "07:00-20:00"
+    restaurant: "12:00-15:00,19:00-23:00"
+    pub: "18:00-02:00"
+    fast_food: "11:00-23:00"
+    ice_cream: "11:00-23:00"
+    pharmacy: "Mo-Sa 08:30-19:30"
+    cinema: "15:00-24:00"
+    theatre: "19:30-23:30"
+    library: "Mo-Fr 09:00-19:00; Sa 09:00-13:00"
+    police: "24/7"
+    hospital: "24/7"
+    clinic: "Mo-Fr 08:00-19:00"
+    nightclub: "Fr,Sa 23:00-04:00"
+    park: "24/7"
+
+# -----------------------------------------------------------------------------
+# Calcolo dinamico (sez. 7)
+# -----------------------------------------------------------------------------
+dynamic:
+  weather_cache_min: 30
+  rain_threshold_mm: 0.2
+  event_window_min: 60
+  event_radius_m: 300
+  event_effects: {persone: 0.3, fronti_attivi: 0.2, punti_aiuto: 0.2}
+
+# -----------------------------------------------------------------------------
+# Segnalazioni dei cittadini (sez. 8) — modulo pronto, oggi vuoto
+# -----------------------------------------------------------------------------
+reports:
+  influence_radius_m: 50
+  min_reports_default: 5
+  min_votes_perceived: 5
+  public_strength: {measured: 5, proxy: 2, excluded: 0}
+  max_reports_per_session_per_day: 10    # TODO: da applicare con l'hash di sessione
+  types:
+    luce_scarsa:          {params: [luce],                           value: 0.2, half_life_days: 180}
+    lampione_guasto:      {params: [luce],                           value: 0.0, half_life_days: 30, min_reports: 2}
+    poca_gente:           {params: [persone],                        value: 0.2, half_life_days: 180}
+    angoli_ciechi:        {params: [visuale],                        value: 0.2, half_life_days: 365}
+    luogo_isolato:        {params: [vie_di_fuga],                    value: 0.3, half_life_days: 365}
+    molestie:             {params: [episodi],                        value: 0.0, half_life_days: 365}
+    degrado:              {params: [cura],                           value: 0.2, half_life_days: 90}
+    marciapiede_ostacoli: {params: [percorso],                       value: 0.2, half_life_days: 180}
+    attesa_mezzi:         {params: [trasporto],                      value: 0.2, half_life_days: 180}
+    luogo_positivo:       {params: [persone, fronti_attivi, cura],   value: 0.9, half_life_days: 180}

@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import re
+import unicodedata
 from datetime import datetime
+from difflib import SequenceMatcher
 from functools import lru_cache
 from typing import Any
 
@@ -96,17 +99,65 @@ def as_points(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     return out[out.geom_type == "Point"]
 
 
-def activities(feats: gpd.GeoDataFrame, cfg: dict[str, Any] | None = None) -> gpd.GeoDataFrame:
-    """Shops and the amenities listed in the brief, as points, with category."""
+def _norm_name(name: Any) -> str:
+    if not isinstance(name, str):
+        return ""
+    text = re.sub(r"[^a-z0-9 ]", " ", unicodedata.normalize("NFKD", name.lower()).encode("ascii", "ignore").decode())
+    return " ".join(w for w in text.split() if w not in _NAME_STOPWORDS)
+
+
+_NAME_STOPWORDS = {"bar", "caffe", "cafe", "ristorante", "pizzeria", "trattoria", "farmacia", "srl", "snc", "sas", "spa",
+                   "di", "del", "della", "da", "il", "la", "lo", "le", "e", "s", "r", "l"}
+
+
+def drop_duplicates_of(base: gpd.GeoDataFrame, extra: gpd.GeoDataFrame, cfg: dict[str, Any]) -> gpd.GeoDataFrame:
+    """Remove from ``extra`` the points already present in ``base`` (metric CRS).
+
+    Duplicate = same category within ``dedup_same_category_m``, or a similar
+    name within ``dedup_name_m``.
+    """
+    ocfg = cfg["sources"]["overture"]
+    if extra is None or extra.empty or base.empty:
+        return extra
+    from shapely import STRtree
+
+    tree = STRtree(base.geometry.values)
+    pairs = tree.query(extra.geometry.values, predicate="dwithin", distance=float(ocfg["dedup_name_m"]))
+    dup = np.zeros(len(extra), dtype=bool)
+    if pairs.shape[1]:
+        d = extra.geometry.values[pairs[0]].distance(base.geometry.values[pairs[1]])
+        same_cat = extra["categoria"].to_numpy()[pairs[0]] == base["categoria"].to_numpy()[pairs[1]]
+        dup_pairs = same_cat & (d <= float(ocfg["dedup_same_category_m"]))
+        names_e = extra["nome"].map(_norm_name).to_numpy() if "nome" in extra else np.array([""] * len(extra))
+        names_b = base["name"].map(_norm_name).to_numpy() if "name" in base else np.array([""] * len(base))
+        for k in np.where(~dup_pairs)[0]:
+            a, b = names_e[pairs[0][k]], names_b[pairs[1][k]]
+            if a and b and SequenceMatcher(None, a, b).ratio() >= float(ocfg["dedup_name_ratio"]):
+                dup_pairs[k] = True
+        dup[pairs[0][dup_pairs]] = True
+    return extra[~dup]
+
+
+def activities(feats: gpd.GeoDataFrame, cfg: dict[str, Any] | None = None,
+               extra: gpd.GeoDataFrame | None = None) -> gpd.GeoDataFrame:
+    """Shops and the amenities listed in the brief, as points, with category.
+
+    ``extra`` (Overture places, metric CRS) is appended without the points that
+    duplicate an OSM POI. Column ``fonte`` says where each point comes from.
+    """
     cfg = cfg or load_config()
     mask = _col(feats, "shop").notna() | _col(feats, "amenity").isin(cfg["pois"]["amenities"])
     pois = as_points(feats[mask])
     pois = pois.drop_duplicates(subset=["element", "osmid"])
-    pois = pois.assign(categoria=pois.apply(category, axis=1))
-    return pois.reset_index(drop=True)
+    pois = pois.assign(categoria=pois.apply(category, axis=1), fonte="osm")
+    if extra is not None and len(extra):
+        add = drop_duplicates_of(pois, extra[extra["categoria"].isin(set(cfg["pois"]["amenities"]) | {"shop"})], cfg)
+        pois = pd.concat([pois, add.rename(columns={"nome": "name"})], ignore_index=True)
+    return gpd.GeoDataFrame(pois, geometry="geometry", crs=feats.crs).reset_index(drop=True)
 
 
-def help_points(feats: gpd.GeoDataFrame, cfg: dict[str, Any] | None = None) -> gpd.GeoDataFrame:
+def help_points(feats: gpd.GeoDataFrame, cfg: dict[str, Any] | None = None,
+                extra: gpd.GeoDataFrame | None = None) -> gpd.GeoDataFrame:
     """Help points: pharmacies, bars, police, hospitals (plus Punti Viola if supplied).
 
     Shelters and support facilities for women are deliberately never used.
@@ -116,7 +167,11 @@ def help_points(feats: gpd.GeoDataFrame, cfg: dict[str, Any] | None = None) -> g
     pts = as_points(feats[_col(feats, "amenity").isin(amen)])
     pts = pts[_col(pts, "social_facility").isna()]
     pts = pts.drop_duplicates(subset=["element", "osmid"])
-    return pts.assign(categoria=pts["amenity"]).reset_index(drop=True)
+    pts = pts.assign(categoria=pts["amenity"], fonte="osm")
+    if extra is not None and len(extra):
+        add = drop_duplicates_of(pts, extra[extra["categoria"].isin(amen)], cfg)
+        pts = pd.concat([pts, add.rename(columns={"nome": "name"})], ignore_index=True)
+    return gpd.GeoDataFrame(pts, geometry="geometry", crs=feats.crs).reset_index(drop=True)
 
 
 def transit_stops(feats: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
@@ -156,6 +211,11 @@ def parks(feats: gpd.GeoDataFrame, cfg: dict[str, Any] | None = None) -> gpd.Geo
     kinds = cfg["params"]["penalita"]["parks"]
     p = feats[_col(feats, "leisure").isin(kinds) & feats.geom_type.isin(["Polygon", "MultiPolygon"])]
     return p.reset_index(drop=True)
+
+
+def all_buildings(feats: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    b = feats[_col(feats, "building").notna() & feats.geom_type.isin(["Polygon", "MultiPolygon"])]
+    return b.reset_index(drop=True)
 
 
 def residential_buildings(feats: gpd.GeoDataFrame) -> gpd.GeoDataFrame:

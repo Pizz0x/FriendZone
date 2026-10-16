@@ -6,17 +6,24 @@ dati sull'illuminazione: questa nota raccoglie le alternative trovate.
 
 ## 1. Cosa usa oggi la pipeline
 
-Ordine di priorità implementato in `pipeline/params.py` (funzione `light`):
+Ordine di priorità implementato in `pipeline/params.py` (funzione `light`); ogni tratto
+porta la colonna `fonte_luce`, esportata nei GeoJSON e mostrata nella mappa.
 
-| Priorità | Fonte | Valore | Flag | Stato |
+| Priorità | Fonte | Valore | Flag | Tratti oggi |
 |---|---|---|---|---|
-| 1 | Punti luce SIT / City Green Light (`data/manual/punti_luce/`) | densità entro 20 m: `min(1, punti / (lunghezza/30))` | measured | **manca**: il codice è pronto, basta mettere il file |
-| 2 | Tag OSM `lit` sul tratto | `yes` → 1, `no` → 0, `limited` → 0,5 | measured | 12% della lunghezza della rete |
-| 3 | `lit` di una via adiacente (entro 12 m, es. marciapiede mappato a parte) | ereditato | proxy | |
-| 4 | Lampioni OSM (`highway=street_lamp`, 2.835 a Vicenza) | `min(1, lampioni entro 20 m / (lunghezza/30))` | proxy | solo dove i lampioni risultano mappati (almeno uno entro 100 m): altrove l'assenza di lampioni in OSM non è un dato |
-| 5 | Nessuna | parametro escluso, pesi rinormalizzati | excluded | |
+| 1 | Punti luce SIT / City Green Light (`data/manual/punti_luce/`) | densità entro 20 m: `min(1, punti / (lunghezza/30))` | measured | 0 (il codice è pronto, manca il file) |
+| 2 | Tag OSM `lit` sul tratto | `yes` → 1, `no` → 0, `limited` → 0,5 | measured | 1.494 (11%) |
+| 3 | `lit` di una via adiacente (entro 12 m, es. marciapiede mappato a parte) | ereditato | proxy | 1.150 (8%) |
+| 4 | Lampioni OSM (`highway=street_lamp`) entro 20 m | `min(1, lampioni / (lunghezza/30))`, solo se c'è almeno un lampione: OSM ne mappa una parte, quindi l'assenza non è un dato | proxy | 1.697 (12%) |
+| 5 | **Stima statistica** (`pipeline/light_model.py`) | probabilità di essere illuminato | proxy | 9.387 (68%) |
 
-La copertura effettiva per tratto è in `reports/validation.md`.
+La stima è un classificatore addestrato sui 1.494 tratti con `lit` noto, con variabili
+presenti ovunque (classe della strada, edifici e popolazione vicini, uso del suolo,
+parchi, fondo sterrato, lampioni mappati, distanza dal centro). In validazione per
+quartiere: AUC 0,86, accuratezza 93% (91% rispondendo sempre "illuminato"); riconosce
+circa metà dei tratti non illuminati. Dettagli e metriche aggiornate in
+`reports/validation.md`; piano per sostituirla con dati reali in
+[`piano_dati_reali.md`](piano_dati_reali.md).
 
 ## 2. Fonti trovate
 
@@ -88,8 +95,12 @@ La copertura effettiva per tratto è in `reports/validation.md`.
 
 ## 3. Raccomandazione
 
-1. Chiedere subito al referente SIT l'export dei punti luce di City Green Light
-   (anche parziale): è l'unica fonte che rende il parametro `measured` ovunque.
+Il piano operativo, con tempi, testo della richiesta al Comune e cosa dire in demo, è in
+[`piano_dati_reali.md`](piano_dati_reali.md#piano-per-la-luce). In sintesi:
+
+1. Chiedere subito al referente SIT l'export dei punti luce di City Green Light (anche
+   parziale): è l'unica fonte che rende il parametro `measured` ovunque.
 2. In parallelo, chiedere le tavole del PICIL (classificazione delle strade).
-3. Se il token è disponibile, aggiungere i lampioni Mapillary come `proxy`.
+3. Con un token Mapillary, aggiungere i lampioni rilevati dalle foto (proxy).
 4. Valutare SDGSAT-1 (GHSL) come proxy uniforme su tutta la città.
+5. Quando arriva il dato reale, misurare l'errore della stima statistica e riportarlo.

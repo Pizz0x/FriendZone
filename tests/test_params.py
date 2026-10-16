@@ -70,10 +70,20 @@ def synthetic(tmp_path_factory):
     return segments, features
 
 
+def isolated_sources(mp, population=None, overture=None):
+    """Keep the synthetic tests independent of downloaded data."""
+    mp.setattr(sources_public, "record_source", lambda *a, **k: None)
+    mp.setattr(sources_public, "load_population_grid", lambda *a, **k: population)
+    mp.setattr(sources_public, "load_overture_places", lambda *a, **k: overture)
+    mp.setattr(sources_public, "load_lamps", lambda *a, **k: None)
+    mp.setattr(sources_public, "load_istat_population", lambda *a, **k: None)
+    mp.setattr(sources_public, "load_punti_viola", lambda *a, **k: None)
+
+
 @pytest.fixture(scope="module")
 def result(synthetic):
     mp = pytest.MonkeyPatch()
-    mp.setattr(sources_public, "record_source", lambda *a, **k: None)
+    isolated_sources(mp)
     segments, features = synthetic
     out = params.compute(segments, features, CFG, ref_date=REF, bands=["giorno", "sera", "notte_fonda"])
     mp.undo()
@@ -182,3 +192,60 @@ def test_opening_hours_parser_and_defaults():
     df = pd.DataFrame({"opening_hours": [None, "garbage"], "categoria": ["pharmacy", "restaurant"]})
     is_open, measured = pois.open_status(df, datetime(2026, 11, 18, 20, 0))
     assert list(is_open) == [False, True] and not measured.any()
+
+
+def test_people_normalisation_is_the_same_in_every_band(synthetic):
+    """Regression: the normalisation must hit the people column in every band, never another one."""
+    mp = pytest.MonkeyPatch()
+    isolated_sources(mp)
+    segments, features = synthetic
+    bands = ["giorno", "sera", "notte_fonda"]
+    raw = params.compute(segments, features, CFG, ref_date=REF, bands=bands, people_norm=1.0).set_index(["fascia", "segment_id"])
+    norm = params.compute(segments, features, CFG, ref_date=REF, bands=bands, people_norm=0.5).set_index(["fascia", "segment_id"])
+    mp.undo()
+    expected = np.minimum(1.0, raw["x_persone"] / 0.5)
+    assert np.allclose(norm["x_persone"], expected, atol=1e-3)
+    for k in ("trasporto", "fronti_attivi", "punti_aiuto", "luce", "visuale"):
+        assert np.allclose(norm[f"x_{k}"].fillna(-1), raw[f"x_{k}"].fillna(-1)), k
+
+
+def test_residents_from_population_grid(synthetic):
+    segments, features = synthetic
+    grid = gpd.GeoDataFrame({"popolazione": [500.0, 500.0], "donne": [260.0, 260.0], "over60": [140.0, 140.0]},
+                            geometry=[Point(X0 + 50, Y0 + 30), Point(X0 + 1050, Y0 + 30)], crs=METRIC).to_crs("EPSG:4326")
+    mp = pytest.MonkeyPatch()
+    isolated_sources(mp, population=grid)
+    ctx = params.Context(segments, features, CFG)
+    r = params.residents_component(ctx)
+    mp.undo()
+    ids = list(ctx.seg["segment_id"])
+    assert ctx.residents_source == "HRSL"
+    assert r[ids.index("A")] == pytest.approx(1.0) and r[ids.index("C")] == 0.0
+
+
+def test_overture_duplicates_are_dropped():
+    base = gpd.GeoDataFrame({"categoria": ["bar", "shop"], "name": ["Bar Sport", "Panificio Rossi"]},
+                            geometry=[Point(X0, Y0), Point(X0 + 200, Y0)], crs=METRIC)
+    extra = gpd.GeoDataFrame({"categoria": ["bar", "shop", "restaurant", "shop"],
+                              "nome": ["Sport", "Panificio Rossi Srl", "Trattoria Nuova", "Libreria"]},
+                             geometry=[Point(X0 + 10, Y0), Point(X0 + 230, Y0), Point(X0 + 5, Y0), Point(X0 + 600, Y0)],
+                             crs=METRIC)
+    kept = pois.drop_duplicates_of(base, extra, CFG)
+    assert list(kept["nome"]) == ["Trattoria Nuova", "Libreria"]
+
+
+def test_light_model_learns_and_validates_by_area():
+    from pipeline import light_model
+    rng = np.random.default_rng(1)
+    n = 600
+    urban = rng.uniform(size=n)
+    track = (rng.uniform(size=n) < 0.2).astype(float)
+    X = pd.DataFrame({"suolo_urbano": urban, "classe_track": track, "rumore": rng.uniform(size=n)})
+    p_lit = np.clip(0.15 + 0.8 * urban - 0.5 * track, 0.02, 0.98)
+    y = (rng.uniform(size=n) < p_lit).astype(float)
+    y[:100] = np.nan                                   # unlabelled segments
+    groups = np.repeat(np.arange(10), n // 10)
+    proba, metrics = light_model.train_and_predict(X, y, groups, CFG)
+    assert proba.shape == (n,) and ((proba >= 0) & (proba <= 1)).all()
+    assert metrics["auc"] > 0.7 and metrics["validazione"].startswith("GroupKFold")
+    assert proba[(urban > 0.8) & (track == 0)].mean() > proba[(urban < 0.2) & (track == 1)].mean()

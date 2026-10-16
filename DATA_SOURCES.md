@@ -1,32 +1,34 @@
 # Fonti dati
 
 Stato al **16 ottobre 2026** (orari UTC). Ogni tentativo di download viene
-registrato dalla pipeline in `data/raw/sources_log.json`.
+registrato dalla pipeline in `data/raw/sources_log.json`. Come passare ai dati reali
+dove oggi c'è un sostituto: [`docs/piano_dati_reali.md`](docs/piano_dati_reali.md).
 
-> **Vincolo di rete.** L'ambiente in cui è stato sviluppato il backend ha una policy
-> di rete che **rifiuta le connessioni** (HTTP 403 sul CONNECT) verso quasi tutte le
-> fonti del brief: Overpass, Nominatim, SIT, ISTAT, dati.veneto.it, Open-Meteo,
-> eventi del Comune, Geoportale della Provincia, Mobility Database, Transitland,
-> IDT2. La verifica è stata ripetuta su richiesta, con lo stesso esito. Era raggiungibile
-> invece **AWS S3**, da cui è stato preso il planet di OpenStreetMap. Su un'altra
-> macchina, o allargando la policy, la pipeline usa le fonti originali
-> senza modifiche al codice; in alternativa, ogni fonte si sblocca mettendo i file in
-> `data/manual/` (vedi sotto).
+> **Vincolo di rete.** L'ambiente cloud in cui è stato sviluppato il backend ha una
+> policy di rete che **rifiuta le connessioni** (HTTP 403 sul CONNECT) verso quasi tutte
+> le fonti del brief: Overpass, Nominatim, SIT, ISTAT, dati.veneto.it, Open-Meteo, eventi
+> del Comune, Geoportale della Provincia, Mobility Database, Transitland, IDT2. Non è un
+> blocco dei siti: da un computer del team funzionano. Erano raggiungibili invece **AWS
+> S3** e **Google Cloud Storage**, da cui vengono OSM (planet), la popolazione Meta HRSL,
+> i luoghi Overture e il catalogo GTFS di Mobility Database.
 
 ## Riepilogo
 
 | # | Fonte | Stato | Usata per | Flag |
 |---|---|---|---|---|
-| 1 | OpenStreetMap | **usata** (planet AWS, dati al 12/10/2026) | rete pedonale, tutti i parametri da OSM, quartieri | measured / proxy |
+| 1 | OpenStreetMap | **usata** (planet AWS, dati al 12/10/2026) | rete pedonale, quasi tutti i parametri, quartieri | measured / proxy |
 | 2 | SIT VI 2.0 (Comune) | non raggiungibile | — (quartieri, PI, punti luce previsti) | — |
-| 3 | ISTAT basi territoriali | non raggiungibile | — (residenti) | sostituita da proxy OSM |
+| 3 | ISTAT basi territoriali | non raggiungibile → **sostituita da Meta HRSL** | residenti (presenza di persone), residenti esposti | proxy |
 | 4 | dati.veneto.it | non raggiungibile | — | — |
 | 5 | Geoportale Provincia di Vicenza | non raggiungibile | — | — |
-| 6 | GTFS bus urbani | non raggiungibile (Mobility Database, Transitland) | — | frequenza stimata: proxy |
-| 7 | Eventi del Comune | non raggiungibile | — | modulo dinamico pronto, nessun evento |
+| 6 | GTFS bus urbani | catalogo Mobility Database letto da GCS: **nessun feed per Vicenza** | — | frequenza stimata: proxy |
+| 7 | Eventi del Comune | non raggiungibile | solo scenario demo simulato (`--demo`) | — |
 | 8 | Punti Viola (DonneXStrada) | non raggiungibile, nessun file manuale | — | — |
-| 9 | Open-Meteo / astral | Open-Meteo non raggiungibile; astral ok (offline) | fasce orarie dal tramonto | — |
+| 9 | Open-Meteo / astral | Open-Meteo non raggiungibile (client pronto, ripiego dichiarato); astral ok | fasce orarie; meteo su richiesta | — |
 | 10 | Carta Tecnica Regionale (IDT2) | non raggiungibile (opzionale, fase 6) | — | — |
+| + | **Meta / CIESIN HRSL** (AWS) | **usata** | popolazione totale, donne, over 60 a ~30 m | proxy |
+| + | **Overture Maps Places** (AWS) | **usata** | 4.493 negozi e locali in più di OSM, punti di aiuto | proxy (orari predefiniti) |
+| + | **Stima della luce** (modello su dati OSM) | **usata** | luce dove OSM non ha dati (68% dei tratti) | proxy |
 
 ## 1. OpenStreetMap — obbligatoria
 
@@ -43,55 +45,55 @@ registrato dalla pipeline in `data/raw/sources_log.json`.
 - **Download**: 16/10/2026, 15:11–15:34 UTC.
 - **Licenza**: ODbL 1.0 — © OpenStreetMap contributors. Gli export derivati vanno
   attribuiti e condivisi con la stessa licenza.
-- **Cosa è stato usato**: confine comunale (relazione `admin_level=8`, `name=Vicenza`);
-  rete pedonale con il filtro `walk` di osmnx replicato in Python (`pipeline/osm.py`),
-  più una regola italiana: escluse `motorroad=yes` e `highway=trunk` senza marciapiede
-  (strade extraurbane principali, vietate ai pedoni dall'art. 175 del Codice della
-  strada; disattivabile con `network.italian_road_rule`); lampioni, `lit`, negozi e
-  amenity con `opening_hours`, fermate e stazioni con `shelter`, panchine, muri/siepi/
-  recinzioni, binari, `landuse`, parchi e `leisure`, edifici, `place`.
+- **Cosa è stato usato**: confine comunale (relazione 45159, `admin_level=8`); rete
+  pedonale con il filtro `walk` di osmnx replicato in Python (`pipeline/osm.py`), più una
+  regola italiana: escluse `motorroad=yes` e `highway=trunk` senza marciapiede (strade
+  extraurbane principali, vietate ai pedoni dall'art. 175 del Codice della strada;
+  disattivabile con `network.italian_road_rule`); lampioni, `lit`, negozi e amenity con
+  `opening_hours`, fermate e stazioni con `shelter`, panchine, muri/siepi/recinzioni,
+  binari, `landuse`, parchi e `leisure`, edifici, `place`.
 - **Copertura** (dettaglio in `reports/osm_coverage.md`): 13.728 tratti, 804 km;
   `lit` sul 12% della lunghezza; 2.835 lampioni; 999 attività di cui solo il 15,7% con
   `opening_hours`; `sidewalk` sull'11% delle strade veicolari; `surface` sul 66%;
   `landuse` sul 74% della superficie comunale; 401 fermate (295 con `shelter`).
-- **Problemi**: i negozi mappati sono pochi per una città di 110 mila abitanti (418
-  `shop=*`): fronti attivi e presenza di persone sono sottostimati dove OSM è
-  incompleto. Il percorso Overpass + osmnx è implementato ma non è stato possibile
-  eseguirlo da questo ambiente.
+- **Problemi**: pochi negozi mappati (418 `shop=*`), compensati con Overture (sotto). Il
+  percorso Overpass + osmnx è implementato ma da qui è stato provato solo con risposte
+  simulate (`tests/test_osm_paths.py`).
 
 ## 2. SIT VI 2.0 — Comune di Vicenza
 
-- **URL**: `https://sit.comune.vicenza.it/` — connessione rifiutata dalla policy di rete
-  (16/10/2026 15:35 UTC). Non ho quindi potuto cercare download diretti o WFS.
-- **Effetto**: quartieri da OSM (fallback, sotto); zonizzazione del PI non usata (l'uso
-  del suolo viene da OSM `landuse`); nessun punto luce.
-- **Come sbloccare**: mettere i file in `data/manual/sit/` (shapefile con `.prj`,
-  GeoPackage o GeoJSON). La pipeline cerca file con "quart", "circoscr" o "zone" nel
-  nome per i quartieri; se manca il `.prj` assume EPSG:3003 e controlla che il centroide
-  cada su Vicenza. Per la zonizzazione del PI servirà la legenda dei codici di zona
-  (tabella `pi_zone_map` in `config.yaml`, da compilare quando arriva il file).
+- **URL**: `https://sit.comune.vicenza.it/` — connessione rifiutata (16/10/2026 15:35 UTC).
+- **Effetto**: quartieri approssimati da OSM (sotto); zonizzazione del PI sostituita da
+  `landuse` OSM; nessun punto luce.
+- **Come sbloccare**: file in `data/manual/sit/` (shapefile con `.prj`, GeoPackage o
+  GeoJSON). Per i quartieri la pipeline cerca nomi di file con "quart", "circoscr" o
+  "zone"; se manca il `.prj` assume EPSG:3003 e controlla che il centroide cada su
+  Vicenza. Per il PI servirà la legenda dei codici di zona (`pi_zone_map` in config).
 - **Licenza**: da verificare sul portale.
 
 ### Quartieri (fallback)
-Il SIT non è raggiungibile e OSM non ha poligoni di quartiere né confini di livello
-9/10 per Vicenza. OSM ha però **38 nodi `place=suburb/quarter/neighbourhood`** (Centro
-storico, San Pio X, Laghetto, Villaggio del Sole, Ferrovieri, …): i confini sono stati
-**approssimati con celle di Voronoi** attorno a questi punti, ritagliate sul confine
-comunale. Sono adatti a un primo aggregato, non ai confini amministrativi: vanno
-sostituiti con quelli del SIT appena disponibili.
+OSM non ha poligoni di quartiere né confini di livello 9/10 per Vicenza, ma ha **38 nodi
+`place=suburb/quarter/neighbourhood`** (Centro storico, San Pio X, Laghetto, Villaggio
+del Sole, Ferrovieri, …): i confini sono **approssimati con celle di Voronoi** attorno a
+questi punti, ritagliate sul confine comunale. Vanno sostituiti con quelli del SIT.
 
-## 3. ISTAT — basi territoriali e popolazione per sezione
+## 3. ISTAT → Meta / CIESIN HRSL
 
-- **URL**: `https://www.istat.it/` — connessione rifiutata (16/10/2026 15:35 UTC).
-- **Effetto**: la componente "residenti" della presenza di persone usa un **proxy**:
-  superficie utile degli edifici residenziali OSM entro 100 m (area × piani, piani
-  stimati per tipo di edificio se manca `building:levels`), normalizzata sul
-  90° percentile della città. I "residenti esposti" per quartiere non sono calcolabili.
-- **Come sbloccare**: mettere in `data/manual/istat/` lo shapefile delle sezioni di
-  censimento 2021 (basi territoriali, Veneto) e il CSV delle variabili censuarie con
-  la popolazione per sezione; il codice filtra `PRO_COM = 24116` e unisce per codice
-  di sezione.
-- **Licenza**: Creative Commons Attribuzione (versione da verificare sul sito ISTAT).
+- **ISTAT** (`https://www.istat.it/`): connessione rifiutata. Il codice per leggere
+  sezioni di censimento e popolazione da `data/manual/istat/` è pronto (filtra
+  `PRO_COM = 24116`) e ha la precedenza appena i file ci sono.
+- **Sostituto in uso: High Resolution Settlement Layer** (Data for Good at Meta e
+  CIESIN, Columbia University), GeoTIFF cloud-optimised sul registro AWS Open Data:
+  `https://dataforgood-fb-data.s3.amazonaws.com/hrsl-cogs/` (livelli `general`, `women`,
+  `elderly_60_plus`, versione `latest`). Risoluzione 1 secondo d'arco (~30 m).
+  Letto il 16/10/2026 solo per la finestra di Vicenza (`data/raw/hrsl/`).
+- **Licenza**: CC BY 4.0.
+- **Verifica**: dentro il confine comunale HRSL somma **112.429 residenti** (Vicenza ne
+  ha circa 111 mila), di cui 59.375 donne e 32.924 over 60.
+- **Uso**: componente "residenti" della presenza di persone (somma entro 100 m,
+  normalizzata sul 90° percentile); residenti, donne e over 60 entro 100 m da tratti
+  rossi per quartiere (`exports/quartieri.csv`). È una stima modellata (censimento +
+  edifici da satellite), non un conteggio: flag `proxy`.
 
 ## 4. dati.veneto.it — opzionale
 
@@ -104,52 +106,67 @@ sostituiti con quelli del SIT appena disponibili.
 
 ## 6. Trasporto pubblico (GTFS) — opzionale
 
-- **URL**: Mobility Database (`mobilitydatabase.org`) e Transitland (`transit.land`) —
-  connessione rifiutata; non è stato possibile verificare se esiste un feed SVT.
-- **Fallback in uso**: fermate OSM con frequenza per fascia **stimata** in
-  `config.yaml -> params.trasporto.frequency_estimate` (bus: giorno 1; sera 0,4;
-  notte fonda 0; treno: sera 0,8; notte fonda 0,3). Flag `proxy`.
+- Mobility Database (`mobilitydatabase.org`) e Transitland non raggiungibili, ma il
+  **catalogo completo di Mobility Database** è pubblicato anche su Google Cloud Storage
+  (`https://storage.googleapis.com/mdb-csv/sources.csv`), letto il 16/10/2026: 3.543
+  feed, 77 italiani, **nessuno di SVT o di Vicenza** (l'unico che copre Vicenza è un
+  vecchio feed nazionale Trenitalia del 2022, marcato *deprecated*).
+- **In uso**: fermate OSM con frequenza per fascia **stimata** in
+  `config.yaml -> params.trasporto.frequency_estimate` (bus: giorno 1; sera 0,4; notte
+  fonda 0; treno: sera 0,8; notte fonda 0,3). Flag `proxy`.
 
 ## 7. Eventi del Comune — opzionale
 
-- **URL**: `https://eventi.comune.vicenza.it/` — connessione rifiutata. Nessun evento;
-  il modulo dinamico (fase 3+) resterà pronto.
+- **URL**: `https://eventi.comune.vicenza.it/` — connessione rifiutata.
+- **In uso**: nessun evento reale. Per la demo esiste uno **scenario simulato** con tre
+  eventi inventati in luoghi reali (`data/demo/eventi_demo.csv`), usato solo con
+  `--demo` e segnalato nei risultati (`scenario_demo: true`). Gli eventi veri andranno
+  in `data/manual/eventi.csv`, con le stesse colonne.
 
 ## 8. Punti Viola (DonneXStrada) — opzionale
 
-- Mappa pubblica non raggiungibile da qui. Se il team ottiene i dati nel rispetto delle
-  condizioni d'uso, basta un `data/manual/punti_viola.csv` con colonne `lat`, `lon` e,
-  se noto, `opening_hours`: vengono aggiunti ai punti di aiuto.
+- Mappa pubblica non raggiungibile. **Non simulati di proposito**: un punto di aiuto
+  inventato potrebbe indirizzare una persona in difficoltà verso un luogo che non lo è.
+  Se il team ottiene i dati nel rispetto delle condizioni d'uso, basta
+  `data/manual/punti_viola.csv` (`lat`, `lon`, eventuale `opening_hours`).
 
 ## 9. Open-Meteo e astral
 
-- **astral** (libreria offline, nessun download): alba e tramonto per Vicenza
-  (45,5455 N, 11,5354 E), fuso Europe/Rome. Usato per le fasce orarie.
-- **Open-Meteo** (`api.open-meteo.com`, senza chiave, dati CC BY 4.0) — connessione
-  rifiutata. Le combinazioni standard usano `meteo: sereno`; l'override manuale
-  `sereno`/`pioggia` sarà disponibile nell'API.
+- **astral** (offline): alba e tramonto per Vicenza (45,5455 N, 11,5354 E), fuso
+  Europe/Rome. Usato per le fasce orarie.
+- **Open-Meteo** (`api.open-meteo.com` e `archive-api.open-meteo.com`, senza chiave,
+  dati CC BY 4.0): client implementato in `model/dynamic.py` con cache di 30 minuti.
+  Da qui non è raggiungibile: in quel caso il meteo è `sereno` e il risultato lo dichiara
+  (`fonte: default (Open-Meteo non raggiungibile)`). L'override manuale
+  `sereno`/`pioggia`/`nebbia` funziona sempre.
 
 ## 10. Carta Tecnica Regionale (IDT2) — opzionale, fase 6
 
-- `https://idt2.regione.veneto.it/` — connessione rifiutata. Non tentata oltre (valore basso).
+- `https://idt2.regione.veneto.it/` — connessione rifiutata. Non tentata oltre.
+
+## Overture Maps — Places (fonte aggiunta)
+
+- **URL**: `s3://overturemaps-us-west-2/release/2026-09-23.1/theme=places/` (registro AWS
+  Open Data). Letti solo i gruppi di righe che coprono Vicenza (6 su 256 di un file).
+- **Licenza**: CDLA-Permissive-2.0 (luoghi da Meta, Microsoft, Foursquare,
+  AllThePlaces, BrightQuery).
+- **Filtri** (`config.yaml -> sources.overture`): solo categorie con un equivalente nel
+  modello (negozi, ristoranti, bar, caffè, farmacie, cinema, teatri, biblioteche,
+  ospedali, polizia…); esclusi i luoghi chiusi definitivamente; BrightQuery (registro
+  di imprese, spesso sedi legali) solo con confidenza ≥ 0,75; eliminati i doppioni di
+  OSM (stessa categoria entro 15 m o nome simile entro 40 m).
+- **Risultato**: 4.493 attività aggiunte alle 1.174 di OSM (area comunale + 1 km); 456
+  punti di aiuto in più (soprattutto bar e farmacie). Gli orari non ci sono: si usano quelli
+  predefiniti per categoria (flag `proxy`).
 
 ## Illuminazione pubblica
 
-Nessuna fonte del brief ha dati sulla luce. Ricerca dedicata in
-[`docs/illuminazione.md`](docs/illuminazione.md): gestore City Green Light (censimento
-dei punti luce non pubblico, da chiedere al referente SIT), PICIL del Comune del 2012
-con censimento e classificazione delle strade, compositi satellitari SDGSAT-1 a 10–40 m
-del JRC, lampioni rilevati da Mapillary (serve un token). Oggi il parametro Luce usa
-`lit` e i lampioni di OSM.
-
-## Altre fonti pubbliche proposte (non ancora integrate)
-
-| Fonte | Cosa aggiungerebbe | Costo |
-|---|---|---|
-| **Overture Maps — Places** (S3 `overturemaps-us-west-2`, raggiungibile da qui) | Molti più esercizi commerciali di OSM (418 negozi): migliora fronti attivi e presenza di persone. Senza orari: si userebbero quelli predefiniti per categoria (proxy). Licenza CDLA-Permissive-2.0 | basso–medio (GeoParquet filtrabile per riquadro) |
-| **SDGSAT-1 / GHSL** (JRC) | Proxy della luce misurato dal satellite su tutta la città | medio |
-| **Mapillary** (lampioni rilevati) | Lampioni dove OSM non li ha | basso, serve un token |
-| **PICIL 2012** (Comune) | Classificazione illuminotecnica delle strade | dipende dal formato (PDF o vettoriale) |
+Nessuna fonte del brief ha dati sulla luce. Ricerca e piano in
+[`docs/illuminazione.md`](docs/illuminazione.md) e
+[`docs/piano_dati_reali.md`](docs/piano_dati_reali.md). Oggi la luce viene da: `lit` OSM
+(11% dei tratti, measured), `lit` di una via adiacente (8%), lampioni OSM (12%) e una
+**stima statistica** addestrata sui tratti con `lit` noto (68%, AUC 0,86 in validazione
+per quartiere). Ogni tratto porta `fonte_luce`.
 
 ## Fonti escluse per scelta (brief)
 

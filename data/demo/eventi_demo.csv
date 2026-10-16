@@ -1,0 +1,4 @@
+titolo,inizio,fine,luogo,lat,lon,simulato,nota
+[DEMO] Spettacolo serale al Teatro Comunale,2026-11-18T20:30:00,2026-11-18T23:00:00,Teatro Comunale,45.54802,11.53400,true,scenario simulato per la demo: non è un evento reale
+[DEMO] Apertura serale della Basilica Palladiana,2026-11-18T19:00:00,2026-11-18T22:00:00,Basilica Palladiana,45.54697,11.54696,true,scenario simulato per la demo: non è un evento reale
+[DEMO] Mercatino serale in Campo Marzo,2026-11-20T17:00:00,2026-11-20T22:00:00,Campo Marzo,45.54297,11.54232,true,scenario simulato per la demo: non è un evento reale

@@ -178,6 +178,78 @@ sources:
     open_meteo: "https://api.open-meteo.com/v1/forecast?latitude=45.55&longitude=11.55&hourly=precipitation&forecast_days=1"
     idt2_regione_veneto: "https://idt2.regione.veneto.it/"
     osm_pds_aws: "https://osm-pds.s3.amazonaws.com/?list-type=2&delimiter=/"
+  # popolazione per pixel di ~30 m (Meta / CIESIN HRSL, CC BY 4.0): sostituisce
+  # le sezioni ISTAT finché non sono disponibili
+  hrsl:
+    base_url: "https://dataforgood-fb-data.s3.amazonaws.com/hrsl-cogs"
+    layers: {popolazione: general, donne: women, over60: elderly_60_plus}
+    margin_deg: 0.01
+  # luoghi Overture Maps (CDLA-Permissive-2.0): negozi e locali che mancano in OSM
+  overture:
+    enabled: true
+    bucket: "overturemaps-us-west-2"
+    release: "2026-09-23.1"
+    # fonti di luoghi "di consumo" (pagine, mappe); BrightQuery è un registro di
+    # imprese (sedi legali, uffici): lo si accetta solo con confidenza alta
+    trusted_datasets: [meta, Microsoft, Foursquare, AllThePlaces, PinMeTo, DAC]
+    min_confidence_other: 0.75
+    min_confidence: 0.4
+    dedup_same_category_m: 15        # stesso tipo entro 15 m da un POI OSM = duplicato
+    dedup_name_m: 40                 # nome simile entro 40 m = duplicato
+    dedup_name_ratio: 0.75
+    # categoria Overture -> categoria del modello (stesse chiavi di pois.default_hours)
+    category_map:
+      fashion_and_apparel_store: shop
+      hardware_home_and_garden_store: shop
+      food_and_beverage_store: shop
+      electronics_store: shop
+      shopping: shop
+      flowers_and_gifts_store: shop
+      books_music_and_video_store: shop
+      personal_care_and_beauty_store: shop
+      personal_or_beauty_service: shop
+      specialty_store: shop
+      sporting_goods_store: shop
+      arts_crafts_and_hobby_store: shop
+      second_hand_store: shop
+      office_supply_store: shop
+      animal_and_pet_store: shop
+      toys_and_games_store: shop
+      convenience_store: shop
+      musical_instrument_and_pro_audio_store: shop
+      discount_store: shop
+      department_store: shop
+      superstore: shop
+      warehouse_club_store: shop
+      laundry_service: shop
+      travel_service: shop
+      restaurant: restaurant
+      casual_eatery: restaurant
+      food_service: restaurant
+      food_court: restaurant
+      fast_food_restaurant: fast_food
+      food_truck_stand: fast_food
+      bar: bar
+      lounge: bar
+      brewery: bar
+      alcoholic_beverage_venue: bar
+      smoothie_juice_bar: cafe
+      non_alcoholic_beverage_venue: cafe
+      cafe: cafe
+      coffee_shop: cafe
+      nightlife_venue: pub
+      music_venue: pub
+      dance_club: nightclub
+      pharmacy_and_drug_store: pharmacy
+      movie_theater: cinema
+      theatre_venue: theatre
+      performing_arts_venue: theatre
+      library: library
+      hospital: hospital
+      emergency_department: hospital
+      emergency_or_urgent_care_facility: hospital
+      urgent_care_clinic: clinic
+      police_station: police
   manual_dirs:
     sit: "data/manual/sit"
     istat: "data/manual/istat"
@@ -212,10 +284,9 @@ params:
   luce:
     sit_lamp_buffer_m: 20
     lamp_spacing_m: 30                 # min(1, lampioni / (lunghezza / 30))
+    # i lampioni OSM si usano solo dove almeno uno è mappato entro 20 m dal tratto:
+    # OSM ne mappa solo una parte, quindi la loro assenza non è un dato di buio
     osm_lamp_buffer_m: 20
-    # il conteggio dei lampioni OSM si usa solo dove l'area risulta mappata
-    # (almeno un lampione entro questo raggio): altrove l'assenza non è un dato
-    osm_lamp_coverage_radius_m: 100
     lit_values:
       "yes": 1.0
       "24/7": 1.0
@@ -229,6 +300,18 @@ params:
     # un tratto senza tag lit eredita il valore di una via vicina con lit
     # (es. marciapiede mappato a parte) entro questa distanza: flag proxy
     lit_inherit_distance_m: 12
+    # stima per i tratti rimasti senza dati: classificatore addestrato sui tratti
+    # con lit noto (vedi pipeline/light_model.py); flag proxy, fonte stima_modello
+    model:
+      enabled: true
+      min_labels: 200
+      cv_folds: 5
+      max_iter: 300
+      learning_rate: 0.05
+      max_leaf_nodes: 15
+      l2_regularization: 1.0
+      centre_lon: 11.5469              # Piazza dei Signori
+      centre_lat: 45.5470
   persone:
     poi_radius_m: 50
     poi_saturation: 8                  # attività aperte entro 50 m per avere 1
@@ -397,8 +480,11 @@ pois:
 # Calcolo dinamico (sez. 7)
 # -----------------------------------------------------------------------------
 dynamic:
+  open_meteo_forecast_url: "https://api.open-meteo.com/v1/forecast"
+  open_meteo_archive_url: "https://archive-api.open-meteo.com/v1/archive"
   weather_cache_min: 30
-  rain_threshold_mm: 0.2
+  rain_threshold_mm: 0.2             # pioggia oraria da cui scatta "pioggia"
+  fog_visibility_m: 1000             # sotto questa visibilità: "nebbia" (visuale ×0,8)
   event_window_min: 60
   event_radius_m: 300
   event_effects: {persone: 0.3, fronti_attivi: 0.2, punti_aiuto: 0.2}

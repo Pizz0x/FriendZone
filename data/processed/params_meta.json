@@ -1,7 +1,35 @@
 {
   "reference_date": "2026-11-18",
-  "people_norm": 0.7055273386118988,
-  "residents_saturation": 25995.668521416235,
+  "people_norm": 0.8256932054382982,
+  "residents_saturation": 380.13299646377556,
+  "residents_source": "HRSL",
+  "luce_fonti": {
+    "stima_modello": 9387,
+    "lampioni_osm": 1697,
+    "osm_lit": 1494,
+    "osm_lit_via_adiacente": 1150
+  },
+  "luce_modello": {
+    "tratti_etichettati": 1494,
+    "illuminati": 1356,
+    "non_illuminati": 138,
+    "fold": 5,
+    "validazione": "GroupKFold per quartiere",
+    "auc": 0.859,
+    "accuratezza": 0.928,
+    "accuratezza_baseline_sempre_illuminato": 0.908,
+    "brier": 0.0632,
+    "recall_non_illuminati": 0.471,
+    "quota_stimata_illuminata": 0.935
+  },
+  "attivita": {
+    "osm": 1174,
+    "overture": 4493
+  },
+  "punti_aiuto": {
+    "osm": 233,
+    "overture": 456
+  },
   "penalita": {
     "sottopassi": 75,
     "coperti": 91,

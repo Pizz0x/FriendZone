@@ -238,6 +238,15 @@ def phase1_map(segments: gpd.GeoDataFrame, quartieri: gpd.GeoDataFrame, boundary
 # --------------------------------------------------------------------------- #
 # Phase 2: validation report and score map
 # --------------------------------------------------------------------------- #
+LIGHT_SOURCE_LABELS = {
+    "punti_luce_sit": "punti luce SIT (misurata)",
+    "osm_lit": "tag OSM lit (misurata)",
+    "osm_lit_via_adiacente": "lit di una via adiacente (stima)",
+    "lampioni_osm": "lampioni OSM (stima)",
+    "stima_modello": "modello statistico (stima)",
+    "nessuna": "nessun dato (esclusa)",
+}
+
 DISCLAIMER = ("*Il punteggio stima la sicurezza percepita a partire dai dati disponibili. "
               "Non misura la sicurezza reale di un luogo.*")
 
@@ -419,7 +428,10 @@ def score_map(segments: gpd.GeoDataFrame, scores: pd.DataFrame, quartieri: gpd.G
     keys = [p["key"] for p in cfg["parameters"]]
     seg = segments.reset_index(drop=True)
     index = {sid: i for i, sid in enumerate(seg["segment_id"])}
-    data = _geojson_lines(seg, ["via", "quartiere", "classe", "lunghezza_m"])
+    if "fonte_luce" not in seg:
+        seg = seg.assign(fonte_luce="nessuna")
+    seg = seg.assign(fonte_luce=seg["fonte_luce"].map(LIGHT_SOURCE_LABELS).fillna(seg["fonte_luce"]))
+    data = _geojson_lines(seg, ["via", "quartiere", "classe", "lunghezza_m", "fonte_luce"])
     combos = {}
     for (band, profile), sc in scores.groupby(["fascia", "profilo"], sort=False):
         S = np.full(len(seg), -1.0)
@@ -462,7 +474,7 @@ def score_map(segments: gpd.GeoDataFrame, scores: pd.DataFrame, quartieri: gpd.G
                 var worst = c.W[i] ? c.W[i].split(',').map(function(k) {{ return paramLabels[+k]; }}).join(', ') : '–';
                 return '<b>' + f.properties.via + '</b> <small>(' + f.properties.quartiere + ')</small><br>' +
                        'S = <b>' + c.S[i].toFixed(1) + '</b> &nbsp; affidabilità ' + c.R[i].toFixed(2) + '<br>' +
-                       'parametri peggiori: ' + worst;
+                       'parametri peggiori: ' + worst + '<br><small>luce: ' + f.properties.fonte_luce + '</small>';
             }}, {{sticky: true}});
         }}
     }}).addTo({mapname});
@@ -524,6 +536,30 @@ def validation_markdown(segments, params, scores, streets, quartieri_agg, checks
         f"strade veicolari con `sidewalk`: {cov['sidewalk']['strade_veicolari_con_tag_sidewalk']['lunghezza_pct']}%.",
         "- Dettaglio completo in `reports/osm_coverage.md`; stato delle fonti in `DATA_SOURCES.md`.",
         "",
+        "### Fonti effettivamente usate",
+        "",
+    ]
+    meta_p = json.loads((PROCESSED / "params_meta.json").read_text(encoding="utf-8"))
+    att = meta_p.get("attivita", {})
+    lines.append(f"- **Attività** (negozi e locali): {att.get('osm', 0):,} da OSM + {att.get('overture', 0):,} da Overture "
+                 "Places (senza doppioni; orari non noti → orari predefiniti per categoria, flag proxy).")
+    aiuto = meta_p.get("punti_aiuto", {})
+    lines.append(f"- **Punti di aiuto**: {aiuto.get('osm', 0):,} da OSM + {aiuto.get('overture', 0):,} da Overture.")
+    lines.append(f"- **Residenti**: {meta_p.get('residents_source')} (Meta/CIESIN HRSL ≈ 30 m al posto delle sezioni ISTAT).")
+    fonti = meta_p.get("luce_fonti", {})
+    tot = sum(fonti.values()) or 1
+    lines.append("- **Luce**: " + "; ".join(f"{LIGHT_SOURCE_LABELS.get(k, k)} {v:,} tratti ({100 * v / tot:.0f}%)"
+                                           for k, v in sorted(fonti.items(), key=lambda kv: -kv[1])) + ".")
+    mod = meta_p.get("luce_modello") or {}
+    if mod.get("auc") is not None:
+        lines.append(f"  Il modello è addestrato sui {mod['tratti_etichettati']:,} tratti con `lit` noto "
+                     f"({mod['illuminati']:,} illuminati, {mod['non_illuminati']:,} no) e validato per quartiere "
+                     f"({mod['validazione']}): AUC {mod['auc']}, accuratezza {mod['accuratezza']} contro "
+                     f"{mod['accuratezza_baseline_sempre_illuminato']} di chi risponde sempre \"illuminato\", "
+                     f"riconosce il {100 * mod['recall_non_illuminati']:.0f}% dei tratti non illuminati. "
+                     "È una stima: va sostituita con i punti luce reali (`docs/piano_dati_reali.md`).")
+    lines += [
+        "",
         "### Origine dei valori per parametro (fascia sera, % dei tratti)",
         "",
         _md_table(flag_summary(params, cfg), "{:.1f}"),
@@ -550,8 +586,16 @@ def validation_markdown(segments, params, scores, streets, quartieri_agg, checks
     lines.append(_md_table(rel.rename(columns={"mean": "media"}), "{:.2f}"))
     lines += ["", "## Affidabilità media e S per quartiere (sera, riferimento)", ""]
     q = quartieri_agg[(quartieri_agg["fascia"] == "sera") & (quartieri_agg["profilo"] == "riferimento")]
-    q = q.sort_values("S_medio")[["quartiere", "tratti", "lunghezza_km", "S_medio", "pct_lunghezza_rossa", "affidabilita_media"]]
-    lines.append(_md_table(q, "{:.2f}"))
+    cols = ["quartiere", "tratti", "lunghezza_km", "S_medio", "pct_lunghezza_rossa", "affidabilita_media"]
+    if "residenti_esposti" in q and pd.api.types.is_numeric_dtype(q["residenti_esposti"]):
+        cols += ["residenti_stimati", "residenti_esposti", "donne_esposte"]
+        tot = q[["residenti_stimati", "residenti_esposti", "donne_esposte", "over60_esposti"]].sum()
+        lines += [f"Residenti stimati (HRSL) che vivono entro 100 m da almeno un tratto rosso, di sera: "
+                  f"{int(tot['residenti_esposti']):,} su {int(tot['residenti_stimati']):,} "
+                  f"({100 * tot['residenti_esposti'] / max(tot['residenti_stimati'], 1):.0f}%), di cui "
+                  f"{int(tot['donne_esposte']):,} donne e {int(tot['over60_esposti']):,} over 60. Conta anche tratti "
+                  "rossi molto brevi (passaggi senza uscita): è un indicatore di priorità, non di rischio.", ""]
+    lines.append(_md_table(q.sort_values("S_medio")[cols], "{:.2f}"))
     for band in cfg["standard"]["bands"]:
         st = streets[(streets["fascia"] == band) & (streets["profilo"] == "riferimento")
                      & (streets["via"] != cfg["network"]["unnamed_label"]) & (streets["lunghezza_m"] >= 100)]
@@ -579,13 +623,19 @@ def run(cfg: dict[str, Any] | None = None) -> None:
     params = pd.read_parquet(params_mod.PARAMS)
     scores = pd.read_parquet(aggregate.SCORES)
     streets = aggregate.aggregate_streets(segments, scores)
-    q_agg = aggregate.aggregate_neighbourhoods(segments, scores, streets)
+    from pipeline import sources_public
+
+    exposed = aggregate.exposure(segments, scores, quartieri, sources_public.load_population_grid(cfg), cfg)
+    q_agg = aggregate.aggregate_neighbourhoods(segments, scores, streets, exposed)
     meta = json.loads(osm_mod.META.read_text(encoding="utf-8"))
     cov = json.loads(COVERAGE_JSON.read_text(encoding="utf-8"))
     checks = coherence_checks(segments, params, scores, cfg)
     md = validation_markdown(segments, params, scores, streets, q_agg, checks, cov, meta, cfg)
     (REPORTS / "validation.md").write_text(md, encoding="utf-8")
     boundary = osm_mod.load_boundary().geometry.iloc[0]
+    first = params["fascia"].iloc[0]
+    if "fonte_luce" in params:
+        segments = segments.merge(params.loc[params["fascia"] == first, ["segment_id", "fonte_luce"]], on="segment_id", how="left")
     score_map(segments, scores, quartieri, boundary, cfg, REPORTS / "check_map.html")
     for c in checks:
         log.info("%s — %s", c["esito"], c["controllo"])

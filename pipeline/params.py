@@ -86,8 +86,10 @@ class Context:
         self.lines = self.seg.geometry.values
         self.length = self.seg["lunghezza_m"].to_numpy(dtype=float)
         feats_m = feats.to_crs(crs)
-        self.activities = pois.activities(feats_m, cfg)
-        self.help = pois.help_points(feats_m, cfg)
+        overture = sources_public.load_overture_places(cfg)
+        self.overture = overture.to_crs(crs) if overture is not None else None
+        self.activities = pois.activities(feats_m, cfg, extra=self.overture)
+        self.help = pois.help_points(feats_m, cfg, extra=self.overture)
         viola = sources_public.load_punti_viola(cfg)
         if viola is not None and len(viola):
             self.help = pd.concat([self.help, viola.to_crs(crs)], ignore_index=True)
@@ -99,12 +101,17 @@ class Context:
         self.parks = pois.parks(feats_m, cfg)
         self.landuse = pois.landuse_polygons(feats_m, cfg)
         self.buildings = pois.residential_buildings(feats_m)
+        self.all_buildings = pois.all_buildings(feats_m)
         self.sit_lamps = sources_public.load_lamps(cfg)
         self.residents = sources_public.load_istat_population(cfg)
+        population = sources_public.load_population_grid(cfg)
+        self.population = population.to_crs(crs) if population is not None else None
         self.park_share = _share_inside(self.lines, self.parks.geometry.values)
         self._park_index = self._nearest_park()
-        log.info("contesto: %d tratti, %d attività, %d punti di aiuto, %d fermate, %d lampioni OSM, %d parchi",
-                 self.n, len(self.activities), len(self.help), len(self.stops), len(self.lamps), len(self.parks))
+        log.info("contesto: %d tratti, %d attività (%d da Overture), %d punti di aiuto, %d fermate, %d lampioni OSM, "
+                 "%d parchi, popolazione %s", self.n, len(self.activities),
+                 int((self.activities.get("fonte") == "overture").sum()), len(self.help), len(self.stops),
+                 len(self.lamps), len(self.parks), "HRSL" if self.population is not None else "non disponibile")
 
     def _nearest_park(self) -> np.ndarray:
         idx = np.full(self.n, -1)
@@ -134,21 +141,28 @@ def _lit_value(tag: str | None, values: dict[str, float]) -> float:
     return float(np.mean(known)) if known else np.nan
 
 
-def light(ctx: Context) -> tuple[np.ndarray, np.ndarray]:
+def light(ctx: Context, samples: tuple[np.ndarray, np.ndarray] | None = None
+          ) -> tuple[np.ndarray, np.ndarray, np.ndarray, dict[str, Any]]:
+    """Light value, flag, source label per segment and model metrics.
+
+    Sources in order: SIT / City Green Light points > OSM ``lit`` > ``lit`` of
+    an adjacent way > OSM street lamps (where mapped) > model estimate.
+    """
     c = ctx.cfg["params"]["luce"]
     x = np.full(ctx.n, np.nan)
     flag = np.full(ctx.n, E, dtype=np.int8)
+    source = np.full(ctx.n, "nessuna", dtype=object)
 
     if ctx.sit_lamps is not None and len(ctx.sit_lamps):
         pairs = _pairs(ctx.lines, ctx.sit_lamps.geometry.values, c["sit_lamp_buffer_m"])
         n_lamps = _count(ctx.n, pairs)
         x = np.minimum(1.0, n_lamps / (np.maximum(ctx.length, c["lamp_spacing_m"]) / c["lamp_spacing_m"]))
-        return x, np.full(ctx.n, M, dtype=np.int8)
+        return x, np.full(ctx.n, M, dtype=np.int8), np.full(ctx.n, "punti_luce_sit", dtype=object), {}
 
     lit_values = {str(k): float(v) for k, v in c["lit_values"].items()}
     tagged = np.array([_lit_value(t, lit_values) for t in ctx.seg["tag_lit"]])
     has = ~np.isnan(tagged)
-    x[has], flag[has] = tagged[has], M
+    x[has], flag[has], source[has] = tagged[has], M, "osm_lit"
 
     # segments without lit inherit from a tagged way within a few metres
     todo = np.where(~has)[0]
@@ -158,18 +172,39 @@ def light(ctx: Context) -> tuple[np.ndarray, np.ndarray]:
         ok = dist <= c["lit_inherit_distance_m"]
         x[todo[ok]] = tagged[has][near[ok]]
         flag[todo[ok]] = P
+        source[todo[ok]] = "osm_lit_via_adiacente"
 
-    # OSM street lamps, only where lamps have been mapped around the segment
+    # OSM street lamps (brief formula), only where at least one lamp is mapped on
+    # the segment: OSM maps only part of the lamps, so their absence is not a datum
     todo = np.where(flag == E)[0]
     if len(todo) and len(ctx.lamps):
         lamps = ctx.lamps.geometry.values
         n_near = _count(len(todo), _pairs(ctx.lines[todo], lamps, c["osm_lamp_buffer_m"]))
-        mapped = _count(len(todo), _pairs(ctx.lines[todo], lamps, c["osm_lamp_coverage_radius_m"])) > 0
+        mapped = n_near >= 1
         spacing = c["lamp_spacing_m"]
         val = np.minimum(1.0, n_near / (np.maximum(ctx.length[todo], spacing) / spacing))
         x[todo[mapped]] = val[mapped]
         flag[todo[mapped]] = P
-    return x, flag
+        source[todo[mapped]] = "lampioni_osm"
+
+    # model estimate trained on the segments whose lit tag is known
+    metrics: dict[str, Any] = {}
+    todo = np.where(flag == E)[0]
+    if len(todo) and c["model"].get("enabled", True) and samples is not None and has.sum() >= c["model"]["min_labels"]:
+        from pipeline import light_model
+
+        centre = gpd.GeoSeries.from_xy([c["model"]["centre_lon"]], [c["model"]["centre_lat"]], crs="EPSG:4326")
+        cx, cy = centre.to_crs(ctx.cfg["area"]["crs_metric"]).iloc[0].coords[0]
+        feats = light_model.features(ctx, samples, (cx, cy))
+        y = np.where(has, (tagged >= 0.5).astype(float), np.nan)
+        try:
+            proba, metrics = light_model.train_and_predict(feats, y, ctx.seg["quartiere"].astype(str).to_numpy(), ctx.cfg)
+            x[todo] = np.round(proba[todo], 3)
+            flag[todo] = P
+            source[todo] = "stima_modello"
+        except ImportError:
+            log.warning("scikit-learn non installato: niente stima della luce per i tratti senza dati")
+    return x, flag, source, metrics
 
 
 # --------------------------------------------------------------------------- #
@@ -353,9 +388,19 @@ def residents_component(ctx: Context) -> np.ndarray:
         pairs = STRtree(sec.geometry.values).query(ctx.lines, predicate="intersects")
         best = np.zeros(ctx.n)
         np.maximum.at(best, pairs[0], dens[pairs[1]])
+        ctx.residents_source = "ISTAT"
         return np.minimum(1.0, best / pc["residents_saturation_per_ha"])
+    if ctx.population is not None and len(ctx.population):
+        # Meta / CIESIN HRSL: people living within r metres, normalised on the 90th percentile
+        pop = ctx.population["popolazione"].to_numpy(dtype=float)
+        total = _count(ctx.n, _pairs(ctx.lines, ctx.population.geometry.values, r), pop)
+        sat = np.percentile(total[total > 0], 90) if (total > 0).any() else 1.0
+        ctx.residents_saturation = float(sat)
+        ctx.residents_source = "HRSL"
+        return np.minimum(1.0, total / sat)
     if not len(ctx.buildings):
         return np.zeros(ctx.n)
+    ctx.residents_source = "edifici OSM"
     b = ctx.buildings
     levels = pd.to_numeric(b.get("building:levels"), errors="coerce").clip(1, 15)
     default_levels = b["building"].map({"apartments": 4, "residential": 3, "house": 2, "detached": 2,
@@ -473,12 +518,16 @@ def static_parameters(ctx: Context) -> dict[str, Any]:
         ctx.seg["classe"].eq("service").to_numpy() & _contains_any(ctx.seg["tag_service"], pk.get("dead_end_service_values", [])))
     dead_end_passage = ctx.seg["vicolo_cieco"].to_numpy() & passage
     blocking = np.where(underpass | covered | dead_end_passage, ctx.cfg["scoring"]["penalties"]["blocking"], 0.0)
+    samples = landuse_samples(ctx)
+    x_luce, f_luce, fonte_luce, light_metrics = light(ctx, samples)
     return {
-        "luce": light(ctx),
+        "luce": (x_luce, f_luce),
+        "fonte_luce": fonte_luce,
+        "light_model": light_metrics,
         "visuale": visibility(ctx, underpass, covered),
         "vie_di_fuga": escape_routes(ctx),
         "percorso": path_quality(ctx),
-        "landuse_samples": landuse_samples(ctx),
+        "landuse_samples": samples,
         "residents": residents_component(ctx),
         "blocking": blocking,
         "underpass": underpass,
@@ -507,19 +556,20 @@ def compute(segments: gpd.GeoDataFrame, feats: gpd.GeoDataFrame, cfg: dict[str, 
     for band in bands:
         when = timebands.band_time(band, ref_date, cfg)
         results[band] = (when, band_parameters(ctx, band, when, static))
-    j = keys.index("persone")
+    jp = keys.index("persone")
     if people_norm is None:
-        raw = np.concatenate([res["X"][:, j] for _, res in results.values()])
+        raw = np.concatenate([res["X"][:, jp] for _, res in results.values()])
         people_norm = float(np.nanpercentile(raw, cfg["params"]["persone"]["normalize_percentile"])) or 1.0
     frames = []
     for band in wanted:
         when, res = results[band]
-        res["X"][:, j] = np.minimum(1.0, res["X"][:, j] / people_norm)
+        res["X"][:, jp] = np.minimum(1.0, res["X"][:, jp] / people_norm)
         df = pd.DataFrame({"segment_id": ctx.seg["segment_id"].to_numpy(), "fascia": band,
                            "ora_riferimento": when.isoformat(), "tipo_giorno": res["day_type"]})
         for j, k in enumerate(keys):
             df[f"x_{k}"] = np.round(res["X"][:, j], 4)
             df[f"flag_{k}"] = pd.Categorical.from_codes(res["F"][:, j], categories=list(scoring.FLAGS))
+        df["fonte_luce"] = static["fonte_luce"]
         df["pen_bloccante"] = res["pen_bloccante"]
         df["pen_parco_buio"] = res["pen_parco_buio"]
         df["fattore_penalita"] = scoring.penalty_factor(np.column_stack([res["pen_bloccante"], res["pen_parco_buio"]]))
@@ -531,6 +581,13 @@ def compute(segments: gpd.GeoDataFrame, feats: gpd.GeoDataFrame, cfg: dict[str, 
         "reference_date": ref_date.isoformat(),
         "people_norm": people_norm,
         "residents_saturation": getattr(ctx, "residents_saturation", None),
+        "residents_source": getattr(ctx, "residents_source", None),
+        "luce_fonti": {k: int(v) for k, v in pd.Series(static["fonte_luce"]).value_counts().items()},
+        "luce_modello": static["light_model"],
+        "attivita": {"osm": int((ctx.activities["fonte"] == "osm").sum()),
+                     "overture": int((ctx.activities["fonte"] == "overture").sum())},
+        "punti_aiuto": {"osm": int((ctx.help.get("fonte") == "osm").sum()),
+                        "overture": int((ctx.help.get("fonte") == "overture").sum())},
         "penalita": {"sottopassi": int(static["underpass"].sum()), "coperti": int(static["covered"].sum()),
                      "passaggi_senza_uscita": int(static["dead_end_passage"].sum())},
     }

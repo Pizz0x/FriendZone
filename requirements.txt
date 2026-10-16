@@ -20,3 +20,5 @@ httpx>=0.27
 # aggiunte rispetto alla lista del brief
 osmium>=4.0              # lettura dell'estratto OSM locale (fallback quando Overpass non è raggiungibile)
 opening-hours-py>=1.1    # interpretazione del tag OSM opening_hours
+rasterio>=1.3            # popolazione Meta HRSL (GeoTIFF cloud-optimised su AWS)
+scikit-learn>=1.3        # stima della luce dove OSM non ha dati

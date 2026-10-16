@@ -1,6 +1,6 @@
 """The browser core (frontend/src/core.js) agrees with the Python model.
 
-Runs core.js in Node on the payload of the generated app (frontend/lumi.html)
+Runs core.js in Node on the payload of the generated app (frontend/app.html)
 and compares time bands, sun times and least-cost routes with model/timebands.py
 and model/routing.py. Skipped when Node or the generated page is missing.
 """
@@ -18,10 +18,10 @@ from model import routing, timebands
 from model.config import ROOT, load_config
 
 CORE = ROOT / "frontend" / "src" / "core.js"
-PAGE = ROOT / "frontend" / "lumi.html"
+PAGE = ROOT / "frontend" / "app.html"
 
 pytestmark = pytest.mark.skipif(shutil.which("node") is None or not PAGE.exists(),
-                                reason="servono Node.js e frontend/lumi.html (python -m pipeline.frontend)")
+                                reason="servono Node.js e frontend/app.html (python -m pipeline.frontend)")
 
 RUNNER = r"""
 const QV = require(process.argv[2]);
@@ -39,6 +39,16 @@ const job = JSON.parse(fs.readFileSync(process.argv[4], "utf8"));
   for (const [i, j] of job.pairs) {
     const r = QV.route(ctx, G, st, { i, t: 0 }, { i: j, t: 1 }, st.lam);
     out.routes.push(r ? { cost: r.cost, length: r.length } : null);
+  }
+  // with lambda = 0 the cost is the walked length: checks how the route is rebuilt,
+  // also when it starts or ends inside a closed loop (u === v) or exactly on a node
+  out.checks = [];
+  const loops = []; for (let i = 0; i < ctx.N && loops.length < 10; i++) if (ctx.u[i] === ctx.v[i]) loops.push(i);
+  const starts = loops.map(i => ({ i, t: 0.8 })).concat(job.pairs.slice(0, 10).map(([i]) => ({ i, t: 0 })));
+  for (const [k, a] of starts.entries()) {
+    const b = { i: job.pairs[k % job.pairs.length][1], t: k % 2 ? 1 : 0.37 };
+    const r = QV.route(ctx, G, st, a, b, 0);
+    if (r) out.checks.push({ cost: r.cost, length: r.length, minPart: Math.min(...r.parts.map(q => G.len[q.i] * Math.abs(q.f1 - q.f0))), parts: r.parts.length });
   }
   process.stdout.write(JSON.stringify(out));
 })();
@@ -98,3 +108,12 @@ def test_routes_match_python_dijkstra(js):
         assert r["cost"] == pytest.approx(py.cost, rel=1e-4, abs=1e-6)
         assert r["length"] == pytest.approx(py.length_m, rel=1e-3, abs=0.5)
     assert found >= 20
+
+
+def test_route_rebuild_is_consistent(js):
+    _, _, out = js
+    assert len(out["checks"]) >= 15
+    for c in out["checks"]:
+        assert c["length"] == pytest.approx(c["cost"], rel=1e-6, abs=1e-6)
+        if c["parts"] > 1:
+            assert c["minPart"] >= 0.5

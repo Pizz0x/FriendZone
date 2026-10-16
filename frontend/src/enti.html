@@ -6,7 +6,7 @@
 </head>
 <body>
 <!--PAGE-START-->
-<title>Quartieri Vivi</title>
+<title>FRIENDlyZONE enti</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -122,7 +122,7 @@ summary { cursor: pointer; font-size: 0.85rem; font-weight: 700; }
 <div class="app">
   <aside class="panel" aria-label="Controlli della mappa">
     <header class="brand">
-      <h1>Quartieri Vivi<span class="beta">beta</span></h1>
+      <h1><span>FRIEND</span><span style="color:var(--s-green)">ly</span><span style="color:var(--s-yellow)">ZO</span><span style="color:var(--s-red)">NE</span><span class="beta">enti</span></h1>
       <p>Sicurezza percepita stimata, tratto per tratto, a Vicenza</p>
     </header>
 
@@ -215,6 +215,8 @@ summary { cursor: pointer; font-size: 0.85rem; font-weight: 700; }
 <script>
 const DATA = /*__DATA__*/null;
 const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+// names come from OpenStreetMap: always escape them before putting them in the page
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 (async function main() {
   const ctx = await QV.load(DATA);
@@ -236,7 +238,7 @@ const css = name => getComputedStyle(document.documentElement).getPropertyValue(
   new ResizeObserver(() => map.invalidateSize()).observe(document.getElementById("map"));
   const labels = L.layerGroup(L_.quartieri.features.map(f => {
     const c = L.geoJSON(f).getBounds().getCenter();
-    return L.marker(c, { interactive: false, icon: L.divIcon({ className: "qlabel", html: f.properties.quartiere, iconSize: null }) });
+    return L.marker(c, { interactive: false, icon: L.divIcon({ className: "qlabel", html: esc(f.properties.quartiere), iconSize: null }) });
   }));
   const syncLabels = () => map.getZoom() >= 13 ? labels.addTo(map) : labels.remove();
   map.on("zoomend", syncLabels); syncLabels();
@@ -301,7 +303,7 @@ const css = name => getComputedStyle(document.documentElement).getPropertyValue(
     document.getElementById("stMean").textContent = (sumS / tot).toFixed(0);
     document.getElementById("stRel").textContent = (sumR / tot).toFixed(2).replace(".", ",");
     const order = [...qNames.keys()].sort((a, b) => qS[a] / qL[a] - qS[b] / qL[b]).slice(0, 5);
-    document.getElementById("worstQ").innerHTML = order.map(q => `<li><span>${qNames[q]}</span><span>${(qS[q] / qL[q]).toFixed(0)}</span></li>`).join("");
+    document.getElementById("worstQ").innerHTML = order.map(q => `<li><span>${esc(qNames[q])}</span><span>${(qS[q] / qL[q]).toFixed(0)}</span></li>`).join("");
     const st = state, B = M.bands[st.band], sun = DATA.sun[st.day];
     document.getElementById("hourLabel").textContent = String(st.hour).padStart(2, "0") + ":30";
     document.getElementById("bandText").textContent = `${B.label} · tramonto ${sun.tramonto}, alba ${sun.alba}`;
@@ -341,17 +343,17 @@ const css = name => getComputedStyle(document.documentElement).getPropertyValue(
     if (P_dark[i] > 0) pens.push(`buio −${Math.round(P_dark[i] * 100)}%`);
     card.className = "card";
     card.innerHTML = `
-      <h3>${via}</h3>
-      <p class="sub">${q} · ${CLASS_IT[DATA.names.classe[S.classe[i]]] || DATA.names.classe[S.classe[i]]} · ${S.lunghezza[i]} m</p>
+      <h3>${esc(via)}</h3>
+      <p class="sub">${esc(q)} · ${esc(CLASS_IT[DATA.names.classe[S.classe[i]]] || DATA.names.classe[S.classe[i]])} · ${S.lunghezza[i]} m</p>
       <div class="score"><b>${s.toFixed(0)}</b><span class="pill ${c}">${c === "rossa" ? "priorità di intervento" : c === "gialla" ? "intermedio" : "buono"}</span></div>
       <p class="note">Affidabilità ${R_arr[i].toFixed(2).replace(".", ",")} · costo per il navigatore ${cost.toFixed(2).replace(".", ",")} × la lunghezza</p>
       <div class="params">${rows.map(r => `
-        <div class="prow ${estimated.has(r.k) ? "est" : ""}"><span class="name">${M.labels[r.j]}</span>
+        <div class="prow ${estimated.has(r.k) ? "est" : ""}"><span class="name">${esc(M.labels[r.j])}</span>
           <span class="track"><span class="fill" style="width:${(100 * r.x).toFixed(0)}%"></span></span>
           <span class="v">${r.x.toFixed(2).replace(".", ",")}</span></div>`).join("")}
-        ${M.excluded.map(k => `<div class="prow off"><span class="name">${M.labels[idx[k]]}</span><span></span><span class="v">n/d</span></div>`).join("")}
+        ${M.excluded.map(k => `<div class="prow off"><span class="name">${esc(M.labels[idx[k]])}</span><span></span><span class="v">n/d</span></div>`).join("")}
       </div>
-      <p class="note" style="margin-top:8px">Luce: ${DATA.names.fonte_luce[S.fonte_luce[i]]}.${pens.length ? " Penalità: " + pens.join("; ") + "." : ""}</p>
+      <p class="note" style="margin-top:8px">Luce: ${esc(DATA.names.fonte_luce[S.fonte_luce[i]])}.${pens.length ? " Penalità: " + pens.join("; ") + "." : ""}</p>
       <p class="note">I parametri sono ordinati per quanto abbassano il punteggio. "n/d": arriveranno con le segnalazioni dei cittadini.</p>`;
   }
   function compute1(i) { return QV.explain(ctx, state, i); }

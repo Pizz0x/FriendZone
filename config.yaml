@@ -1,11 +1,11 @@
 # =============================================================================
-# Quartieri Vivi — configurazione unica del modello e della pipeline
+# FRIENDlyZONE — configurazione unica del modello e della pipeline
 # Tutti i numeri del modello stanno qui: il team può cambiarli senza toccare
 # il codice. Dopo una modifica: `python -m pipeline.run_all` ricalcola tutto.
 # =============================================================================
 
 project:
-  name: "Quartieri Vivi"
+  name: "FRIENDlyZONE"
   disclaimer: >-
     Il punteggio stima la sicurezza percepita a partire dai dati disponibili.
     Non misura la sicurezza reale di un luogo.
@@ -181,7 +181,7 @@ standard:
 # Fonti dati
 # -----------------------------------------------------------------------------
 sources:
-  user_agent: "QuartieriVivi/0.1 (hackathon TechWarriors Vicenza 2026; contatto: team)"
+  user_agent: "FRIENDlyZONE/0.1 (hackathon TechWarriors Vicenza 2026; contatto: team)"
   request_delay_s: 1.0
   http_timeout_s: 60
   overpass_endpoints:

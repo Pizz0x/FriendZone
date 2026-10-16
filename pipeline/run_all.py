@@ -19,7 +19,7 @@ STEPS = ["sources", "osm", "segments", "params", "aggregate", "validate"]
 
 
 def main(argv: list[str] | None = None) -> None:
-    parser = argparse.ArgumentParser(description="Pipeline Quartieri Vivi")
+    parser = argparse.ArgumentParser(description="Pipeline FRIENDlyZONE")
     parser.add_argument("--force", action="store_true", help="riscarica i dati OSM anche se in cache")
     parser.add_argument("--planet", action="store_true", help="se Overpass non risponde, estrai Vicenza dal planet OSM su AWS")
     parser.add_argument("--until", choices=STEPS, default=STEPS[-1], help="ultimo passo da eseguire")

@@ -1,11 +1,11 @@
-# Lumi, l'app per chi cammina
+# FRIENDlyZONE, l'app per chi cammina
 
 Il progetto ha due interfacce, generate dagli stessi dati con `python -m pipeline.frontend`:
 
 | | Per chi | Cosa fa | File |
 |---|---|---|---|
 | **Mappa per gli enti** | Comune, pari opportunità, mobilità | tutte le strade colorate per ora, giorno, meteo e profilo; parametri di ogni tratto; quartieri con S più basso | `frontend/enti.html` |
-| **Lumi** | cittadine e cittadini | domande iniziali, mappa 3D, percorso consigliato e navigatore, SOS, segnalazioni, supporto, diario | `frontend/lumi.html` |
+| **App FRIENDlyZONE** (guida: Lumi) | cittadine e cittadini | domande iniziali, mappa 3D, percorso consigliato e navigatore, SOS, segnalazioni, supporto, diario | `frontend/app.html` |
 
 `frontend/index.html` porta a tutte e due. Le pagine non hanno bisogno di un server: i dati
 (13.728 tratti, parametri per le 24 ore di un feriale e di un sabato, edifici, vie e luoghi
@@ -14,15 +14,15 @@ per la ricerca) sono dentro il file. Serve internet solo per la libreria della m
 localhost:
 
 ```bash
-python -m http.server -d frontend 8000   # poi http://localhost:8000/lumi.html
+python -m http.server -d frontend 8000   # poi http://localhost:8000/app.html
 ```
 
 ## Da dove parte
 
-Lumi riprende la demo del team (nome, mascotte, colori, schermate, barra in basso,
+L'app riprende la demo del team «Lumi» (nome, mascotte, colori, schermate, barra in basso,
 diario, condivisione della posizione) e la collega al modello del backend.
 
-| Nella demo | In Lumi |
+| Nella demo | Nell'app |
 |---|---|
 | punteggio proprio: griglia 80×80 con lampioni, `lit` e locali scaricati da Overpass al momento | i punteggi del modello (12 parametri, fasce dal tramonto reale, profilo, penalità di buio) per ogni tratto della rete pedonale |
 | mappa OpenFreeMap con edifici colorati dal punteggio | mappa 3D disegnata con i dati del progetto: strade colorate, edifici grigi in rilievo; di notte la mappa diventa scura e le strade "si accendono" |
@@ -59,7 +59,7 @@ Obiettivo: che chiunque le possa fare senza disagio, e che ogni risposta serva a
 
 ### SOS
 Nella demo il pulsante SOS chiedeva la password prima di mostrare il 112, mentre il testo
-diceva il contrario. In Lumi **l'SOS non chiede mai il codice**: mostra subito 112 e 1522
+diceva il contrario. Ora **l'SOS non chiede mai il codice**: mostra subito 112 e 1522
 (il numero è anche scritto, non solo un link) e propone di mandare la posizione a una
 persona di fiducia. Il codice protegge solo le azioni che una persona malintenzionata con
 il telefono in mano potrebbe voler fare: fermare la condivisione, togliere contatti,
@@ -110,19 +110,77 @@ criticità, percentuali, motivo del tratto) per chi distingue male rosso e verde
   continuo (servirebbe un server).
 - **Segnalazioni, percorsi e note** restano sul telefono finché non c'è l'API.
 
-## Da decidere insieme
+## Seconda revisione (16/10, sera)
 
-1. **Domande sul genere e sulle situazioni.** Servono ai pesi del modello, ma sono dati
-   delicati. In alternativa si potrebbero chiedere solo preferenze dirette («quanto conta per
-   te la luce?»), senza identità. Proposta: tenerle facoltative come ora e validarle con il
-   questionario.
-2. **Persona non binaria → pesi del profilo LGBTQ+.** È una mia scelta, da confermare.
-3. **Percentuale di strade verdi nella home.** Di sera, in tutta la città, le strade verdi
+Su richiesta del team:
+
+- **Nome e logo**: l'app si chiama FRIENDlyZONE. Il simbolo del logo è ritagliato con la
+  trasparenza (`frontend/assets/brand/mark.webp`), la scritta è testo (Montserrat) con i tre
+  colori delle strade. Lumi resta il nome della guida.
+- **Percorso sempre visibile**: è disegnato sopra gli edifici, con un bordo (viola di giorno,
+  verde lime di notte); l'inquadratura usa solo la parte di mappa libera dai pannelli.
+- **Mappa più chiara**: di notte la mappa è grigia (non più quasi nera) e gli edifici sono
+  più chiari e un po' trasparenti; di giorno strade più larghe.
+- **Tutto nello schermo**: illustrazioni e spaziature si adattano all'altezza del telefono;
+  i pulsanti sopra la mappa vanno a capo invece di uscire dallo schermo; il pannello in
+  basso non copre mai i pulsanti. Provato su 320×568, 360×640, 375×667, 390×844,
+  412×915, 430×932, in orizzontale e su desktop.
+- **Mascotte nitida**: le illustrazioni sono state ingrandite 3 volte con un modello per
+  disegni (Real-ESRGAN anime) dopo aver tolto l'alone chiaro del vecchio ritaglio
+  (`tools/upscale_mascots.py`).
+- **SOS** sempre in vista: in alto sulla mappa e nella barra del navigatore.
+
+### Errori corretti
+Trovati con una revisione del codice e con un collaudo automatico di tutte le schermate:
+
+- l'SOS e le segnalazioni usavano la posizione della **simulazione** invece di quella vera:
+  ora solo il GPS; senza GPS l'app lo dice e propone di chiamare la persona di fiducia;
+- dopo il primo viaggio i percorsi non si ricalcolavano più cambiando ora, pioggia o
+  compagnia; uscendo dal navigatore la simulazione poteva restare attiva;
+- con la posizione GPS il percorso non partiva se la destinazione era già scelta, o se i
+  dati non avevano finito di caricare;
+- percorsi su anelli chiusi disegnati dalla parte sbagliata; tratti di lunghezza zero
+  all'inizio o alla fine davano indicazioni sbagliate («gira a destra» negli ultimi metri);
+- con il GPS, un salto del segnale poteva far saltare istruzioni o dichiarare l'arrivo in
+  anticipo: ora la posizione si cerca solo poco prima e poco dopo il punto raggiunto;
+- nomi di vie o luoghi con caratteri speciali potevano rompere la pagina (ora sono
+  protetti, anche nella mappa per gli enti);
+- il codice di protezione si poteva cambiare senza conoscere il vecchio; senza https veniva
+  salvato in chiaro; ora c'è anche una pausa dopo 5 tentativi sbagliati;
+- l'ora di partenza usava il fuso del telefono invece di quello di Vicenza;
+- la mappa non aveva un pulsante per tornare indietro; il pannello dei messaggi non si
+  chiudeva con Esc e non era accessibile ai lettori di schermo; gli interruttori non
+  dicevano se erano accesi;
+- «Cancella tutti i miei dati» lasciava in memoria percorso, destinazione e scelte;
+- aprendo un pannello (ora, SOS, legenda) il browser spostava in alto tutta l'app per
+  mettere a fuoco il primo pulsante, e dopo la chiusura la schermata restava spostata;
+- con partenza uguale alla destinazione, o un punto lontano dalle strade, il pannello
+  restava su «Calcolo il percorso…»: ora dice cosa non va;
+- con due percorsi entrambi senza tratti rossi il testo diceva «evita 0 m di tratti rossi»;
+- in orizzontale l'app era incorniciata come su desktop e la barra in basso finiva fuori
+  posto: ora usa tutta la larghezza, con i pannelli ai lati e la mappa al centro.
+
+Collaudo automatico (Playwright) su 320×568, 360×640, 375×667, 390×844, 430×932, 667×375,
+844×390 e 1280×720: tutte le schermate dal benvenuto all'arrivo, senza errori JavaScript,
+senza contenuti fuori dallo schermo in orizzontale e con l'SOS sempre raggiungibile. Più i
+casi limite: codice errato 5 volte, condivisione senza GPS o senza contatti, ricerche vuote,
+telefono con un altro fuso orario, ricalcolo dopo una navigazione, ricarica della pagina.
+
+La condivisione della posizione ora è dichiaratamente **un link una tantum** (la posizione
+di quel momento): la barra «posizione condivisa» faceva pensare a un tracciamento continuo,
+che senza un server non c'è.
+
+## Deciso con il team
+
+- Domande su genere e situazioni personali: **sì**, facoltative come ora.
+- Persona non binaria → pesi del profilo LGBTQ+: **sì**.
+
+## Ancora da decidere
+
+1. **Percentuale di strade verdi nella home.** Di sera, in tutta la città, le strade verdi
    sono poche (molte sono di campagna). Ora la home mostra «verdi o gialle» e la ripartizione
    completa; si può anche limitare al quartiere della persona.
-4. **Mascotte**: «Lumi ragazza» e «Lumi ragazzo» sono la guida, non il genere di chi usa
+2. **Mascotte**: «Lumi ragazza» e «Lumi ragazzo» sono la guida, non il genere di chi usa
    l'app. Se volete, una terza guida non caratterizzata.
-5. **Codice di protezione**: oggi è facoltativo. Chi lavora sui temi della violenza potrebbe
+3. **Codice di protezione**: oggi è facoltativo. Chi lavora sui temi della violenza potrebbe
    consigliare di renderlo più visibile, o di aggiungere un'uscita rapida dall'app.
-6. Il brief diceva che l'interfaccia per gli utenti l'avrebbero fatta altri: questa è una
-   base completa ma va rivista da chi ha disegnato la demo.

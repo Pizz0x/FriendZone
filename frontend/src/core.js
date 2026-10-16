@@ -234,10 +234,11 @@ const QV = (() => {
   /** Closest point of the network to (lon, lat): {i, t (0 = start of the segment, 1 = end), d (m), lon, lat}. */
   function nearest(ctx, grid, lon, lat, maxM) {
     const [kx, ky] = metres(lat);
-    const reach = Math.max(1, Math.ceil(maxM / (CELL * ky)));
+    // grid cells are narrower east-west than north-south: size the search in both directions
+    const reachX = Math.max(1, Math.ceil(maxM / (CELL * kx))), reachY = Math.max(1, Math.ceil(maxM / (CELL * ky)));
     const gx0 = Math.floor(lon / CELL), gy0 = Math.floor(lat / CELL);
     let best = null; const seen = new Set();
-    for (let gx = gx0 - reach; gx <= gx0 + reach; gx++) for (let gy = gy0 - reach; gy <= gy0 + reach; gy++) {
+    for (let gx = gx0 - reachX; gx <= gx0 + reachX; gx++) for (let gy = gy0 - reachY; gy <= gy0 + reachY; gy++) {
       for (const i of grid.get(gx + ":" + gy) || []) {
         if (seen.has(i)) continue; seen.add(i);
         let along = 0;
@@ -306,13 +307,16 @@ const QV = (() => {
     const n = g.n, SRC = n, DST = n + 1;
     const cost = i => g.len[i] * (1 + lam * Math.pow((100 - st.S[i]) / 100, 2));
     const dist = new Float64Array(n + 2).fill(Infinity), prevN = new Int32Array(n + 2).fill(-1), prevS = new Int32Array(n + 2).fill(-1);
+    // for the partial first and last segments: which end (0 = start, 1 = end) was used.
+    // Needed for self-loops, where both ends are the same node.
+    const prevEnd = new Int8Array(n + 2);
     const heap = new Heap();
-    const relax = (node, d, from_, seg) => {
-      if (d < dist[node]) { dist[node] = d; prevN[node] = from_; prevS[node] = seg; heap.push(d, node); }
+    const relax = (node, d, from_, seg, end) => {
+      if (d < dist[node]) { dist[node] = d; prevN[node] = from_; prevS[node] = seg; prevEnd[node] = end || 0; heap.push(d, node); }
     };
     const c0 = cost(from.i), c1 = cost(to.i);
-    relax(ctx.u[from.i], from.t * c0, SRC, from.i);
-    relax(ctx.v[from.i], (1 - from.t) * c0, SRC, from.i);
+    relax(ctx.u[from.i], from.t * c0, SRC, from.i, 0);
+    relax(ctx.v[from.i], (1 - from.t) * c0, SRC, from.i, 1);
     if (from.i === to.i) relax(DST, Math.abs(to.t - from.t) * c0, SRC, from.i);
     const done = new Uint8Array(n + 2);
     while (heap.size) {
@@ -321,8 +325,8 @@ const QV = (() => {
       done[node] = 1;
       if (node === DST) break;
       for (let k = g.off[node]; k < g.off[node + 1]; k++) relax(g.nb[k], dist[node] + cost(g.seg[k]), node, g.seg[k]);
-      if (node === ctx.u[to.i]) relax(DST, dist[node] + to.t * c1, node, to.i);
-      if (node === ctx.v[to.i]) relax(DST, dist[node] + (1 - to.t) * c1, node, to.i);
+      if (node === ctx.u[to.i]) relax(DST, dist[node] + to.t * c1, node, to.i, 0);
+      if (node === ctx.v[to.i]) relax(DST, dist[node] + (1 - to.t) * c1, node, to.i, 1);
     }
     if (!Number.isFinite(dist[DST])) return null;
     // walk back: each step is a (part of a) segment between two positions along it
@@ -330,14 +334,18 @@ const QV = (() => {
     let node = DST;
     while (node !== SRC) {
       const p = prevN[node], i = prevS[node];
-      const fEnd = node === DST ? to.t : (node === ctx.u[i] ? 0 : 1);
-      const fStart = p === SRC ? from.t : (p === ctx.u[i] ? 0 : 1);
-      // a self-loop walked in full goes 0 -> 1
-      const full = p !== SRC && node !== DST && ctx.u[i] === ctx.v[i];
-      parts.push({ i, f0: full ? 0 : fStart, f1: full ? 1 : fEnd });
+      let f0, f1;
+      if (node === DST) { f1 = to.t; f0 = p === SRC ? from.t : prevEnd[DST]; }
+      else if (p === SRC) { f0 = from.t; f1 = prevEnd[node]; }
+      else if (ctx.u[i] === ctx.v[i]) { f0 = 0; f1 = 1; }  // a self-loop walked in full
+      else { f0 = p === ctx.u[i] ? 0 : 1; f1 = node === ctx.u[i] ? 0 : 1; }
+      parts.push({ i, f0, f1 });
       node = p;
     }
     parts.reverse();
+    // a start or end exactly on a node leaves a zero-length piece of the next street: drop it
+    const kept = parts.filter(q => g.len[q.i] * Math.abs(q.f1 - q.f0) >= 0.5);
+    if (kept.length) parts.splice(0, parts.length, ...kept);
     const r = { parts, cost: dist[DST], length: 0, redM: 0, yellowM: 0, greenM: 0, mean: 0 };
     for (const q of parts) {
       const L = g.len[q.i] * Math.abs(q.f1 - q.f0);
@@ -401,6 +409,11 @@ const QV = (() => {
       if (prev && leg.name === prev.name) { prev.length += leg.length; prev.end = leg.end; }
       else merged.push(leg);
     }
+    // a very short last piece is not worth a turn instruction
+    if (merged.length > 1 && merged[merged.length - 1].length < 12) {
+      const last = merged.pop(), prev = merged[merged.length - 1];
+      prev.length += last.length; prev.end = last.end;
+    }
     const pointAt = (from, metresAlong, dir) => {
       let acc = 0, k = from;
       while (acc < metresAlong && k + dir >= 0 && k + dir < coords.length) { acc += distM(coords[k], coords[k + dir]); k += dir; }
@@ -418,7 +431,7 @@ const QV = (() => {
     // going straight on into a street with another name is not announced as a manoeuvre
     const turns = steps.filter((st, n) => n === 0 || st.dir !== "straight");
     turns.push({ type: "arrive", name: "", at: along, length: 0, pos: coords[coords.length - 1] });
-    return { coords, steps: turns, length: along };
+    return { coords, steps: turns, lineLength: along };
   }
 
   return { unpack, load, line, scores, explain, profileLambda, local, moment, clock, sunUtcMinutes,

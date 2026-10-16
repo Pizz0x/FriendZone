@@ -1,7 +1,7 @@
-# Quartieri Vivi (titolo provvisorio) — backend
+# FRIENDlyZONE
 
-Backend dell'hackathon **TechWarriors Vicenza 2026**, sfida 07 – Urbanistica.
-Calcola un **punteggio di sicurezza percepita stimata** (S, da 0 a 100) per ogni
+Progetto dell'hackathon **TechWarriors Vicenza 2026**, sfida 07 – Urbanistica (il logo è in
+`frontend/assets/brand/`). Il backend calcola un **punteggio di sicurezza percepita stimata** (S, da 0 a 100) per ogni
 tratto della rete pedonale di Vicenza, poi per via e per quartiere, partendo
 solo da fonti pubbliche. Il modello è descritto in `docs/modello_punteggio.pdf`
 (bozza del team) e corretto da `BRIEF.md`: dove non coincidono vale il brief.
@@ -18,7 +18,7 @@ Serve Python 3.11.
 python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-python -m pytest                      # test (81, nessuna rete richiesta; 3 usano Node.js se c'è)
+python -m pytest                      # test (82, nessuna rete richiesta; 4 usano Node.js se c'è)
 python -m pipeline.run_all            # pipeline completa, con cache dei download
 ```
 
@@ -26,7 +26,7 @@ I risultati sono già nel repository: per guardarli non serve eseguire la pipeli
 
 | Per… | Apri |
 |---|---|
-| **provare le interfacce** | `frontend/index.html` nel browser: porta alla mappa per gli enti (`enti.html`) e all'app Lumi (`lumi.html`) |
+| **provare le interfacce** | `frontend/index.html` nel browser: porta alla mappa per gli enti (`enti.html`) e all'app per chi cammina (`app.html`) |
 | vedere la mappa | `reports/check_map.html` nel browser (serve internet per Leaflet e lo sfondo OSM). In alto a destra si scelgono fascia e profilo; passando sopra un tratto si leggono via, S, affidabilità, i 3 parametri che pesano di più e da dove viene il dato sulla luce |
 | controllare i risultati in kepler.gl o geojson.io | `exports/segments_{fascia}_{profilo}.geojson` (proprietà `S`, `classe_colore`, `colore`, `affidabilita`, `parametri_peggiori`, `fonte_luce`) |
 | leggere i controlli | `reports/validation.md` e `reports/osm_coverage.md` |
@@ -37,7 +37,7 @@ I risultati sono già nel repository: per guardarli non serve eseguire la pipeli
 ### Le due interfacce
 
 ```bash
-python -m pipeline.frontend                  # rigenera frontend/enti.html, lumi.html e index.html dopo la pipeline
+python -m pipeline.frontend                  # rigenera frontend/enti.html, app.html e index.html dopo la pipeline
 python -m http.server -d frontend 8000       # facoltativo: serve per il GPS del telefono (http://localhost:8000)
 ```
 
@@ -45,11 +45,11 @@ python -m http.server -d frontend 8000       # facoltativo: serve per il GPS del
   ricalcolate nel browser per ora (0–23), giorno feriale o weekend, meteo, sesso, età e i
   profili aggiuntivi del PDF. Cliccando un tratto si leggono via, quartiere, S, affidabilità,
   parametri e fonte della luce. In grigio solo le strade dove non si cammina.
-- **Lumi** (`frontend/lumi.html`), l'app per chi cammina, dalla demo del team: domande
+- **App FRIENDlyZONE** (`frontend/app.html`), per chi cammina, dalla demo del team (guida: Lumi): domande
   iniziali facoltative, mappa 3D (di notte diventa scura), percorso consigliato contro il
   più breve con il costo C del modello, navigatore svolta per svolta con voce e simulazione,
   SOS sempre senza codice, segnalazioni con i tipi del brief, supporto, diario. Scelte,
-  limiti e punti da decidere: [`docs/app_lumi.md`](docs/app_lumi.md).
+  limiti e punti da decidere: [`docs/app_utenti.md`](docs/app_utenti.md).
 
 Le due pagine usano lo stesso calcolo (`frontend/src/core.js`), uguale a quello Python:
 differenza massima 0,19 punti, classe uguale in oltre il 99,9% dei tratti
@@ -105,9 +105,9 @@ L'API FastAPI (`uvicorn api.main:app`) è prevista nella fase 4 e non c'è ancor
 | `pipeline/validate.py` | report di copertura, `validation.md`, mappa di controllo |
 | `pipeline/scenario.py` | punteggi per data/ora/profilo/meteo qualsiasi, scenario demo |
 | `model/routing.py` | percorso a costo minimo `C = L·(1 + λ·((100−S)/100)²)` (navigatore) |
-| `pipeline/frontend.py` | costruisce le due interfacce dai dati elaborati (con edifici 3D e indice di ricerca per Lumi) |
-| `frontend/src/` | modelli delle pagine (`enti.html`, `lumi.html`, `index.html`) e calcolo condiviso nel browser (`core.js`) |
-| `frontend/assets/lumi/` | illustrazioni della mascotte (dalla demo del team) |
+| `pipeline/frontend.py` | costruisce le due interfacce dai dati elaborati (con edifici 3D e indice di ricerca per l'app) |
+| `frontend/src/` | modelli delle pagine (`enti.html`, `app.html`, `index.html`) e calcolo condiviso nel browser (`core.js`) |
+| `frontend/assets/` | logo (`brand/`) e illustrazioni della guida Lumi (`lumi/`, dalla demo del team, ingrandite con `tools/upscale_mascots.py`) |
 | `frontend/*.html` | pagine generate, da aprire nel browser |
 | `data/processed/` | `segments.parquet`, `params.parquet`, `scores.parquet`, `quartieri.parquet` (GeoParquet) |
 | `data/demo/` | solo dati **simulati** per la demo (eventi), usati solo con `--demo` |
@@ -198,13 +198,16 @@ Aggiornato alla fine di ogni fase.
 - **Residenti esposti** (sezioni ISTAT attraversate da almeno un tratto rosso, di sera,
   riferimento): 59.480 su 110.293 (54%), di cui circa 30.600 donne e 20.000 over 60.
   Contano anche tratti rossi molto brevi: è un indicatore di priorità, non di rischio.
-- **Interfacce**: mappa per gli enti (`frontend/enti.html`) e app **Lumi**
-  (`frontend/lumi.html`) con mappa 3D, navigatore sul costo C del modello, domande iniziali
+- **Interfacce**: mappa per gli enti (`frontend/enti.html`) e **app FRIENDlyZONE**
+  (`frontend/app.html`) con mappa 3D, navigatore sul costo C del modello, domande iniziali
   inclusive, SOS, segnalazioni con i tipi del brief (sez. 8), supporto e diario.
-  `model/routing.py` fa lo stesso percorso in Python.
+  `model/routing.py` fa lo stesso percorso in Python. Seconda revisione (16/10): nome e
+  logo FRIENDlyZONE, percorso sempre visibile sopra gli edifici, mappa notturna più chiara,
+  schermate che stanno sempre nello schermo (provate da 320×568 al desktop), guida Lumi più
+  nitida e 27 errori corretti (elenco in `docs/app_utenti.md`).
 - **Corretto** un bug della fase 2: la normalizzazione delle persone, dalla seconda fascia
   in poi, finiva sulla colonna del trasporto. Un test di regressione lo copre.
-- Test: 81, tutti verdi (`python -m pytest`).
+- Test: 82, tutti verdi (`python -m pytest`).
 
 ### Stimato
 - Pesi, moltiplicatori dei profili, λ e **penalità di buio**: proposta ricavata dalla
@@ -233,6 +236,6 @@ Aggiornato alla fine di ogni fase.
   SIT quando arrivano i file; Mapillary e SDGSAT-1 per la luce.
 - **Fase 4** — API FastAPI (`api/main.py`) con i suoi test, anche per il percorso;
   profili più flessibili nelle interfacce.
-- **Lumi** — i punti da decidere insieme sono in `docs/app_lumi.md`; GPS solo da https o
+- **App** — i punti ancora aperti sono in `docs/app_utenti.md`; GPS solo da https o
   localhost; segnalazioni e condivisione della posizione aspettano il server.
 - **Fase 5** — segnalazioni (SQLite), `S_percepito`, simulazione in database separato.

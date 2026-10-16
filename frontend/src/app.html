@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#ebe7f5">
+<meta name="theme-color" content="#262523">
 </head>
 <body>
 <!--PAGE-START-->
-<title>Lumi</title>
+<title>FRIENDlyZONE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Montserrat:wght@700;800&display=swap">
 <style>/*__MAPLIBRE_CSS__*/</style>
 <style>
-  /* Phone-first app on top of a full-bleed 3D map; brand from the team's Lumi demo (Manrope, violet). */
+  /* Phone-first app on top of a full-bleed 3D map. Brand: FRIENDlyZONE wordmark (Montserrat) in the three street colours; UI violet and the guide Lumi from the team's demo. */
   :root {
     --bg: #ebe7f5; --surface: #ffffff; --soft: #f5f2fb; --line: #ece8f4; --ink: #241d3a; --mute: #665e7f;
     --p: #6a3fd0; --p2: #9a7ae6; --pl: #efeafc; --ring: #d9cdf4; --on-p: #ffffff;
@@ -41,8 +41,8 @@
   :focus-visible { outline: 3px solid var(--p2); outline-offset: 2px; border-radius: 12px; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
-  #app { position: fixed; inset: 0; margin: 0 auto; width: 100%; max-width: 430px; overflow: hidden; background: var(--bg); }
-  @media (min-width: 640px) { #app { top: 16px; bottom: 16px; border-radius: 28px; box-shadow: 0 20px 60px rgba(30, 20, 60, .35); } }
+  #app { position: fixed; inset: 0; margin: 0 auto; width: 100%; max-width: 430px; overflow: hidden; background: var(--bg); container-type: size; container-name: app; }
+  @media (min-width: 640px) and (min-height: 600px) { #app { top: 16px; bottom: 16px; border-radius: 28px; box-shadow: 0 20px 60px rgba(30, 20, 60, .35); } }
   #map { position: absolute; inset: 0; background: #e8e5ee; }
   .maplibregl-ctrl-bottom-right, .maplibregl-ctrl-bottom-left { display: none; }
 
@@ -64,17 +64,25 @@
   .btn.danger { background: var(--red); color: #fff; box-shadow: none; }
   .btn:disabled { opacity: .45; box-shadow: none; }
   .btn-row { display: flex; gap: 10px; }
+  /* main actions stay at the bottom of the screen even when the content scrolls */
+  .dock { position: sticky; bottom: 0; z-index: 3; margin-top: 14px; padding: 14px 0 max(12px, env(safe-area-inset-bottom)); background: linear-gradient(to bottom, transparent, var(--bg) 24%); }
+  .panel .dock, .psheet .dock { background: linear-gradient(to bottom, transparent, var(--surface) 24%); padding-bottom: 4px; }
+  .psheet .dock { padding-bottom: 0; margin-top: 4px; }
+  #s-welcome, #s-form, #s-tut, #s-end, #s-arrive { padding-bottom: 0; }
   .btn-row .btn { flex: 1; }
   .btn-row .btn.ghost { flex: 0 0 118px; }
   .link { color: var(--p); font-weight: 700; font-size: 14px; padding: 10px 4px; }
 
   .mz { display: block; object-fit: contain; }
-  .stage { position: relative; height: 290px; margin: 6px 0 0; }
-  .stage .ring { position: absolute; left: 50%; top: 26px; width: 240px; height: 240px; transform: translateX(-50%); border-radius: 50%; background: var(--ring); }
-  .stage img { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); height: 300px; width: auto; }
-  .logo { font-weight: 800; font-size: 34px; letter-spacing: -.03em; color: var(--p); line-height: 1; position: relative; display: inline-block; }
-  .logo b { position: absolute; right: -14px; top: -10px; font-size: 13px; color: var(--p2); }
-  .tag { font-size: 13px; font-weight: 700; color: var(--p); margin-top: 6px; }
+  /* illustrations scale with the height of the screen (cqh = % of the app's height) */
+  .stage { position: relative; height: 240px; height: var(--sh); margin: 6px 0 0; }
+  .stage .ring { position: absolute; left: 50%; top: 9%; height: 82%; aspect-ratio: 1; transform: translateX(-50%); border-radius: 50%; background: var(--ring); }
+  .stage img { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); height: 104%; width: auto; max-width: 96%; object-fit: contain; object-position: bottom; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand img { width: 42px; height: auto; flex: none; }
+  .wm { font-family: Montserrat, var(--font); font-weight: 800; font-size: 26px; letter-spacing: -.01em; line-height: 1; white-space: nowrap; }
+  .wm .w1 { color: var(--ink); } .wm .w2 { color: var(--green); } .wm .w3 { color: var(--amber); } .wm .w4 { color: var(--red); }
+  .tag { font-size: 13px; font-weight: 700; color: var(--p); margin-top: 8px; }
 
   .panel { background: var(--surface); border-radius: 28px; margin: 0 14px; padding: 18px 16px 16px; box-shadow: var(--shadow); }
   .panel h2 { font-size: 19px; font-weight: 800; margin: 0 0 12px; text-wrap: balance; }
@@ -206,8 +214,13 @@
   .big112 span { font-size: 13px; font-weight: 700; color: var(--ink); }
 
   /* map overlays */
-  .ptop { position: absolute; top: max(12px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); display: grid; gap: 8px; }
-  .od { background: var(--surface); border-radius: 22px; box-shadow: var(--shadow); padding: 6px 6px 6px 8px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; }
+  .nwrap { z-index: 2; }
+  .ptop, .nwrap { position: absolute; top: max(12px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); display: grid; gap: 8px; }
+  .scr.map > .ptop, .scr.map > .nwrap, .pchips, .nrow { pointer-events: none; }
+  .ptop > *, .nwrap > *, .pchips > *, .nrow > * { pointer-events: auto; }
+  .od { background: var(--surface); border-radius: 22px; box-shadow: var(--shadow); padding: 6px 6px 6px 6px; display: grid; grid-template-columns: auto auto 1fr auto; align-items: center; }
+  .od .back { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; }
+  .od .back .ico { width: 20px; height: 20px; }
   .od .rail { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 0 6px; }
   .od .rail i { width: 10px; height: 10px; border-radius: 50%; border: 2.5px solid var(--p); }
   .od .rail i.to { background: var(--p); }
@@ -220,19 +233,22 @@
   .od .rows span.ph { color: var(--mute); font-weight: 600; }
   .od .swap { width: 40px; height: 40px; border-radius: 50%; background: var(--soft); display: grid; place-items: center; }
   .od .swap .ico { width: 18px; height: 18px; }
-  .pchips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+  .pchips { display: flex; gap: 8px; flex-wrap: wrap; }
   .pchip { flex: none; display: flex; align-items: center; gap: 6px; background: var(--surface); border-radius: 999px; padding: 8px 12px; font-size: 13px; font-weight: 700; box-shadow: var(--shadow); white-space: nowrap; }
   .pchip .ico { width: 16px; height: 16px; stroke: var(--p); }
   .pchip.night { background: #2b2545; color: #f1edfa; }
+  .pchip.sosp { background: var(--red); color: #fff; margin-left: auto; padding: 8px 14px; font-weight: 800; }
+  .pchip.sosp .ico { stroke: #fff; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .pchip.night .ico { stroke: #c9b8ff; }
-  .sright { position: absolute; right: max(12px, env(safe-area-inset-right)); top: 196px; display: flex; flex-direction: column; gap: 10px; }
+  .sright, .nright { justify-self: end; display: flex; flex-direction: column; gap: 10px; }
   .rb { width: 50px; height: 50px; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow); display: grid; place-items: center; }
   .rb .ico { width: 20px; height: 20px; }
   .rb.on { background: var(--p); }
   .rb.on .ico { stroke: var(--on-p); }
   .rb.sos { height: 62px; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--red); font-size: 10px; font-weight: 800; }
   .rb.sos .ico { stroke: var(--red); }
-  .psheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface); border-radius: 28px 28px 0 0; padding: 12px 16px max(16px, env(safe-area-inset-bottom)); box-shadow: 0 -10px 30px rgba(60, 40, 120, .16); max-height: 62%; overflow-y: auto; }
+  .psheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface); border-radius: 28px 28px 0 0; padding: 12px 16px max(16px, env(safe-area-inset-bottom)); box-shadow: 0 -10px 30px rgba(60, 40, 120, .16); max-height: 55%; overflow-y: auto; overscroll-behavior: contain; }
   .psheet .grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 10px; }
   .psheet .row { display: flex; align-items: center; gap: 12px; }
   .mini { width: 52px; height: 52px; border-radius: 50%; background: var(--pl); flex: none; position: relative; overflow: hidden; }
@@ -254,25 +270,27 @@
   .searchbox input { flex: 1; min-width: 0; height: 52px; border: 0; outline: 0; background: transparent; font-size: 16px; font-weight: 600; }
 
   /* navigation */
-  .ntop { position: absolute; top: max(12px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .ntop { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .nwrap .ntop { pointer-events: none; }
+  .nwrap .ntop > * { pointer-events: auto; }
+  .nrow { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
   .npill { background: var(--p); color: var(--on-p); font-weight: 700; font-size: 13.5px; padding: 11px 16px; border-radius: 20px; display: flex; align-items: center; gap: 8px; box-shadow: var(--shadow); }
   .npill .ico { stroke: var(--on-p); width: 16px; height: 16px; }
-  .tcard { position: absolute; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); top: calc(max(12px, env(safe-area-inset-top)) + 60px); background: var(--surface); border-radius: 22px; padding: 14px 16px; box-shadow: var(--shadow); }
+  .tcard { background: var(--surface); border-radius: 22px; padding: 14px 16px; box-shadow: var(--shadow); }
   .trow { display: flex; align-items: center; gap: 14px; }
   .turn { width: 54px; height: 54px; flex: none; stroke: var(--p); fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
   .trow b { display: block; font-size: 28px; font-weight: 800; letter-spacing: -.02em; line-height: 1.05; font-variant-numeric: tabular-nums; }
-  .trow span { display: block; font-size: 14px; color: var(--mute); font-weight: 700; margin-top: 2px; }
+  .trow span { display: block; font-size: 14px; color: var(--mute); font-weight: 700; margin-top: 2px; overflow-wrap: anywhere; }
   .tbar { height: 5px; border-radius: 3px; background: var(--line); margin-top: 12px; overflow: hidden; }
   .tbar i { display: block; height: 100%; width: 0; background: var(--p); border-radius: 3px; transition: width .5s ease; }
   .tfoot { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-top: 8px; font-variant-numeric: tabular-nums; }
   .tfoot span:last-child { color: var(--mute); font-weight: 600; }
-  .nright { position: absolute; right: max(12px, env(safe-area-inset-right)); top: 236px; display: flex; flex-direction: column; gap: 10px; }
   .nstate { position: absolute; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); background: var(--surface); border-radius: 22px; padding: 14px 92px 14px 16px; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow); min-height: 72px; }
   .nstate .sh { width: 14px; height: 14px; border-radius: 50%; flex: none; background: var(--green); box-shadow: 0 0 0 5px var(--green-bg); }
   .nstate.c1 .sh { background: var(--amber); box-shadow: 0 0 0 5px var(--amber-bg); }
   .nstate.c2 .sh { background: var(--red); box-shadow: 0 0 0 5px var(--red-bg); }
   .nstate .peek { position: absolute; right: 8px; bottom: 0; height: 96px; pointer-events: none; }
-  .simchip { position: absolute; left: max(12px, env(safe-area-inset-left)); bottom: calc(max(18px, env(safe-area-inset-bottom)) + 84px); }
+  .simchip { align-self: flex-start; }
 
   .you { width: 30px; height: 30px; display: grid; place-items: center; }
   .you .dot { width: 22px; height: 22px; border-radius: 50%; background: var(--lime); border: 4px solid #1b1b1b; box-shadow: 0 0 0 10px rgba(197, 239, 60, .35); }
@@ -288,6 +306,48 @@
   #toast.show { opacity: 1; }
   #loading { position: absolute; inset: 0; display: grid; place-items: center; z-index: 4; color: var(--mute); font-weight: 700; font-size: 14px; }
 
+  /* short screens: tighter spacing so every screen fits without overflowing */
+  @container app (max-height: 700px) {
+    .q-title { font-size: 21px; margin: 12px 0 6px; }
+    .q-help { margin-bottom: 12px; font-size: 13.5px; }
+    .opt { padding: 11px 14px; font-size: 14.5px; }
+    .opts { gap: 8px; }
+    .panel { padding: 14px 14px 12px; }
+    .panel h2 { font-size: 17px; margin-bottom: 10px; }
+    .tile { min-height: 84px; padding: 11px; gap: 6px; }
+    .hdr { padding-top: max(12px, env(safe-area-inset-top)); }
+    .stage.home { display: none; }
+    .rb { width: 44px; height: 44px; }
+    .rb.sos { height: 54px; }
+    .sright, .nright { gap: 8px; }
+    .tcard { padding: 10px 14px; }
+    .turn { width: 44px; height: 44px; }
+    .trow b { font-size: 24px; }
+    .btn { min-height: 48px; }
+  }
+  @container app (max-height: 620px) {
+    .stage.end { display: none; }
+    .legend3 { display: none; }
+    .tile { min-height: 0; flex-direction: row; align-items: center; padding: 10px; font-size: 13px; }
+    .tile .ti { width: 32px; height: 32px; flex: none; }
+    .arrive img { height: 130px; }
+    .now span { font-size: 12px; }
+    .panel p { font-size: 13.5px; margin-bottom: 10px; }
+  }
+  @container app (max-height: 520px) {
+    .stage { display: none; }
+  }
+  /* phone held sideways: use the whole width, panels on the sides, the map in the middle */
+  @media (orientation: landscape) and (max-height: 520px) {
+    #app { max-width: none; }
+    .scr:not(.map) > * { max-width: 640px; margin-left: auto; margin-right: auto; }
+    .dock, .panel .dock { position: static; background: none; }
+    .ptop, .nwrap { right: auto; width: min(400px, 52%); }
+    .psheet { left: auto; right: max(12px, env(safe-area-inset-right)); width: min(380px, 45%); max-height: 100% !important; border-radius: 22px 22px 0 0; }
+    .nstate { right: auto; width: min(400px, 52%); }
+    .nright { flex-direction: row; }
+    .bnav { left: 50%; right: auto; width: min(430px, 90%); transform: translateX(-50%); }
+  }
   /* bigger text, chosen in the settings */
   #app.big .q-title { font-size: 29px; }
   #app.big .q-help, #app.big .panel p, #app.big .item .tx span, #app.big details.acc p, #app.big .st span, #app.big .ropt .d { font-size: 16px; }
@@ -301,22 +361,23 @@
 
   <!-- welcome -->
   <section class="scr" id="s-welcome">
-    <div style="padding:max(26px, env(safe-area-inset-top)) 22px 0;">
-      <div class="logo">LUMI<b>♥</b></div>
-      <div class="tag">La tua guida per camminare a Vicenza</div>
+    <div style="padding:max(22px, env(safe-area-inset-top)) 22px 0;">
+      <div class="brand"><img src="__MARK__" alt=""><span class="wm" role="img" aria-label="FRIENDlyZONE"><span class="w1">FRIEND</span><span class="w2">ly</span><span class="w3">ZO</span><span class="w4">NE</span></span></div>
+      <div class="tag">Strade più amiche, a ogni ora</div>
     </div>
-    <div class="stage"><div class="ring"></div><img class="mz" data-m="hero" alt=""></div>
+    <div class="stage" style="--sh: clamp(100px, calc(100cqh - 480px), 290px);"><div class="ring"></div><img class="mz" data-m="hero" alt=""></div>
     <div class="panel">
-      <h2>Ciao, ti accompagno.</h2>
+      <h2>Ciao, sono Lumi: ti accompagno.</h2>
       <p>Ti suggerisco percorsi su strade illuminate e frequentate. Ti faccio qualche domanda per adattarli a te: puoi saltarle tutte, e le risposte restano su questo telefono.</p>
       <div class="sec" style="margin:0 0 8px;font-size:14px;">Chi vuoi come guida?</div>
       <div class="chips">
         <button class="chip2 on" data-act="guide" data-v="f">Lumi ragazza</button>
         <button class="chip2" data-act="guide" data-v="m">Lumi ragazzo</button>
       </div>
-      <div style="height:14px"></div>
-      <button class="btn" data-go="s-form">Iniziamo</button>
-      <div style="text-align:center;margin-top:6px;"><button class="link" data-act="skip-all">Salta le domande</button></div>
+      <div class="dock" style="margin-top:6px;">
+        <button class="btn" data-go="s-form">Iniziamo</button>
+        <div style="text-align:center;margin-top:4px;"><button class="link" data-act="skip-all">Salta le domande</button></div>
+      </div>
     </div>
   </section>
 
@@ -329,35 +390,37 @@
   <!-- tutorial -->
   <section class="scr" id="s-tut">
     <div class="hdr"><button class="round" data-act="tut-back" aria-label="Indietro"><svg class="ico" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h1 style="font-size:16px;color:var(--mute);font-weight:700;">Come funziona</h1><button class="link" data-act="tut-skip">Salta</button></div>
-    <div class="stage" style="height:310px;"><div class="ring" style="top:34px;"></div><img class="mz" id="tutImg" data-m="hero" alt="" style="height:300px;"></div>
+    <div class="stage" style="--sh: clamp(140px, 40cqh, 320px);"><div class="ring"></div><img class="mz" id="tutImg" data-m="hero" alt=""></div>
     <div class="body" style="text-align:center;">
       <h2 id="tutT" style="font-size:23px;font-weight:800;margin:6px 0 8px;text-wrap:balance;"></h2>
       <p id="tutP" style="font-size:15px;color:var(--mute);line-height:1.5;margin:0 0 6px;font-weight:500;"></p>
       <div class="dots" id="tutDots"></div>
       <div style="height:18px"></div>
-      <div class="btn-row"><button class="btn ghost" id="tutBack" data-act="tut-back">Indietro</button><button class="btn" data-act="tut-next" id="tutNext">Avanti</button></div>
+      <div class="btn-row dock"><button class="btn ghost" id="tutBack" data-act="tut-back">Indietro</button><button class="btn" data-act="tut-next" id="tutNext">Avanti</button></div>
     </div>
   </section>
 
   <!-- end of onboarding: what was adapted -->
   <section class="scr" id="s-end">
-    <div class="hdr"><div class="logo" style="font-size:28px;">LUMI<b>♥</b></div></div>
-    <div class="stage" style="height:250px;"><div class="ring" style="top:20px;width:210px;height:210px;"></div><img class="mz" data-m="emo2" alt="" style="height:250px;"></div>
+    <div class="hdr"><div class="brand"><img src="__MARK__" alt="" style="width:34px;"><span class="wm" style="font-size:22px;" role="img" aria-label="FRIENDlyZONE"><span class="w1">FRIEND</span><span class="w2">ly</span><span class="w3">ZO</span><span class="w4">NE</span></span></div></div>
+    <div class="stage end" style="--sh: clamp(90px, calc(100cqh - 540px), 240px);"><div class="ring"></div><img class="mz" data-m="emo2" alt=""></div>
     <div class="body">
       <h2 class="q-title" id="endT" style="margin-top:8px;">Ho adattato i percorsi a te</h2>
       <ul class="fit" id="endList"></ul>
-      <button class="btn" data-act="end-finish">Iniziamo</button>
-      <p class="note-s" style="padding:0;text-align:center;">Puoi cambiare tutto quando vuoi in Impostazioni.</p>
+      <div class="dock">
+        <button class="btn" data-act="end-finish">Iniziamo</button>
+        <p class="note-s" style="padding:0;margin:8px 0 0;text-align:center;">Puoi cambiare tutto quando vuoi in Impostazioni.</p>
+      </div>
     </div>
   </section>
 
   <!-- home -->
   <section class="scr" id="s-home">
     <div class="hdr" style="padding-top:max(22px, env(safe-area-inset-top));">
-      <div style="flex:1;"><div class="logo" style="font-size:32px;">LUMI<b>♥</b></div><div class="tag" id="hello">Ciao!</div></div>
+      <div style="flex:1;min-width:0;"><div class="brand"><img src="__MARK__" alt="" style="width:36px;"><span class="wm" style="font-size:23px;" role="img" aria-label="FRIENDlyZONE"><span class="w1">FRIEND</span><span class="w2">ly</span><span class="w3">ZO</span><span class="w4">NE</span></span></div><div class="tag" id="hello">Ciao!</div></div>
       <button class="round" data-go="s-settings" aria-label="Impostazioni"><svg class="ico p" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></button>
     </div>
-    <div class="stage" style="height:190px;"><div class="ring" style="top:10px;width:180px;height:180px;"></div><img class="mz" data-m="hero" alt="" style="height:205px;"></div>
+    <div class="stage home" style="--sh: clamp(120px, calc(100cqh - 680px), 200px);"><div class="ring"></div><img class="mz" data-m="hero" alt=""></div>
     <div class="panel" style="margin-top:6px;">
       <h2>Come posso aiutarti?</h2>
       <div class="grid2">
@@ -380,6 +443,7 @@
   <section class="scr map" id="s-plan">
     <div class="ptop">
       <div class="od">
+        <button class="back" data-act="plan-back" aria-label="Torna alla home"><svg class="ico" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
         <div class="rail" aria-hidden="true"><i></i><em></em><i class="to"></i></div>
         <div class="rows">
           <button data-act="search" data-v="from"><small>Partenza</small><span id="fromTxt" class="ph">Tocca la mappa o cerca</span></button>
@@ -391,12 +455,12 @@
         <button class="pchip" id="whenChip" data-act="when"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span id="whenTxt">Adesso</span></button>
         <button class="pchip" data-act="company"><svg class="ico" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.8-3.6 3.2-5.5 6-5.5s5.2 1.9 6 5.5"/><path d="M16 5.5a3 3 0 0 1 0 5.6M18 14.6c1.6.8 2.6 2.6 3 5.4"/></svg><span id="companyTxt">Da sola</span></button>
         <button class="pchip" data-act="legend"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8v.5"/></svg>Colori</button>
+        <button class="pchip sosp" data-act="sos" aria-label="SOS, chiama il 112"><svg class="ico" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1z"/></svg>SOS</button>
       </div>
-    </div>
-    <div class="sright">
-      <button class="rb" data-act="locate" aria-label="Centra sulla mia posizione"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
-      <button class="rb" data-act="view3d" aria-label="Vista 2D o 3D" id="b3d"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg></button>
-      <button class="rb sos" data-act="sos"><svg class="ico" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1z"/></svg>SOS</button>
+      <div class="sright">
+        <button class="rb" data-act="locate" aria-label="Centra sulla mia posizione"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+      <button class="rb" data-act="view3d" aria-label="Vista dall'alto" aria-pressed="false" id="b3d"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg></button>
+      </div>
     </div>
     <div class="psheet" id="pSheet"></div>
   </section>
@@ -410,25 +474,31 @@
 
   <!-- map: navigation -->
   <section class="scr map" id="s-nav">
-    <div class="ntop">
-      <span class="npill"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/></svg><span id="navMode">In cammino</span></span>
-      <button class="round" data-act="stop" aria-label="Termina la navigazione"><svg class="ico" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-    </div>
-    <div class="tcard" aria-live="polite">
-      <div class="trow">
-        <svg class="turn" id="turnSvg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V5M6 11l6-6 6 6"/></svg>
-        <div style="min-width:0;"><b id="tDist">--</b><span id="tStreet">Calcolo il percorso</span></div>
+    <div class="nwrap">
+      <div class="ntop">
+        <span class="npill"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/></svg><span id="navMode">In cammino</span></span>
+        <span style="flex:1;"></span>
+        <button class="pchip sosp" data-act="sos" aria-label="SOS, chiama il 112"><svg class="ico" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1z"/></svg>SOS</button>
+        <button class="round" data-act="stop" aria-label="Termina la navigazione"><svg class="ico" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
-      <div class="tbar"><i id="tProg"></i></div>
-      <div class="tfoot"><span id="tLeft">--</span><span id="tArr">--</span></div>
+      <div class="tcard">
+        <span id="navLive" class="sr" aria-live="polite"></span>
+        <div class="trow">
+          <svg class="turn" id="turnSvg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V5M6 11l6-6 6 6"/></svg>
+          <div style="min-width:0;"><b id="tDist">--</b><span id="tStreet">Calcolo il percorso</span></div>
+        </div>
+        <div class="tbar"><i id="tProg"></i></div>
+        <div class="tfoot"><span id="tLeft">--</span><span id="tArr">--</span></div>
+      </div>
+      <div class="nrow">
+        <button class="pchip simchip" id="simChip" data-act="sim"><svg class="ico" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg><span id="simTxt">Simula la camminata</span></button>
+        <div class="nright">
+          <button class="rb on" id="bVoice" data-act="voice" aria-label="Indicazioni a voce" aria-pressed="true"><svg class="ico" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg></button>
+          <button class="rb" data-act="locate" aria-label="Centra sulla mia posizione"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+          <button class="rb" data-act="share-start" aria-label="Manda la posizione a una persona di fiducia"><svg class="ico" viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.5M8.2 13.2l7.6 4.5"/></svg></button>
+        </div>
+      </div>
     </div>
-    <div class="nright">
-      <button class="rb on" id="bVoice" data-act="voice" aria-label="Indicazioni a voce"><svg class="ico" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg></button>
-      <button class="rb" data-act="locate" aria-label="Centra sulla mia posizione"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
-      <button class="rb" data-act="share-start" aria-label="Condividi la posizione"><svg class="ico" viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.5M8.2 13.2l7.6 4.5"/></svg></button>
-      <button class="rb sos" data-act="sos"><svg class="ico" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1z"/></svg>SOS</button>
-    </div>
-    <button class="pchip simchip" id="simChip" data-act="sim"><svg class="ico" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg><span id="simTxt">Simula la camminata</span></button>
     <div class="nstate" id="nState"><span class="sh"></span><span class="st" id="nStateTxt">Calcolo…</span><img class="peek mz" data-m="act3" alt=""></div>
   </section>
 
@@ -454,8 +524,8 @@
     <div class="hdr"><h1>Supporto</h1><img class="mz" data-m="emo1" style="width:80px;height:80px;" alt=""></div>
     <div id="supTag" class="note-s" style="font-size:14px;font-weight:600;margin-top:0;"></div>
     <div class="seg">
-      <button class="on" data-tab="res" data-group="support">Aiuto e numeri</button>
-      <button data-tab="contacts" data-group="support">Persone di fiducia</button>
+      <button class="on" role="tab" aria-selected="true" data-tab="res" data-group="support">Aiuto e numeri</button>
+      <button role="tab" aria-selected="false" data-tab="contacts" data-group="support">Persone di fiducia</button>
     </div>
     <div class="panelx on" data-panel="res" data-group="support">
       <div class="sec">In emergenza</div>
@@ -469,7 +539,7 @@
       <div class="sec">Prenditi cura di te</div>
       <div class="card">
         <button class="item" data-act="info" data-v="tips"><span class="ii"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/></svg></span><span class="tx"><b>Consigli per camminare tranquill<span class="gx">a</span></b><span>Prima, durante e dopo</span></span><span class="chev">›</span></button>
-        <button class="item" data-act="info" data-v="guide"><span class="ii"><svg class="ico" viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/></svg></span><span class="tx"><b>Come funziona Lumi</b><span>Colori, dati, limiti e diritti</span></span><span class="chev">›</span></button>
+        <button class="item" data-act="info" data-v="guide"><span class="ii"><svg class="ico" viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/></svg></span><span class="tx"><b>Come funziona l'app</b><span>Colori, dati, limiti e diritti</span></span><span class="chev">›</span></button>
       </div>
     </div>
     <div class="panelx" data-panel="contacts" data-group="support">
@@ -507,16 +577,16 @@
       <p>Com'è andata? Se qualcosa lungo la strada ti ha messo a disagio, o al contrario ti ha fatto sentire bene, puoi segnalarlo.</p>
     </div>
     <div class="card" id="arriveSummary"></div>
-    <div style="padding:6px 18px 0;display:grid;gap:10px;"><button class="btn" data-go="s-report">Segnala qualcosa</button><button class="btn ghost" data-act="arrive-home">Torna alla home</button></div>
+    <div class="dock" style="padding-left:18px;padding-right:18px;display:grid;gap:10px;"><button class="btn" data-go="s-report">Segnala qualcosa</button><button class="btn ghost" data-act="arrive-home">Torna alla home</button></div>
   </section>
 
   <!-- diary -->
   <section class="scr" id="s-diary">
     <div class="hdr" style="padding-top:max(22px, env(safe-area-inset-top));"><div style="flex:1;"><h1>Diario</h1><div style="font-size:13px;color:var(--mute);font-weight:600;margin-top:4px;">Solo su questo telefono.</div></div></div>
     <div class="seg">
-      <button class="on" data-tab="hist" data-group="diary">Percorsi</button>
-      <button data-tab="notes" data-group="diary">Note</button>
-      <button data-tab="reps" data-group="diary">Segnalazioni</button>
+      <button class="on" role="tab" aria-selected="true" data-tab="hist" data-group="diary">Percorsi</button>
+      <button role="tab" aria-selected="false" data-tab="notes" data-group="diary">Note</button>
+      <button role="tab" aria-selected="false" data-tab="reps" data-group="diary">Segnalazioni</button>
     </div>
     <div class="panelx on" data-panel="hist" data-group="diary"><div id="tripList"></div></div>
     <div class="panelx" data-panel="notes" data-group="diary"><div class="card" id="noteList"></div></div>
@@ -548,7 +618,7 @@
     <div class="card">
       <button class="item" data-act="wipe"><span class="tx"><b style="color:var(--red);">Cancella tutti i miei dati</b><span>Risposte, percorsi, note, segnalazioni e contatti</span></span></button>
     </div>
-    <p class="note-s">Lumi stima la sicurezza percepita a partire dai dati disponibili. Non misura la sicurezza reale di un luogo. <span id="dataInfo"></span></p>
+    <p class="note-s">FRIENDlyZONE stima la sicurezza percepita a partire dai dati disponibili. Non misura la sicurezza reale di un luogo. <span id="dataInfo"></span></p>
   </section>
 
   <!-- info -->
@@ -575,7 +645,6 @@
     <p id="sheetP"></p>
     <div id="sheetBody"></div>
   </div>
-  <div class="liveb" id="liveBar"><span style="width:9px;height:9px;border-radius:50%;background:#ffd6ff;flex:none;"></span><span id="liveTxt" style="flex:1;">Posizione condivisa</span><button data-act="share-stop">Ferma</button></div>
   <div id="toast" role="status"></div>
 </div>
 
@@ -611,7 +680,14 @@ const IMG = /*__IMG__*/null;
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const fmtKm = m => m < 1000 ? Math.round(m / 10) * 10 + " m" : (m / 1000).toFixed(1).replace(".", ",") + " km";
   const fmtDist = m => m < 1000 ? Math.max(10, Math.round(m / 10) * 10) + " m" : (m / 1000).toFixed(1).replace(".", ",") + " km";
-  const hhmm = d => String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  const hhmm = d => { const l = QV.local(d); return String(l.h).padStart(2, "0") + ":" + String(l.mi).padStart(2, "0"); };
+  /** The next moment in Vicenza at hour h:00 (today, or tomorrow if that hour has passed). */
+  function romeAt(h) {
+    const now = new Date(), l = QV.local(now);
+    let t = Date.UTC(l.y, l.m - 1, l.d + (h < l.h ? 1 : 0), h, 0);
+    for (let k = 0; k < 2; k++) { const x = QV.local(new Date(t)); t -= (Date.UTC(x.y, x.m - 1, x.d, x.h, x.mi) - Date.UTC(l.y, l.m - 1, l.d + (h < l.h ? 1 : 0), h, 0)); }
+    return new Date(t);
+  }
   function toast(t, critical) {
     if (prefs.discreet && !critical) return;
     const el = $("toast"); el.textContent = t; el.classList.add("show");
@@ -663,15 +739,16 @@ const IMG = /*__IMG__*/null;
   // ------------------------------------------------------------ questions
   const ETA = [["16_34", "16–34 anni"], ["35_64", "35–64 anni"], ["65_74", "65–74 anni"], ["75", "75 anni o più"], ["nd", "Preferisco non dirlo"]];
   const GENERE = [["donna", "Donna"], ["uomo", "Uomo"], ["nonbinaria", "Persona non binaria"], ["nd", "Preferisco non dirlo"]];
-  const wiz = { i: 0, ans: {} };
-  const STEPS = [
+  const wiz = { i: 0, ans: {}, tick: 0 };
+  const ALL_STEPS = [
     { k: "nome", t: "Come vuoi che ti chiami?", h: "Un nome o un soprannome, solo per salutarti. Puoi lasciarlo vuoto.", type: "text", ph: "Nome o soprannome" },
     { k: "genere", t: "Come ti descrivi?", h: "Di sera donne e uomini vivono la strada in modo diverso (ISTAT 2022-23): ci serve per pesare luce e persone. Resta sul telefono.", type: "one", opts: GENERE },
     { k: "eta", t: "Quanti anni hai?", h: "Con l'età cambiano i tempi di cammino e quanto contano marciapiedi e scale.", type: "one", opts: ETA },
     { k: "situazioni", t: "Qualcosa di questo ti riguarda?", h: "Puoi sceglierne più d'una o nessuna. Serve solo ad adattare i percorsi e non lascia il telefono.", type: "many", opts: SITUAZIONI.map(s => [s.k, s.t]) },
     { k: "deviazione", t: "Quanto vuoi allungare la strada per stare su vie più tranquille?", h: "Lo puoi cambiare a ogni percorso.", type: "one", opts: [["poco", "Il meno possibile"], ["medio", "Un po', se ne vale la pena"], ["molto", "Anche parecchio"]] },
-    { k: "pw", t: "Vuoi un codice per proteggere i tuoi dati?", h: "Lo chiediamo per fermare la condivisione della posizione o cambiare le impostazioni. Il pulsante SOS non lo chiede mai.", type: "pin", ph: "Almeno 4 cifre o lettere" }
+    { k: "pw", t: "Vuoi un codice per proteggere i tuoi dati?", h: "Lo chiediamo prima di cancellare i dati, togliere persone di fiducia o cambiare cosa condividi. Il pulsante SOS non lo chiede mai.", type: "pin", ph: "Almeno 4 cifre o lettere" }
   ];
+  let STEPS = ALL_STEPS;
   function renderWiz() {
     const n = STEPS.length, st = STEPS[wiz.i], left = n - wiz.i - 1, a = wiz.ans[st.k];
     $("wzFill").style.width = Math.round((wiz.i + 1) / n * 100) + "%";
@@ -686,7 +763,7 @@ const IMG = /*__IMG__*/null;
     } else {
       h += '<div class="field"><input id="wzIn" type="' + (st.type === "pin" ? "password" : "text") + '" placeholder="' + esc(st.ph) + '" value="' + esc(st.type === "pin" ? "" : a || "") + '" autocomplete="off" aria-label="' + esc(st.t) + '"></div><div class="err" id="wzErr"></div>';
     }
-    h += '<div class="btn-row" style="margin-top:18px;"><button class="btn ghost" data-act="wiz-skip">Salta</button><button class="btn" data-act="wiz-next">' + (wiz.i === n - 1 ? "Fatto" : "Avanti") + "</button></div>";
+    h += '<div class="btn-row dock"><button class="btn ghost" data-act="wiz-skip">Salta</button><button class="btn" data-act="wiz-next">' + (wiz.i === n - 1 ? "Fatto" : "Avanti") + "</button></div>";
     $("wiz").innerHTML = h;
   }
   async function wizNext(skip) {
@@ -697,13 +774,14 @@ const IMG = /*__IMG__*/null;
       wiz.ans[st.k] = v;
     }
     if (skip) delete wiz.ans[st.k];
+    wiz.tick++;
     if (wiz.i < STEPS.length - 1) { wiz.i++; renderWiz(); return; }
     const a = wiz.ans, gen = a.genere || "nd";
     profile = { nome: (a.nome || "").slice(0, 30), genere: gen, eta: a.eta || "nd", situazioni: a.situazioni || [], deviazione: a.deviazione || "medio",
                 forma: gen === "donna" ? "f" : gen === "uomo" ? "m" : "n" };
     store.set("profile", profile);
     if (a.pw) { prefs.pwHash = await hashPw(a.pw); savePrefs(); }
-    applyForma(); refreshScores();
+    applyForma(); refreshScores(); replan();
     if (store.get("done", false)) { toast("Profilo aggiornato", true); stack = []; go("s-settings", false); return; }
     renderTut(0); go("s-tut");
   }
@@ -714,7 +792,7 @@ const IMG = /*__IMG__*/null;
     { pose: "act1", t: () => "Dimmi dove vai", p: () => "Cerca una via o un luogo, oppure tocca la mappa. Ti propongo il percorso che preferisce strade illuminate e vissute." },
     { pose: "act2", t: () => "Leggi i colori", p: () => "Verde: strade illuminate e frequentate. Giallo: più tranquille. Rosso: poca luce o poche persone. I colori cambiano con l'ora." },
     { pose: "act3", t: () => "Cammina con me", p: () => "Ti guido svolta per svolta. Il pulsante SOS mostra subito il 112, senza codici." },
-    { pose: "emo3", t: () => "Una stima, non una garanzia", p: () => "Lumi stima come ci si sente in una strada a partire da dati pubblici. Non misura la sicurezza reale: fidati anche di quello che vedi." }
+    { pose: "emo3", t: () => "Una stima, non una garanzia", p: () => "L'app stima come ci si sente in una strada a partire da dati pubblici. Non misura la sicurezza reale: fidati anche di quello che vedi." }
   ];
   let tutIdx = 0;
   function renderTut(i) {
@@ -749,12 +827,15 @@ const IMG = /*__IMG__*/null;
   }
   function go(id, push) {
     if (current === "s-note" && id !== "s-note") purgeEmptyNote();
+    if (current === "s-nav" && id !== "s-nav") endNav();
     if (push !== false && current && current !== id) stack.push(current);
     current = id;
+    $("app").scrollTop = 0;
     document.querySelectorAll(".scr").forEach(s => s.classList.toggle("on", s.id === id));
     const el = $(id); if (el && !el.classList.contains("map")) el.scrollTop = 0;
     renderNav(id);
-    if (id === "s-form") { wiz.i = 0; wiz.ans = profile ? { nome: profile.nome, genere: profile.genere, eta: profile.eta, situazioni: [...(profile.situazioni || [])], deviazione: profile.deviazione } : {}; renderWiz(); }
+    if (id === "s-form" && push === false) renderWiz();
+    if (id === "s-form" && push !== false) { STEPS = ALL_STEPS.filter(x => x.k !== "pw" || !prefs.pwHash); wiz.i = 0; wiz.ans = profile ? { nome: profile.nome, genere: profile.genere, eta: profile.eta, situazioni: [...(profile.situazioni || [])], deviazione: profile.deviazione } : {}; renderWiz(); }
     if (id === "s-end") renderEnd();
     if (id === "s-home") renderHome();
     if (id === "s-support") { renderNumbers(); renderContacts(); $("supTag").textContent = g("Non sei sola. ", "Non sei solo. ", "") + "Qui trovi chi ascolta, sempre."; }
@@ -775,9 +856,20 @@ const IMG = /*__IMG__*/null;
     pendingForm = null;
     $("sheetT").textContent = title; $("sheetP").textContent = text || "";
     $("sheetBody").innerHTML = (body || "") + '<button class="btn ghost" data-act="sheet-close" style="margin-top:8px">Chiudi</button>';
-    $("sheet").classList.add("on"); $("scrim").classList.add("on");
+    const el = $("sheet");
+    el.inert = false; el.removeAttribute("aria-hidden");
+    el.classList.add("on"); $("scrim").classList.add("on");
+    document.querySelectorAll("#app > section, #bnav").forEach(x => { x.inert = true; });
+    // preventScroll: focusing inside the sliding sheet must not scroll the whole app
+    setTimeout(() => { const f = el.querySelector("input, a, button"); if (f) f.focus({ preventScroll: true }); $("app").scrollTop = 0; }, 60);
   }
-  function closeSheet() { $("sheet").classList.remove("on"); $("scrim").classList.remove("on"); pendingForm = null; }
+  function closeSheet() {
+    const el = $("sheet");
+    el.classList.remove("on"); $("scrim").classList.remove("on"); pendingForm = null;
+    el.inert = true; el.setAttribute("aria-hidden", "true");
+    document.querySelectorAll("#app > section, #bnav").forEach(x => { x.inert = false; });
+    $("app").scrollTop = 0;
+  }
   function openForm(title, text, fields, btn, fn) {
     sheet(title, text, fields.map(f => '<div class="field" style="margin-bottom:10px;"><label for="sf_' + f.id + '" style="font-size:13px;font-weight:700;display:block;margin-bottom:6px;">' + f.label + '</label><input id="sf_' + f.id + '" type="' + (f.type || "text") + '" placeholder="' + (f.ph || "") + '" autocomplete="off"></div>').join("")
       + '<div class="err" id="sfErr"></div><button class="btn" data-act="sheet-submit">' + btn + "</button>");
@@ -792,12 +884,25 @@ const IMG = /*__IMG__*/null;
   }
   async function hashPw(s) {
     try { const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("lumi:" + s)); return Array.from(new Uint8Array(d)).map(x => x.toString(16).padStart(2, "0")).join(""); }
-    catch (e) { return "p:" + s; }
+    catch (e) {
+      // no Web Crypto (page not on https): a simple hash, never the code in clear
+      let h1 = 0x811c9dc5, h2 = 0x01000193;
+      for (const ch of "lumi:" + s) { h1 = Math.imul(h1 ^ ch.charCodeAt(0), 16777619); h2 = Math.imul(h2 + ch.charCodeAt(0), 2654435761); }
+      return "f:" + (h1 >>> 0).toString(16) + (h2 >>> 0).toString(16);
+    }
+  }
+  const pwGuard = { fails: 0, until: 0 };
+  async function checkPw(code) {
+    if (Date.now() < pwGuard.until) return "Troppi tentativi: riprova tra " + Math.ceil((pwGuard.until - Date.now()) / 1000) + " secondi.";
+    if ((await hashPw(code)) === prefs.pwHash) { pwGuard.fails = 0; return null; }
+    if (++pwGuard.fails >= 5) { pwGuard.fails = 0; pwGuard.until = Date.now() + 30000; }
+    return "Codice errato.";
   }
   function askPw(title, text, btn, ok) {
     if (!prefs.pwHash) { ok(); return; }
     openForm(title, text, [{ id: "pw", label: "Codice", type: "password" }], btn, async v => {
-      if ((await hashPw(v.pw)) !== prefs.pwHash) return "Codice errato.";
+      const err = await checkPw(v.pw);
+      if (err) return err;
       closeSheet(); ok(); return null;
     });
   }
@@ -807,7 +912,7 @@ const IMG = /*__IMG__*/null;
     sheet("Emergenza", "Se sei in pericolo chiama il 112. Se puoi, entra in un locale aperto o avvicinati ad altre persone.",
       '<div class="big112"><div><b>112</b><br><span>Numero unico di emergenza</span></div><a class="btn danger" href="tel:112" style="width:auto;">Chiama</a></div>' +
       '<div class="big112" style="background:var(--pl);"><div><b style="color:var(--p);">1522</b><br><span>Antiviolenza e stalking, 24 ore su 24</span></div><a class="btn" href="tel:1522" style="width:auto;">Chiama</a></div>' +
-      (sharing ? "" : '<button class="btn ghost" data-act="share-start">Manda la posizione a una persona di fiducia</button>'));
+      '<button class="btn ghost" data-act="share-start">Manda la posizione a una persona di fiducia</button>');
   }
 
   // ------------------------------------------------------------ numbers
@@ -821,14 +926,14 @@ const IMG = /*__IMG__*/null;
   // ------------------------------------------------------------ info pages
   const INFO = {
     tips: () => ({ t: "Consigli", intro: "Piccole abitudini che aiutano, prima, durante e dopo.", items: [
-      ["Prima di uscire", "Di' a una persona di fiducia dove vai e quando pensi di arrivare. Con Lumi puoi mandarle la posizione."],
+      ["Prima di uscire", "Di' a una persona di fiducia dove vai e quando pensi di arrivare. Con l'app puoi mandarle la posizione."],
       ["Scegli il percorso", "Preferisci vie illuminate, frequentate e con negozi aperti. Controlla il colore delle strade all'ora in cui esci: cambia con il buio."],
       ["Telefono pronto", "Batteria carica, una sola cuffia o volume basso, così senti cosa succede intorno."],
       [g("Se ti senti seguita", "Se ti senti seguito", "Se senti che qualcuno ti segue"), "Non restare in una strada vuota: entra in un locale aperto (bar, farmacia, negozio), avvicinati ad altre persone e chiama il 112."],
       ["Mezzi pubblici", "Siediti vicino a chi guida o dove ci sono altre persone. Se qualcuno ti infastidisce, avvisa l'autista."],
       ["Dopo un episodio", "Annota luogo e ora finché ricordi bene. Puoi parlarne con il 1522 o con un centro antiviolenza anche senza denunciare."]
     ] }),
-    guide: () => ({ t: "Come funziona Lumi", intro: "Cosa significano i colori, da dove vengono i dati e cosa Lumi non può fare.", items: [
+    guide: () => ({ t: "Come funziona FRIENDlyZONE", intro: "Cosa significano i colori, da dove vengono i dati e cosa l'app non può fare.", items: [
       ["I colori", "Ogni tratto di strada ha un punteggio da 0 a 100 che stima la sicurezza percepita. Verde sopra 65, giallo tra 40 e 65, rosso sotto 40. Il punteggio cambia con l'ora, il giorno e il tuo profilo."],
       ["Cosa conta", "Luce, presenza di persone, negozi e locali aperti, visuale libera, vie d'uscita, uso del suolo, qualità del marciapiede, posti dove chiedere aiuto, mezzi pubblici. Di notte il buio pesa di più."],
       ["Da dove vengono i dati", "OpenStreetMap, ISTAT, Comune di Vicenza, Overture Maps. Dove la luce non è mappata è stimata con un modello statistico."],
@@ -837,10 +942,10 @@ const IMG = /*__IMG__*/null;
       ["I tuoi diritti", "Le molestie insistenti possono essere reato (art. 660 c.p.); lo stalking è reato (art. 612-bis c.p.) e si può chiedere l'ammonimento del questore; la violenza sessuale è reato (art. 609-bis c.p.). Un centro antiviolenza può spiegarti tutele e percorsi, gratuitamente."]
     ] }),
     privacy: () => ({ t: "Privacy", intro: "Dove restano i tuoi dati.", items: [
-      ["Sul tuo telefono", "Risposte, percorsi, note, segnalazioni e contatti restano su questo dispositivo. Lumi non ha ancora un server."],
+      ["Sul tuo telefono", "Risposte, percorsi, note, segnalazioni e contatti restano su questo dispositivo. L'app non ha ancora un server."],
       ["La mappa", "La mappa e i punteggi sono già dentro l'app: per cercare una via o calcolare un percorso non mandiamo nulla a servizi esterni."],
       ["Posizione", "La usiamo solo per mostrarti dove sei e guidarti. La condividi con qualcuno solo se lo decidi tu."],
-      ["Cancellare tutto", "In Impostazioni, «Cancella tutti i miei dati» elimina ogni cosa salvata da Lumi su questo telefono."]
+      ["Cancellare tutto", "In Impostazioni, «Cancella tutti i miei dati» elimina ogni cosa salvata dall'app su questo telefono."]
     ] })
   };
   function renderInfo(v) {
@@ -863,27 +968,27 @@ const IMG = /*__IMG__*/null;
       const l = store.get("contacts", []); l.push({ name: v.name.slice(0, 40), phone: digits }); store.set("contacts", l); renderContacts(); toast("Persona aggiunta", true); return null;
     });
   }
-  let sharing = null;
   function shareStart() {
     const list = store.get("contacts", []);
     if (!list.length) { sheet("Nessuna persona di fiducia", "Aggiungine una in Supporto, nella scheda «Persone di fiducia».", '<button class="btn" data-act="goto-contacts">Aggiungi ora</button>'); return; }
     sheet("A chi mandi la posizione?", "Riceverà un link con il punto in cui ti trovi.", '<div class="card" style="margin:0 0 6px;">' + list.map((c, i) => '<button class="item" data-act="share-pick" data-i="' + i + '"><span class="tx"><b>' + esc(c.name) + "</b><span>" + esc(c.phone) + '</span></span><span class="chev">›</span></button>').join("") + "</div>");
   }
   function sharePick(i) {
-    const c = store.get("contacts", [])[i], p = you();
+    const c = store.get("contacts", [])[i], p = gps;  // only the real position, never the simulated one
     if (!c) return;
-    if (!p) { toast("Non conosco ancora la tua posizione", true); return; }
-    sharing = { name: c.name, t: Date.now() };
-    $("liveBar").classList.add("on"); $("liveTxt").textContent = "Posizione condivisa con " + c.name;
+    if (!p) {
+      sheet("Posizione non disponibile", "Il telefono non ci dà la posizione (GPS spento o pagina non aperta da https). Chiama " + c.name + " o scrivile dove sei.",
+        '<a class="btn" href="tel:' + esc(c.phone) + '">Chiama ' + esc(c.name) + '</a><div class="inputrow" style="margin:8px 0 0;width:100%;user-select:all;">' + esc(c.phone) + "</div>");
+      return;
+    }
     const link = "https://www.openstreetmap.org/?mlat=" + p[1].toFixed(5) + "&mlon=" + p[0].toFixed(5) + "#map=18/" + p[1].toFixed(5) + "/" + p[0].toFixed(5);
     const text = "Sono qui: " + link;
-    sheet("Manda il link a " + c.name, "Il link mostra dove sei adesso. Copialo e mandalo con il messaggio che preferisci.",
+    sheet("Manda il link a " + c.name, "Il link mostra dove sei adesso e non si aggiorna da solo: se ti sposti, mandane un altro.",
       '<div class="inputrow" style="margin:0;width:100%;word-break:break-all;font-size:13px;user-select:all;">' + esc(text) + '</div><button class="btn" data-act="share-copy" data-t="' + esc(text) + '">Copia il messaggio</button>' +
       '<a class="btn ghost" href="sms:' + esc(c.phone) + "?&body=" + encodeURIComponent(text) + '">Apri i messaggi</a>');
   }
-  function stopSharing() { askPw("Ferma la condivisione", "Inserisci il codice per fermarla.", "Ferma", () => { sharing = null; $("liveBar").classList.remove("on"); toast("Condivisione fermata", true); }); }
-
-  function renderShare() { document.querySelectorAll("#s-share [data-tg]").forEach(t => t.classList.toggle("on", !!prefs.share[t.dataset.tg])); }
+  function setSwitch(t, on) { t.classList.toggle("on", on); const b = t.closest("button"); if (b) { b.setAttribute("role", "switch"); b.setAttribute("aria-checked", String(on)); } }
+  function renderShare() { document.querySelectorAll("#s-share [data-tg]").forEach(t => setSwitch(t, !!prefs.share[t.dataset.tg])); }
   function toggleShare(k) {
     if (!prefs.share[k]) { prefs.share[k] = true; savePrefs(); renderShare(); return; }
     askPw("Disattiva", "Inserisci il codice per disattivare.", "Disattiva", () => { prefs.share[k] = false; savePrefs(); renderShare(); });
@@ -900,7 +1005,7 @@ const IMG = /*__IMG__*/null;
     return parts.join(" · ");
   }
   function renderSettings() {
-    document.querySelectorAll("#s-settings [data-tg]").forEach(t => t.classList.toggle("on", !!prefs[t.dataset.tg]));
+    document.querySelectorAll("#s-settings [data-tg]").forEach(t => setSwitch(t, !!prefs[t.dataset.tg]));
     $("pinState").textContent = prefs.pwHash ? "Attivo" : "Non impostato";
     $("profTxt").textContent = profileSummary();
     $("formaTxt").textContent = { f: "Al femminile (sei arrivata)", m: "Al maschile (sei arrivato)", n: "In modo neutro (sei a destinazione)" }[forma()];
@@ -910,9 +1015,9 @@ const IMG = /*__IMG__*/null;
   }
   function changePin() {
     const has = !!prefs.pwHash;
-    openForm(has ? "Cambia il codice" : "Imposta un codice", "Protegge la condivisione e le impostazioni. Il pulsante SOS non lo chiede mai.",
+    openForm(has ? "Cambia il codice" : "Imposta un codice", "Serve per cancellare i dati, togliere persone di fiducia o cambiare cosa condividi. Il pulsante SOS non lo chiede mai.",
       (has ? [{ id: "old", label: "Codice attuale", type: "password" }] : []).concat([{ id: "n1", label: "Nuovo codice", type: "password", ph: "Almeno 4 caratteri" }, { id: "n2", label: "Ripeti il nuovo codice", type: "password" }]), "Salva", async v => {
-        if (has && (await hashPw(v.old)) !== prefs.pwHash) return "Codice attuale errato.";
+        if (has) { const err = await checkPw(v.old); if (err) return err === "Codice errato." ? "Codice attuale errato." : err; }
         if (v.n1.length < 4) return "Il codice deve avere almeno 4 caratteri.";
         if (v.n1 !== v.n2) return "I due codici non coincidono.";
         prefs.pwHash = await hashPw(v.n1); savePrefs(); renderSettings(); toast("Codice aggiornato", true); return null;
@@ -923,8 +1028,13 @@ const IMG = /*__IMG__*/null;
   }
   function wipeNow() {
     const run = () => {
-      store.wipe(); profile = null; prefs = { discreet: false, big: false, voice: true, theme: "auto", pwHash: "", share: { reports: true, demo: false, routes: true } };
-      applyTheme(); applyForma(); refreshScores(); closeSheet(); stack = []; go("s-welcome", false); toast("Dati cancellati", true);
+      store.wipe(); profile = null; guide = "f"; prefs = { discreet: false, big: false, voice: true, theme: "auto", pwHash: "", share: { reports: true, demo: false, routes: true } };
+      endNav(); from = null; to = null; route = null; routes = []; tapField = null; pickMode = null;
+      Object.assign(rep, { type: "", when: "now", vote: 0, pos: null });
+      Object.assign(trip, { company: false, when: null, rain: false });
+      drawRoute(); drawPins(); drawReports();
+      document.querySelectorAll('[data-act="guide"]').forEach(x => x.classList.toggle("on", x.dataset.v === guide));
+      applyGuide(); applyTheme(); applyForma(); refreshScores(); closeSheet(); stack = []; go("s-welcome", false); toast("Dati cancellati", true);
     };
     if (prefs.pwHash) askPw("Cancella tutto", "Inserisci il codice per confermare.", "Cancella", run); else run();
   }
@@ -979,10 +1089,10 @@ const IMG = /*__IMG__*/null;
   const rep = { type: "", when: "now", vote: 0, pos: null };
   const WHEN = [["now", "Adesso"], ["giorno", "Di giorno"], ["sera", "Di sera"], ["notte", "Di notte"]];
   function renderReport() {
-    $("repTypes").innerHTML = REPORT_TYPES.map(([k, t, ic]) => '<button class="type' + (k === "luogo_positivo" ? " good" : "") + (rep.type === k ? " on" : "") + '" data-act="rep-type" data-v="' + k + '"><svg class="ico" viewBox="0 0 24 24">' + ic + "</svg><span>" + t + "</span></button>").join("");
-    $("repWhen").innerHTML = WHEN.map(([k, t]) => '<button class="' + (rep.when === k ? "on" : "") + '" data-act="rep-when" data-v="' + k + '">' + t + "</button>").join("");
-    $("repVote").innerHTML = [1, 2, 3, 4, 5].map(v => '<button class="face' + (rep.vote === v ? " on" : "") + '" data-act="rep-vote" data-v="' + v + '">' + v + "<small>" + (v === 1 ? "per niente" : v === 5 ? "molto" : "") + "</small></button>").join("");
-    if (!rep.pos && you()) rep.pos = you();
+    $("repTypes").innerHTML = REPORT_TYPES.map(([k, t, ic]) => '<button class="type' + (k === "luogo_positivo" ? " good" : "") + (rep.type === k ? " on" : "") + '" aria-pressed="' + (rep.type === k) + '" data-act="rep-type" data-v="' + k + '"><svg class="ico" viewBox="0 0 24 24">' + ic + "</svg><span>" + t + "</span></button>").join("");
+    $("repWhen").innerHTML = WHEN.map(([k, t]) => '<button class="' + (rep.when === k ? "on" : "") + '" aria-pressed="' + (rep.when === k) + '" data-act="rep-when" data-v="' + k + '">' + t + "</button>").join("");
+    $("repVote").innerHTML = [1, 2, 3, 4, 5].map(v => '<button class="face' + (rep.vote === v ? " on" : "") + '" aria-pressed="' + (rep.vote === v) + '" aria-label="' + v + ' su 5" data-act="rep-vote" data-v="' + v + '">' + v + "<small>" + (v === 1 ? "per niente" : v === 5 ? "molto" : "") + "</small></button>").join("");
+    if (!rep.pos && gps) rep.pos = gps;  // the real position only, never the simulated walk
     $("repLoc").textContent = rep.pos ? placeName(rep.pos) : "Scegli il punto sulla mappa";
     $("repErr").textContent = "";
     applyForma();
@@ -1013,7 +1123,7 @@ const IMG = /*__IMG__*/null;
     $("hello").textContent = profile && profile.nome ? "Ciao " + profile.nome + "!" : "Ciao!";
     if (!ctx) return;
     const m = QV.moment(M, new Date());
-    const st = stateNow || computeState(new Date());
+    const st = trip.when || !stateNow ? computeState(new Date()) : stateNow;
     let tot = 0; const km = [0, 0, 0];
     for (let i = 0; i < ctx.N; i++) { const L = ctx.S.lunghezza[i]; tot += L; km[st.cls[i]] += L; }
     $("nowT").textContent = "Adesso a Vicenza: " + M.bands[m.band].label.toLowerCase();
@@ -1027,8 +1137,11 @@ const IMG = /*__IMG__*/null;
   let ctx = null, grid = null, G = null, map = null, mapReady = false, stateNow = null, nightMap = null;
   let segFC = null;
   const PAL = {
-    day: { bg: "#d6d2df", water: "#b9cbe3", park: "#c6dbbd", road: "#bdb6c9", bld: "#fbfaff", edge: "#8a83a0", c: ["#1f9455", "#e8941f", "#d93a33"], glow: 0.3 },
-    night: { bg: "#15131f", water: "#1b2740", park: "#16231b", road: "#3a3549", bld: "#2a2638", edge: "#6b6585", c: ["#4fd18b", "#f4b74e", "#ff6b5e"], glow: 0.5 }
+    day: { bg: "#d9d6e0", water: "#b7c9df", park: "#c9dcc0", road: "#c3bdcd", bld: "#f4f3f8", bldOpacity: 0.8, edge: "#8a83a0",
+           c: ["#1f9455", "#e8941f", "#d93a33"], glow: 0.25, route: "#6a3fd0", casing: "#ffffff", alt: "#6f6984" },
+    // after sunset the map turns a softer grey (not black) and the streets glow
+    night: { bg: "#4a4853", water: "#3a4a62", park: "#425244", road: "#615e6c", bld: "#73707f", bldOpacity: 0.82, edge: "#a29db4",
+             c: ["#5ad995", "#ffc24f", "#ff7163"], glow: 0.4, route: "#c5ef3c", casing: "#23212b", alt: "#d4d0e0" }
   };
   function computeState(date) {
     const m = QV.moment(M, date);
@@ -1045,8 +1158,9 @@ const IMG = /*__IMG__*/null;
       if (dark !== nightMap) paintMap(dark);
     }
     if (current === "s-home") renderHome();
-    if (route && !nav) planRoutes(true);
   }
+  // recompute the routes after a change of time, weather, company or profile (never during a walk)
+  function replan() { if (from && to && !nav) planRoutes(!!route); else renderSheet(); }
   function paintMap(dark) {
     nightMap = dark;
     const P = dark ? PAL.night : PAL.day;
@@ -1055,6 +1169,10 @@ const IMG = /*__IMG__*/null;
     map.setPaintProperty("parks", "fill-color", P.park);
     map.setPaintProperty("roads", "line-color", P.road);
     map.setPaintProperty("bld", "fill-extrusion-color", P.bld);
+    map.setPaintProperty("bld", "fill-extrusion-opacity", P.bldOpacity);
+    map.setPaintProperty("route-line", "line-color", P.route);
+    map.setPaintProperty("route-casing", "line-color", P.casing);
+    map.setPaintProperty("alt", "line-color", P.alt);
     map.setPaintProperty("confine", "line-color", P.edge);
     const color = ["match", ["get", "c"], 0, P.c[0], 1, P.c[1], 2, P.c[2], "#999"];
     map.setPaintProperty("seg", "line-color", color);
@@ -1089,6 +1207,7 @@ const IMG = /*__IMG__*/null;
     segFC = { type: "FeatureCollection", features: Array.from({ length: ctx.N }, (_, i) => ({ type: "Feature", properties: { c: 1 }, geometry: { type: "LineString", coordinates: QV.line(ctx, i) } })) };
     refreshScores();
     initMap(await decodeBuildings());
+    if (from && to) planRoutes();  // places chosen while the data were loading
   }
 
   function initMap(buildings) {
@@ -1109,7 +1228,6 @@ const IMG = /*__IMG__*/null;
       map.addSource("seg", { type: "geojson", data: segFC, tolerance: 0.2 });
       map.addSource("bld", { type: "geojson", data: buildings, tolerance: 0.3 });
       map.addSource("route", { type: "geojson", data: EMPTY });
-      map.addSource("route-dots", { type: "geojson", data: EMPTY });
       map.addSource("alt", { type: "geojson", data: EMPTY });
       map.addSource("reports", { type: "geojson", data: EMPTY });
       map.addSource("trail", { type: "geojson", data: EMPTY });
@@ -1121,15 +1239,15 @@ const IMG = /*__IMG__*/null;
       map.addLayer({ id: "roads", type: "line", source: "roads", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": PAL.day.road, "line-width": w(1.2, 9) } });
       map.addLayer({ id: "seg-glow", type: "line", source: "seg", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#999", "line-width": w(5, 22), "line-blur": w(4, 14), "line-opacity": 0 } });
       map.addLayer({ id: "seg", type: "line", source: "seg", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#999", "line-width": w(1.5, 9) } });
-      map.addLayer({ id: "alt", type: "line", source: "alt", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#6b6585", "line-width": w(2, 6), "line-dasharray": [1.2, 1.4], "line-opacity": 0.9 } });
-      map.addLayer({ id: "route-glow", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#c5ef3c", "line-width": w(8, 26), "line-blur": w(4, 10), "line-opacity": 0.55 } });
-      map.addLayer({ id: "route-line", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#1b1b1b", "line-width": w(2, 6), "line-opacity": 0.85 } });
-      map.addLayer({ id: "route-dots", type: "circle", source: "route-dots", paint: { "circle-color": "#c5ef3c", "circle-stroke-color": "#1b1b1b", "circle-stroke-width": 1.2, "circle-radius": ["interpolate", ["linear"], ["zoom"], 13, 2.4, 17, 4.6, 19, 6.5] } });
-      map.addLayer({ id: "trail", type: "line", source: "trail", paint: { "line-color": "#c5ef3c", "line-width": 4, "line-opacity": 0.8 } });
       map.addLayer({ id: "reports", type: "circle", source: "reports", paint: { "circle-color": "#6a3fd0", "circle-stroke-color": "#fff", "circle-stroke-width": 2, "circle-radius": 6 } });
       map.addLayer({ id: "bld", type: "fill-extrusion", source: "bld", minzoom: 13.5, paint: {
         "fill-extrusion-color": PAL.day.bld, "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 13.5, 0, 15, ["get", "h"]],
-        "fill-extrusion-base": 0, "fill-extrusion-opacity": 0.88, "fill-extrusion-vertical-gradient": true } });
+        "fill-extrusion-base": 0, "fill-extrusion-opacity": PAL.day.bldOpacity, "fill-extrusion-vertical-gradient": true } });
+      // the route is drawn above the buildings, so it never hides behind them
+      map.addLayer({ id: "alt", type: "line", source: "alt", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": PAL.day.alt, "line-width": w(2.5, 7), "line-dasharray": [1.4, 1.6], "line-opacity": 0.85 } });
+      map.addLayer({ id: "route-casing", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": PAL.day.casing, "line-width": w(6.5, 17), "line-opacity": 0.95 } });
+      map.addLayer({ id: "route-line", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": PAL.day.route, "line-width": w(3.5, 10) } });
+      map.addLayer({ id: "trail", type: "line", source: "trail", paint: { "line-color": "#c5ef3c", "line-width": 4, "line-opacity": 0.8 } });
       map.setLight({ anchor: "viewport", color: "#ffffff", intensity: 0.32, position: [1.2, 200, 35] });
       mapReady = true;
       paintMap(M.bands[stateNow.band].dark);
@@ -1166,7 +1284,10 @@ const IMG = /*__IMG__*/null;
   }
   function placeYou(p, heading) {
     if (!map || !p) return;
-    if (!youM) youM = new maplibregl.Marker({ element: makeYou(), rotationAlignment: "map" }).setLngLat(p).addTo(map);
+    if (!youM) {
+      youM = new maplibregl.Marker({ element: makeYou(), rotationAlignment: "map" }).setLngLat(p).addTo(map);
+      setYouMode(current === "s-nav");
+    }
     youM.setLngLat(p);
     if (heading != null) youM.setRotation(heading);
   }
@@ -1178,8 +1299,9 @@ const IMG = /*__IMG__*/null;
       if (!ctx || !QV.nearest(ctx, grid, p[0], p[1], M.routing.max_snap_m)) { gps = null; return; }  // outside Vicenza
       gps = p;
       if (!sim) { placeYou(p, pos.coords.heading); onPosition(p); }
-      if (!from) { from = { pos: p, name: "La tua posizione", gps: true }; renderPlan(); }
-    }, () => { gps = null; }, { enableHighAccuracy: true, maximumAge: 3000, timeout: 20000 });
+      if (!from) { from = { pos: p, name: "La tua posizione", gps: true }; renderPlan(); if (to) planRoutes(); }
+      else if (from.gps && !nav && QV.distM(from.pos, p) > 30) { from.pos = p; if (to) planRoutes(true); }
+    }, () => { /* keep the last known position; the start already chosen stays valid */ }, { enableHighAccuracy: true, maximumAge: 3000, timeout: 20000 });
   }
 
   // ------------------------------------------------------------ planning
@@ -1222,14 +1344,22 @@ const IMG = /*__IMG__*/null;
     drawPins();
     renderSheet();
   }
+  function fitSheet() {
+    const el = $("pSheet"), app = $("app").getBoundingClientRect();
+    if (!el.offsetParent) return;
+    const below = document.querySelector("#s-plan .sright").getBoundingClientRect().bottom - app.top + 10;
+    const chips = document.querySelector("#s-plan .pchips").getBoundingClientRect().bottom - app.top + 10;
+    el.style.maxHeight = Math.min(app.height - chips, Math.max(app.height * 0.36, app.height - below)) + "px";
+  }
   function renderSheet() {
     const el = $("pSheet");
+    requestAnimationFrame(fitSheet);
     if (pickMode === "report") { el.innerHTML = '<div class="grab"></div><div class="row"><div class="mini"><img class="mz" data-m="act1" alt=""></div><div class="st">Tocca il punto da segnalare<span>Sulla mappa, vicino a una strada</span></div></div><button class="btn ghost" style="margin-top:10px;" data-act="pick-cancel">Annulla</button>'; applyGuide(); return; }
     if (!routes.length) {
       const demo = demoPlaces();
-      el.innerHTML = '<div class="grab"></div><div class="row"><div class="mini"><img class="mz" data-m="act1" alt=""></div><div class="st">' + (from && to ? "Calcolo il percorso…" : !from ? "Da dove parti?" : "Dove vuoi andare?") + "<span>" +
-        (from && to ? "" : "Cerca in alto o tocca una strada sulla mappa") + "</span></div></div>" +
-        (demo && !to ? '<div class="demo"><button class="pchip" data-act="demo-route">Prova di sera: ' + esc(demo[0].name) + " → " + esc(demo[1].name) + "</button></div>" : "");
+      el.innerHTML = '<div class="grab"></div><div class="row"><div class="mini"><img class="mz" data-m="act1" alt=""></div><div class="st">' + esc(planMsg || (!from ? "Da dove parti?" : "Dove vuoi andare?")) + "<span>" +
+        "Cerca in alto o tocca una strada sulla mappa</span></div></div>" +
+        (demo ? '<div class="demo"><button class="pchip" data-act="demo-route">Prova di sera: ' + esc(demo[0].name) + " → " + esc(demo[1].name) + "</button></div>" : "");
       applyGuide(); return;
     }
     const st = routeState, speed = walkSpeed(st.profs);
@@ -1241,7 +1371,7 @@ const IMG = /*__IMG__*/null;
         '<span class="d">' + fmtKm(r.length) + " · " + Math.round(100 * r.greenM / tot) + "% su strade verdi · " + crit + "</span>" +
         '<span class="bar3">' + [r.greenM, r.yellowM, r.redM].map((v, c) => '<i style="width:' + (100 * v / tot).toFixed(1) + "%;background:var(--" + ["green", "amber", "red"][c] + ')"></i>').join("") + "</span></button>";
     };
-    el.innerHTML = '<div class="grab"></div>' + routes.map(opt).join("") + '<p class="why">' + esc(whyText()) + '</p><button class="btn" style="margin-top:12px;" data-act="start"><svg class="ico w" viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M12 3l7 17-7-4-7 4z"/></svg>Avvia</button>';
+    el.innerHTML = '<div class="grab"></div>' + routes.map(opt).join("") + '<p class="why">' + esc(whyText()) + '</p><div class="dock"><button class="btn" data-act="start"><svg class="ico w" viewBox="0 0 24 24" style="width:18px;height:18px;"><path d="M12 3l7 17-7-4-7 4z"/></svg>Avvia</button></div>';
   }
   function whyText() {
     if (routes.length < 2) return routes[0].redM < 5 ? "Il percorso più breve passa già su strade senza criticità a quest'ora." : "Non c'è un'alternativa ragionevole: ti avviso quando passi sui tratti rossi.";
@@ -1256,47 +1386,61 @@ const IMG = /*__IMG__*/null;
       else avoided.add("percorsi pedonali isolati");
     }
     const names = [...avoided].slice(0, 2);
-    return "Il consigliato allunga di " + fmtKm(extra) + " ma evita " + Math.round(b.redM - a.redM) + " m di tratti rossi" + (names.length ? " (" + names.join(", ") + ")" : "") + ".";
+    const lessRed = Math.round(b.redM - a.redM);
+    if (lessRed >= 5) return "Il consigliato allunga di " + fmtKm(extra) + " ma evita " + lessRed + " m di tratti rossi" + (names.length ? " (" + names.join(", ") + ")" : "") + ".";
+    const ga = Math.round(100 * a.greenM / (a.length || 1)), gb = Math.round(100 * b.greenM / (b.length || 1));
+    if (ga > gb) return "Nessuno dei due passa su tratti rossi: il consigliato allunga di " + fmtKm(extra) + " e sta di più su strade verdi (" + ga + "% contro " + gb + "%).";
+    return "Nessuno dei due passa su tratti rossi: il consigliato allunga di " + fmtKm(extra) + " per strade un po' più tranquille.";
   }
   let routeState = null;
+  let planMsg = "";
+  function noRoute(msg) { planMsg = msg; routes = []; route = null; drawRoute(); renderSheet(); }
   function planRoutes(silent) {
-    if (!ctx || !from || !to) { routes = []; route = null; drawRoute(); renderSheet(); return; }
+    planMsg = "";
+    if (!from || !to) return noRoute("");
+    if (!ctx) return noRoute("Carico i dati della città…");
+    if (QV.distM(from.pos, to.pos) < 15) return noRoute("Partenza e destinazione sono lo stesso punto: scegline un altro.");
     const a = QV.nearest(ctx, grid, from.pos[0], from.pos[1], M.routing.max_snap_m), b = QV.nearest(ctx, grid, to.pos[0], to.pos[1], M.routing.max_snap_m);
-    if (!a || !b) { toast("Non trovo strade pedonali vicino a quel punto"); return; }
+    if (!a || !b) return noRoute("Non trovo strade pedonali vicino a quel punto.");
     routeState = computeState(trip.when || new Date());
     const lam = routeState.lam * M.routing.detour_preference[detour()];
     const best = QV.route(ctx, G, routeState, a, b, lam), short = QV.route(ctx, G, routeState, a, b, 0);
-    if (!best) { toast("Non trovo un percorso a piedi tra questi due punti"); routes = []; route = null; drawRoute(); renderSheet(); return; }
+    if (!best) return noRoute("Non trovo un percorso a piedi tra questi due punti.");
     routes = [best];
     if (short && best.length - short.length >= M.routing.min_alternative_gain_m) routes.push(short);
     chosen = Math.min(chosen, routes.length - 1);
     if (!silent) chosen = 0;
-    route = Object.assign({}, routes[chosen], QV.itinerary(ctx, routes[chosen]));
+    route = withItinerary(routes[chosen]);
     drawRoute(!silent);
     renderSheet();
   }
-  function choose(k) { chosen = k; route = Object.assign({}, routes[k], QV.itinerary(ctx, routes[k])); drawRoute(false); renderSheet(); }
-  function sample(coords, step) {
-    const out = [coords[0]]; let next = step, s0 = 0;
-    for (let i = 1; i < coords.length; i++) {
-      const a = coords[i - 1], b = coords[i], L = QV.distM(a, b);
-      while (next < s0 + L) { const f = (next - s0) / L; out.push([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]); next += step; }
-      s0 += L;
-    }
-    return out;
+  function withItinerary(r) {
+    const it = QV.itinerary(ctx, r), cum = [0];
+    for (let k = 1; k < it.coords.length; k++) cum.push(cum[k - 1] + QV.distM(it.coords[k - 1], it.coords[k]));
+    return Object.assign({}, r, it, { cum });
   }
+  function choose(k) { chosen = k; route = withItinerary(routes[k]); drawRoute(false); renderSheet(); }
   function drawRoute(fit) {
     if (!mapReady) return;
     const line = c => ({ type: "FeatureCollection", features: c ? [{ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: c } }] : [] });
-    if (!route) { ["route", "route-dots", "alt"].forEach(s => map.getSource(s).setData(EMPTY)); return; }
+    if (!route) { ["route", "alt"].forEach(s => map.getSource(s).setData(EMPTY)); return; }
     map.getSource("route").setData(line(route.coords));
-    map.getSource("route-dots").setData({ type: "FeatureCollection", features: sample(route.coords, 12).map(p => ({ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: p } })) });
     const other = routes.length > 1 ? QV.itinerary(ctx, routes[1 - chosen]).coords : null;
     map.getSource("alt").setData(line(other));
-    if (fit) {
-      const xs = route.coords.map(c => c[0]), ys = route.coords.map(c => c[1]);
-      map.fitBounds([[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]], { padding: { top: 190, bottom: Math.round(innerHeight * 0.42), left: 50, right: 70 }, pitch: 45, bearing: -18, duration: 900, maxZoom: 17 });
-    }
+    if (fit) fitRoute();
+  }
+  // frame the route in the part of the map left free by the top card and the bottom sheet
+  function fitRoute() {
+    if (!route || !mapReady) return;
+    const app = $("app").getBoundingClientRect();
+    const top = document.querySelector("#s-plan .pchips").getBoundingClientRect().bottom - app.top + 24;
+    const bottom = $("pSheet").offsetHeight + 24;
+    const free = app.height - top - bottom;
+    const pad = free > 140 ? { top, bottom, left: 40, right: 70 } : { top: 20, bottom: 20, left: 20, right: 20 };
+    const xs = route.coords.map(c => c[0]), ys = route.coords.map(c => c[1]);
+    try {
+      map.fitBounds([[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]], { padding: pad, pitch: 35, bearing: -18, duration: 900, maxZoom: 17 });
+    } catch (e) { /* the map is too small for the padding: keep the current view */ }
   }
   // example for demos: at 22:00 the shortest way cuts through Campo Marzo, the recommended one stays on lit streets
   function demoPlaces() {
@@ -1356,45 +1500,63 @@ const IMG = /*__IMG__*/null;
     const trips = store.get("trips", []);
     trips.unshift({ t: Date.now(), from: from.name, to: to.name, dist: route.length, dur: route.length / walkSpeed(routeState.profs) });
     store.set("trips", trips.slice(0, 30));
-    nav = { along: 0, step: 1, spoken: -1, offCount: 0, done: false, speed: walkSpeed(routeState.profs) };
     follow = true; go("s-nav");
+    nav = { along: 0, step: 1, spoken: -1, offCount: 0, done: false, speed: walkSpeed(routeState.profs), arriveT: 0 };
     const gpsUsable = gps && QV.distM(gps, route.coords[0]) < 150;
-    $("simChip").hidden = false;
     $("navMode").textContent = gpsUsable ? "In cammino" : "Simulazione";
-    if (!gpsUsable) startSim(); else { stopSim(); onPosition(gps); }
+    if (!gpsUsable) { startSim(); toast(gps ? "Sei lontano dalla partenza: ti mostro il percorso in simulazione" : "Posizione non disponibile: ti mostro il percorso in simulazione", true); }
+    else { stopSim(); onPosition(gps); }
     say(TURN.straight[1] + (route.steps[0].name !== M.unnamed_label ? " su " + route.steps[0].name : ""));
   }
-  function stopNav() { stopSim(); nav = null; if (window.speechSynthesis) window.speechSynthesis.cancel(); go("s-plan", false); drawRoute(true); }
+  // every way out of the navigation screen goes through here (see go)
+  function endNav() {
+    if (nav) clearTimeout(nav.arriveT);
+    stopSim(); nav = null;
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+  }
+  function stopNav() { go("s-plan", false); drawRoute(true); }
   function startSim() {
     stopSim();
-    sim = { pos: route.coords[0], along: 0, timer: null };
+    sim = { pos: route.coords[0], along: Math.max(0, nav ? nav.along : 0), timer: null };
     $("simTxt").textContent = "Ferma la simulazione";
-    const step = 0.25, speedUp = 6;
+    const step = 0.25;
     sim.timer = setInterval(() => {
-      sim.along += nav.speed * speedUp * step;
+      if (!nav) { stopSim(); return; }
+      sim.along = Math.min(route.lineLength, sim.along + nav.speed * simSpeedUp * step);
       sim.pos = pointAlong(route.coords, sim.along);
       placeYou(sim.pos, headingAt(sim.along));
       onPosition(sim.pos);
     }, step * 1000);
     $("navMode").textContent = "Simulazione";
   }
-  function stopSim() { if (sim && sim.timer) clearInterval(sim.timer); sim = null; $("simTxt").textContent = "Simula la camminata"; if (gps) placeYou(gps); }
+  let simSpeedUp = 6;  // the simulated walk runs 6 times faster than real time
+  function stopSim() {
+    if (sim && sim.timer) clearInterval(sim.timer);
+    sim = null; $("simTxt").textContent = "Simula la camminata";
+    if (gps) placeYou(gps);
+    else if (youM) { youM.remove(); youM = null; }  // no real position: do not leave a fake "you are here"
+  }
   function pointAlong(c, d) {
     let acc = 0;
     for (let i = 1; i < c.length; i++) { const L = QV.distM(c[i - 1], c[i]); if (acc + L >= d) { const f = L ? (d - acc) / L : 0; return [c[i - 1][0] + (c[i][0] - c[i - 1][0]) * f, c[i - 1][1] + (c[i][1] - c[i - 1][1]) * f]; } acc += L; }
     return c[c.length - 1];
   }
+  function navPadding() {
+    const app = $("app").getBoundingClientRect(), h = app.height;
+    const top = Math.min(h * 0.55, document.querySelector("#s-nav .tcard").getBoundingClientRect().bottom - app.top + 20);
+    return { top: Math.max(0, top), bottom: Math.min(h * 0.25, $("nState").offsetHeight + 30), left: 0, right: 0 };
+  }
   function headingAt(d) { const a = pointAlong(route.coords, Math.max(0, d - 8)), b = pointAlong(route.coords, d + 12); return QV.bearing(a, b); }
-  function project(c, p) {
-    // distance along the polyline of the closest point to p, and how far p is from it
+  function project(c, cum, p, lo, hi) {
+    // closest point to p on the part of the route between lo and hi metres: distance along it and how far p is
     const [kx, ky] = [111320 * Math.cos(p[1] * Math.PI / 180), 110540];
-    let best = Infinity, bestAlong = 0, acc = 0;
+    let best = Infinity, bestAlong = lo;
     for (let i = 1; i < c.length; i++) {
+      if (cum[i] < lo || cum[i - 1] > hi) continue;
       const ax = (c[i - 1][0] - p[0]) * kx, ay = (c[i - 1][1] - p[1]) * ky, bx = (c[i][0] - p[0]) * kx, by = (c[i][1] - p[1]) * ky;
-      const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy, L = Math.sqrt(l2);
+      const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
       const t = l2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / l2)) : 0, d = Math.hypot(ax + t * dx, ay + t * dy);
-      if (d < best) { best = d; bestAlong = acc + t * L; }
-      acc += L;
+      if (d < best) { best = d; bestAlong = cum[i - 1] + t * (cum[i] - cum[i - 1]); }
     }
     return { along: bestAlong, off: best };
   }
@@ -1403,30 +1565,37 @@ const IMG = /*__IMG__*/null;
     try { const u = new SpeechSynthesisUtterance(text); u.lang = "it-IT"; speechSynthesis.speak(u); } catch (e) { /* no voice available */ }
   }
   function onPosition(p) {
-    if (!nav || !route || current !== "s-nav") return;
-    const pr = project(route.coords, p);
-    if (!sim && pr.off > 40) {
-      if (++nav.offCount >= 3) {
-        from = { pos: p, name: "La tua posizione", gps: true }; planRoutes(true);
-        Object.assign(nav, { offCount: 0, along: 0, step: 1, spoken: -1 }); toast("Ricalcolo il percorso"); return;
-      }
+    if (!nav || !route || current !== "s-nav" || nav.done) return;
+    if (sim) nav.along = sim.along;  // the simulated walker is exactly on the route
+    else {
+      // only look a little behind and ahead: GPS noise must not jump to a later part of the route
+      const pr = project(route.coords, route.cum, p, nav.along - 30, nav.along + 150);
+      if (pr.off > 40) {
+        if (++nav.offCount >= 3) {
+          from = { pos: p, name: "La tua posizione", gps: true }; nav = null; planRoutes(true);
+          nav = { along: 0, step: 1, spoken: -1, offCount: 0, done: false, speed: walkSpeed(routeState.profs), arriveT: 0 };
+          toast("Ricalcolo il percorso"); return;
+        }
+      } else { nav.offCount = 0; nav.along = Math.max(nav.along - 5, pr.along); }
     }
-    else nav.offCount = 0;
-    nav.along = Math.max(nav.along - 5, pr.along);
-    const steps = route.steps, left = route.length - nav.along;
+    const steps = route.steps, left = Math.max(0, route.lineLength - nav.along);
     while (nav.step < steps.length - 1 && steps[nav.step].at < nav.along + 3) nav.step++;
     const s = steps[nav.step], dist = Math.max(0, s.at - nav.along);
     const [icon, verb] = s.type === "arrive" ? TURN.arrive : TURN[s.dir];
     $("turnSvg").innerHTML = icon;
     $("tDist").textContent = fmtDist(dist);
     $("tStreet").textContent = s.type === "arrive" ? "Arrivo a destinazione" : verb + (s.name !== M.unnamed_label ? " in " + s.name : " sul percorso pedonale");
-    $("tProg").style.width = (100 * nav.along / route.length).toFixed(1) + "%";
+    $("tProg").style.width = (100 * nav.along / route.lineLength).toFixed(1) + "%";
     $("tLeft").textContent = Math.max(1, Math.round(left / nav.speed / 60)) + " min · " + fmtKm(left);
     $("tArr").textContent = "Arrivo alle " + hhmm(new Date(Date.now() + left / nav.speed * 1000));
+    if (nav.announced !== nav.step) { nav.announced = nav.step; $("navLive").textContent = $("tStreet").textContent; }
     if (dist < 35 && nav.spoken !== nav.step) { nav.spoken = nav.step; say(s.type === "arrive" ? "Stai per arrivare" : verb + (s.name !== M.unnamed_label ? " in " + s.name : "")); }
     statusAt(nav.along);
-    if (follow && map) map.easeTo({ center: p, bearing: headingAt(nav.along), pitch: 60, zoom: 17.6, duration: sim ? 240 : 800, padding: { top: Math.round(innerHeight * 0.45), bottom: 90, left: 0, right: 0 } });
-    if (left < 15 && !nav.done) { nav.done = true; stopSim(); say(g("Sei arrivata", "Sei arrivato", "Sei a destinazione")); setTimeout(() => go("s-arrive"), 600); }
+    if (follow && map) map.easeTo({ center: p, bearing: headingAt(nav.along), pitch: 50, zoom: 17.2, duration: sim ? 240 : 800, padding: navPadding() });
+    if (left < 15 && !nav.done) {
+      nav.done = true; stopSim(); say(g("Sei arrivata", "Sei arrivato", "Sei a destinazione"));
+      nav.arriveT = setTimeout(() => { if (current === "s-nav") go("s-arrive"); }, 600);
+    }
   }
   function statusAt(along) {
     let acc = 0, i = route.parts[0].i;
@@ -1455,22 +1624,19 @@ const IMG = /*__IMG__*/null;
 
   // ------------------------------------------------------------ time and company
   function whenSheet() {
-    const now = new Date(), hours = [];
+    const hours = [];
     for (let h = 0; h < 24; h++) hours.push(h);
-    const sel = trip.when ? trip.when.getHours() : -1;
+    const sel = trip.when ? QV.local(trip.when).h : -1;
     sheet("Quando parti?", "I colori e il percorso cambiano con l'ora: di sera conta di più la luce.",
       '<div class="seg" style="margin:0 0 12px;"><button class="' + (!trip.when ? "on" : "") + '" data-act="when-now">Adesso</button><button class="' + (trip.rain ? "" : "on") + '" data-act="rain" data-v="0">Sereno</button><button class="' + (trip.rain ? "on" : "") + '" data-act="rain" data-v="1">Pioggia</button></div>' +
       '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;">' + hours.map(h => {
-        const d = new Date(now); d.setHours(h, 0, 0, 0); if (h < now.getHours()) d.setDate(d.getDate() + 1);
-        const dark = M.bands[QV.moment(M, d).band].dark;
-        return '<button class="face' + (sel === h ? " on" : "") + '" style="min-height:44px;' + (dark ? "background:#2b2545;color:#f1edfa;" : "") + '" data-act="when-h" data-v="' + h + '">' + String(h).padStart(2, "0") + "</button>";
+        const dark = M.bands[QV.moment(M, romeAt(h)).band].dark;
+        return '<button class="face' + (sel === h ? " on" : "") + '" style="min-height:44px;' + (dark ? "background:#2b2545;color:#f1edfa;" : "") + '" aria-pressed="' + (sel === h) + '" aria-label="Alle ' + h + '" data-act="when-h" data-v="' + h + '">' + String(h).padStart(2, "0") + "</button>";
       }).join("") + '</div><p class="note-s" style="padding:0;">Le ore scure sono quelle dopo il tramonto.</p>');
   }
   function setWhen(h) {
-    if (h == null) trip.when = null;
-    else { const d = new Date(); d.setHours(h, 0, 0, 0); if (h < new Date().getHours()) d.setDate(d.getDate() + 1); trip.when = d; }
-    closeSheet(); refreshScores(); renderPlan();
-    if (!route) planRoutes();
+    trip.when = h == null ? null : romeAt(h);
+    closeSheet(); refreshScores(); renderPlan(); replan();
   }
   function legend() {
     sheet("I colori delle strade", "Stima della sicurezza percepita da 0 a 100, per il tuo profilo e l'ora scelta.",
@@ -1488,7 +1654,7 @@ const IMG = /*__IMG__*/null;
     const tab = t.closest("[data-tab]");
     if (tab) {
       const grp = tab.dataset.group, v = tab.dataset.tab;
-      document.querySelectorAll('[data-tab][data-group="' + grp + '"]').forEach(b => b.classList.toggle("on", b.dataset.tab === v));
+      document.querySelectorAll('[data-tab][data-group="' + grp + '"]').forEach(b => { b.classList.toggle("on", b.dataset.tab === v); b.setAttribute("aria-selected", String(b.dataset.tab === v)); });
       document.querySelectorAll('[data-panel][data-group="' + grp + '"]').forEach(p => p.classList.toggle("on", p.dataset.panel === v));
       return;
     }
@@ -1502,12 +1668,12 @@ const IMG = /*__IMG__*/null;
       case "wiz-opt": {
         const st = STEPS[wiz.i];
         if (st.type === "many") { const s = new Set(wiz.ans[st.k] || []); s.has(v) ? s.delete(v) : s.add(v); wiz.ans[st.k] = [...s]; renderWiz(); }
-        else { wiz.ans[st.k] = v; renderWiz(); const i = wiz.i; setTimeout(() => { if (wiz.i === i) wizNext(false); }, 220); }
+        else { wiz.ans[st.k] = v; renderWiz(); const tk = wiz.tick; setTimeout(() => { if (wiz.tick === tk && current === "s-form") wizNext(false); }, 220); }
         break;
       }
       case "wiz-next": wizNext(false); break;
       case "wiz-skip": wizNext(true); break;
-      case "wiz-prev": if (wiz.i > 0) { wiz.i--; renderWiz(); } else back(); break;
+      case "wiz-prev": wiz.tick++; if (wiz.i > 0) { wiz.i--; renderWiz(); } else back(); break;
       case "tut-next": if (tutIdx < TUT.length - 1) renderTut(tutIdx + 1); else go("s-end"); break;
       case "tut-back": if (tutIdx > 0) renderTut(tutIdx - 1); else back(); break;
       case "tut-skip": go("s-end"); break;
@@ -1517,7 +1683,7 @@ const IMG = /*__IMG__*/null;
       case "sheet-submit": submitForm(); break;
       case "search": searchField = v; go("s-search"); break;
       case "pick-res": pickResult(+v || +el.dataset.i); break;
-      case "pick-gps": back(); setPlace(searchField, { pos: gps, name: "La tua posizione", gps: true }); break;
+      case "pick-gps": back(); if (gps) setPlace(searchField, { pos: gps, name: "La tua posizione", gps: true }); else toast("Posizione non disponibile: tocca la mappa"); break;
       case "pick-map":
         back();
         if (searchField === "report") { pickMode = "report"; go("s-plan"); } else { tapField = searchField; toast("Tocca una strada sulla mappa"); }
@@ -1526,18 +1692,19 @@ const IMG = /*__IMG__*/null;
       case "when": whenSheet(); break;
       case "when-now": setWhen(null); break;
       case "when-h": setWhen(+v); break;
-      case "rain": trip.rain = v === "1"; closeSheet(); refreshScores(); renderPlan(); break;
-      case "company": trip.company = !trip.company; refreshScores(); renderPlan(); toast(trip.company ? "In compagnia il buio pesa la metà" : "Percorsi per chi cammina da solo"); break;
+      case "rain": trip.rain = v === "1"; closeSheet(); refreshScores(); renderPlan(); replan(); break;
+      case "company": trip.company = !trip.company; refreshScores(); renderPlan(); replan(); toast(trip.company ? "In compagnia il buio pesa la metà" : g("Percorsi per chi cammina da sola", "Percorsi per chi cammina da solo", "Percorsi per chi cammina senza compagnia")); break;
       case "legend": legend(); break;
-      case "locate": follow = true; if (you()) map.easeTo({ center: you(), zoom: 17, duration: 700 }); else toast("Posizione non disponibile: tocca la mappa"); break;
-      case "view3d": { const flat = map.getPitch() > 10; map.easeTo({ pitch: flat ? 0 : 55, bearing: flat ? 0 : -18, duration: 700 }); $("b3d").classList.toggle("on", flat); break; }
-      case "demo-route": { const d = demoPlaces(); from = d[0]; to = d[1]; setWhen(22); break; }
+      case "locate": if (!map) break; follow = true; if (you()) map.easeTo({ center: you(), zoom: 17, duration: 700 }); else toast("Posizione non disponibile: tocca la mappa"); break;
+      case "view3d": { if (!map) break; const flat = map.getPitch() > 10; map.easeTo({ pitch: flat ? 0 : 50, bearing: flat ? 0 : -18, duration: 700 }); $("b3d").classList.toggle("on", flat); $("b3d").setAttribute("aria-pressed", String(flat)); break; }
+      case "demo-route": { const d = demoPlaces(); if (!d) break; from = d[0]; to = d[1]; route = null; setWhen(22); break; }
       case "choose": choose(+v); break;
       case "start": startNav(); break;
       case "stop": stopNav(); break;
       case "sim": if (sim) { stopSim(); $("navMode").textContent = "In cammino"; } else startSim(); break;
-      case "voice": prefs.voice = !prefs.voice; savePrefs(); el.classList.toggle("on", prefs.voice); toast(prefs.voice ? "Indicazioni a voce attive" : "Indicazioni a voce spente"); break;
+      case "voice": prefs.voice = !prefs.voice; savePrefs(); syncVoice(); if (!prefs.voice && window.speechSynthesis) window.speechSynthesis.cancel(); toast(prefs.voice ? "Indicazioni a voce attive" : "Indicazioni a voce spente"); break;
       case "arrive-home": stack = []; route = null; routes = []; to = null; drawRoute(); go("s-home", false); break;
+      case "plan-back": if (pickMode) { pickMode = null; back(); } else { tapField = null; stack = []; go("s-home", false); } break;
       case "report-pick": pickMode = "report"; go("s-plan"); toast("Tocca il punto da segnalare"); break;
       case "pick-cancel": pickMode = null; back(); break;
       case "rep-type": rep.type = v; renderReport(); break;
@@ -1556,9 +1723,8 @@ const IMG = /*__IMG__*/null;
         else toast("Seleziona il testo e copialo", true);
         break;
       }
-      case "share-stop": stopSharing(); break;
       case "share": toggleShare(el.dataset.k); break;
-      case "pref": { const k = el.dataset.k; prefs[k] = !prefs[k]; savePrefs(); applyTheme(); renderSettings(); break; }
+      case "pref": { const k = el.dataset.k; prefs[k] = !prefs[k]; savePrefs(); applyTheme(); syncVoice(); renderSettings(); break; }
       case "theme": prefs.theme = { auto: "light", light: "dark", dark: "auto" }[prefs.theme]; savePrefs(); applyTheme(); renderSettings(); break;
       case "forma": profile = Object.assign(profile || {}, { forma: { f: "m", m: "n", n: "f" }[forma()] }); store.set("profile", profile); applyForma(); renderSettings(); break;
       case "edit-profile": go("s-form"); break;
@@ -1571,16 +1737,23 @@ const IMG = /*__IMG__*/null;
       default: break;
     }
   });
-  window.addEventListener("resize", () => { if (map) map.resize(); });
+  window.addEventListener("resize", () => { if (map) map.resize(); if (current === "s-plan") fitSheet(); });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && $("sheet").classList.contains("on")) closeSheet();
+    if (e.key === "Enter" && e.target && e.target.id === "wzIn") { e.preventDefault(); wizNext(false); }
+    if (e.key === "Enter" && e.target && e.target.id && e.target.id.startsWith("sf_")) { e.preventDefault(); submitForm(); }
+  });
+  function syncVoice() { $("bVoice").classList.toggle("on", prefs.voice); $("bVoice").setAttribute("aria-pressed", String(prefs.voice)); }
 
   // ------------------------------------------------------------ start
   applyTheme(); applyGuide(); applyForma();
   document.querySelectorAll('[data-act="guide"]').forEach(x => x.classList.toggle("on", x.dataset.v === guide));
-  $("bVoice").classList.toggle("on", prefs.voice);
+  syncVoice();
+  $("sheet").inert = true; $("sheet").setAttribute("aria-hidden", "true");
   go(store.get("done", false) ? "s-home" : "s-welcome", false);
   initData().then(() => { startGps(); if (current === "s-home") renderHome(); setInterval(() => { if (!trip.when) refreshScores(); }, 300000); })
     .catch(err => { $("loading").textContent = "Non riesco a caricare i dati: " + err.message + ". Serve un browser aggiornato."; });
-  window.LUMI = { get ctx() { return ctx; }, get route() { return route; }, get routes() { return routes; }, get state() { return stateNow; }, get map() { return map; } };  // for automated checks
+  window.FZ = { setSimSpeed(v) { simSpeedUp = v; }, get current() { return current; }, get ctx() { return ctx; }, get route() { return route; }, get routes() { return routes; }, get state() { return stateNow; }, get map() { return map; } };  // for automated checks
 })();
 </script>
 <!--PAGE-END-->

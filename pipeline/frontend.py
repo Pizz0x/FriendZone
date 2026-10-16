@@ -2,15 +2,16 @@
 
 - ``frontend/enti.html``: the map for the Comune and other bodies (2D, every
   street coloured, choice of hour, day, weather and profile);
-- ``frontend/lumi.html``: the citizens' app «Lumi» (3D map, profile from a
-  short onboarding, navigator on the least-cost route, reports, support).
+- ``frontend/app.html``: the citizens' app FRIENDlyZONE, with the guide Lumi
+  (3D map, profile from a short onboarding, navigator on the least-cost route,
+  reports, support).
 
 Both recompute S in the browser (``frontend/src/core.js``) from parameters
 precomputed here for every hour of a weekday and of a Saturday of the
 reference week. Data are packed as gzip + base64 typed arrays and decoded
 with the browser's DecompressionStream.
 
-    python -m pipeline.frontend            # writes frontend/enti.html, lumi.html, index.html
+    python -m pipeline.frontend            # writes frontend/enti.html, app.html, index.html
 """
 
 from __future__ import annotations
@@ -35,8 +36,9 @@ from pipeline.validate import LIGHT_SOURCE_LABELS
 
 FRONTEND = ROOT / "frontend"
 SRC = FRONTEND / "src"
-PAGES = {"enti": FRONTEND / "enti.html", "lumi": FRONTEND / "lumi.html"}
+PAGES = {"enti": FRONTEND / "enti.html", "app": FRONTEND / "app.html"}
 MASCOTS = FRONTEND / "assets" / "lumi"
+BRAND = FRONTEND / "assets" / "brand"
 SCALE = 250.0          # parameter values are stored as round(x * 250); 255 = not available
 NA = 255
 
@@ -399,6 +401,11 @@ def _mascots() -> dict[str, dict[str, str]]:
     return out
 
 
+def _script_json(obj: Any) -> str:
+    """JSON safe inside an inline <script>: a name like "</script>" in the map data cannot close it."""
+    return json.dumps(obj, separators=(",", ":"), ensure_ascii=False).replace("<", "\\u003c")
+
+
 def render(page: str, payload: dict[str, Any], *, artifact: bool = False) -> str:
     template = (SRC / f"{page}.html").read_text(encoding="utf-8")
     data = dict(payload)
@@ -409,8 +416,9 @@ def render(page: str, payload: dict[str, Any], *, artifact: bool = False) -> str
             .replace("/*__CORE__*/", (SRC / "core.js").read_text(encoding="utf-8"))
             .replace("/*__LEAFLET_CSS__*/", (FRONTEND / "vendor" / "leaflet-1.9.4.css").read_text(encoding="utf-8"))
             .replace("/*__MAPLIBRE_CSS__*/", (FRONTEND / "vendor" / "maplibre-gl-4.7.1.css").read_text(encoding="utf-8"))
-            .replace("/*__IMG__*/null", json.dumps(_mascots(), separators=(",", ":")))
-            .replace("/*__DATA__*/null", json.dumps(data, separators=(",", ":"), ensure_ascii=False)))
+            .replace("/*__IMG__*/null", _script_json(_mascots()))
+            .replace("__MARK__", "data:image/webp;base64," + base64.b64encode((BRAND / "mark.webp").read_bytes()).decode("ascii"))
+            .replace("/*__DATA__*/null", _script_json(data)))
     if artifact:  # the artifact host adds doctype, html, head and body itself
         start, end = html.index("<!--PAGE-START-->"), html.index("<!--PAGE-END-->")
         return html[start + len("<!--PAGE-START-->"):end]
@@ -421,7 +429,7 @@ def main() -> None:
     import argparse
     from pathlib import Path
 
-    parser = argparse.ArgumentParser(description="Genera le interfacce (frontend/enti.html e frontend/lumi.html)")
+    parser = argparse.ArgumentParser(description="Genera le interfacce (frontend/enti.html e frontend/app.html)")
     parser.add_argument("--artifact-dir", help="scrive anche le versioni senza <html>/<head>/<body> in questa cartella")
     args = parser.parse_args()
     setup_logging()

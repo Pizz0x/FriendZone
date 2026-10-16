@@ -74,10 +74,10 @@ cambiare codice e l'affidabilità sale».
 
 ### Testo per la richiesta dei punti luce
 
-> Oggetto: richiesta dati sull'illuminazione pubblica per il progetto «Quartieri Vivi»
+> Oggetto: richiesta dati sull'illuminazione pubblica per il progetto «FRIENDlyZONE»
 > (TechWarriors Vicenza 2026, sfida Urbanistica)
 >
-> Buongiorno, per il progetto «Quartieri Vivi» stiamo costruendo una mappa della
+> Buongiorno, per il progetto «FRIENDlyZONE» stiamo costruendo una mappa della
 > sicurezza percepita nelle strade di Vicenza a partire da dati pubblici, per individuare
 > priorità di intervento. L'illuminazione è il fattore che pesa di più di notte.
 > Chiediamo, se possibile, un estratto del censimento dei punti luce gestiti da City

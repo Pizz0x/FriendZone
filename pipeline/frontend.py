@@ -36,7 +36,8 @@ from pipeline.validate import LIGHT_SOURCE_LABELS
 
 FRONTEND = ROOT / "frontend"
 SRC = FRONTEND / "src"
-PAGES = {"enti": FRONTEND / "enti.html", "app": FRONTEND / "app.html"}
+PAGES = {"enti": FRONTEND / "enti.html", "app": FRONTEND / "app.html", "app-lanterna": FRONTEND / "app-lanterna.html"}
+THEMES = SRC / "themes"
 MASCOTS = FRONTEND / "assets" / "lumi"
 BRAND = FRONTEND / "assets" / "brand"
 SCALE = 250.0          # parameter values are stored as round(x * 250); 255 = not available
@@ -407,9 +408,22 @@ def _script_json(obj: Any) -> str:
 
 
 def render(page: str, payload: dict[str, Any], *, artifact: bool = False) -> str:
-    template = (SRC / f"{page}.html").read_text(encoding="utf-8")
+    """``app-<theme>`` is the citizens' app with the look of frontend/src/themes/<theme>.*: same code, other style."""
+    base, _, theme = page.partition("-")
+    template = (SRC / f"{base}.html").read_text(encoding="utf-8")
+    if base == "app":
+        if theme:
+            spec = json.loads((THEMES / f"{theme}.json").read_text(encoding="utf-8"))
+            template = (template
+                        .replace("<title>FRIENDlyZONE</title>", f"<title>{spec['title']}</title>")
+                        .replace("<!--__THEME_FONTS__-->", f'<link rel="stylesheet" href="{spec["fonts"]}">')
+                        .replace("/*__THEME_CSS__*/", (THEMES / f"{theme}.css").read_text(encoding="utf-8"))
+                        .replace("/*__THEME_JS__*/null", _script_json(spec["js"])))
+        else:
+            template = (template.replace("<!--__THEME_FONTS__-->\n", "").replace("/*__THEME_CSS__*/", "")
+                        .replace("/*__THEME_JS__*/null", "null"))
     data = dict(payload)
-    if page == "enti":
+    if base == "enti":
         data.pop("buildings", None)
         data.pop("search", None)
     html = (template

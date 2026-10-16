@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Montserrat:wght@700;800&display=swap">
+<!--__THEME_FONTS__-->
 <style>/*__MAPLIBRE_CSS__*/</style>
 <style>
   /* Phone-first app on top of a full-bleed 3D map. Brand: FRIENDlyZONE wordmark (Montserrat) in the three street colours; UI violet and the guide Lumi from the team's demo. */
@@ -107,7 +108,8 @@
   .bnav button .ico { width: 22px; height: 22px; stroke: var(--mute); }
   .bnav button.on { color: var(--p); }
   .bnav button.on .ico { stroke: var(--p); }
-  .bnav .sosc { width: 64px; height: 64px; border-radius: 50%; background: var(--red); margin-top: -30px; justify-self: center; border: 5px solid var(--surface); color: #fff; font-size: 11px; font-weight: 800; box-shadow: 0 8px 20px rgba(210, 63, 56, .4); }
+  .bnav .sosc { width: 64px; height: 64px; border-radius: 50%; background: var(--red); margin-top: -30px; justify-self: center; border: 5px solid var(--surface); color: #fff; font-size: 11px; font-weight: 800; box-shadow: 0 8px 20px rgba(210, 63, 56, .4);
+                justify-content: center; gap: 1px; line-height: 1; padding: 0; }
   .bnav .sosc .ico { stroke: #fff; width: 20px; height: 20px; }
 
   /* questions */
@@ -354,6 +356,7 @@
   #app.big .opt, #app.big .item .tx b, #app.big .btn, #app.big .tile, #app.big .st { font-size: 17px; }
   #app.big .trow span { font-size: 17px; }
 </style>
+<style>/*__THEME_CSS__*/</style>
 
 <div id="app">
   <div id="map" role="application" aria-label="Mappa di Vicenza"></div>
@@ -459,6 +462,7 @@
       </div>
       <div class="sright">
         <button class="rb" data-act="locate" aria-label="Centra sulla mia posizione"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+      <button class="rb" data-act="look" id="bLook" aria-label="Aspetto giorno o notte"></button>
       <button class="rb" data-act="view3d" aria-label="Vista dall'alto" aria-pressed="false" id="b3d"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg></button>
       </div>
     </div>
@@ -612,7 +616,7 @@
     <div class="card">
       <button class="item" data-act="pref" data-k="big"><span class="tx"><b>Testo più grande</b></span><span class="tg" data-tg="big"></span></button>
       <button class="item" data-act="pref" data-k="voice"><span class="tx"><b>Indicazioni a voce</b></span><span class="tg" data-tg="voice"></span></button>
-      <button class="item" data-act="theme"><span class="tx"><b>Aspetto</b></span><span style="color:var(--mute);font-weight:700;font-size:14px;" id="themeTxt">Automatico</span></button>
+      <button class="item" data-act="theme"><span class="tx"><b>Aspetto giorno o notte</b><span>Colori dell'app e della mappa</span></span><span style="color:var(--mute);font-weight:700;font-size:14px;text-align:right;" id="themeTxt">Segue il sole</span></button>
     </div>
     <div class="sec">I tuoi dati</div>
     <div class="card">
@@ -653,6 +657,7 @@
 /*__CORE__*/
 </script>
 <script>
+const FZ_THEME = /*__THEME_JS__*/null;
 const DATA = /*__DATA__*/null;
 const IMG = /*__IMG__*/null;
 (function () {
@@ -669,7 +674,9 @@ const IMG = /*__IMG__*/null;
   };
   let guide = store.get("guide", "f");
   let profile = store.get("profile", null);   // {nome, genere, eta, situazioni, deviazione, forma}
-  let prefs = Object.assign({ discreet: false, big: false, voice: true, theme: "auto", pwHash: "", share: { reports: true, demo: false, routes: true } }, store.get("prefs", {}));
+  let prefs = Object.assign({ discreet: false, big: false, voice: true, look: "sun", pwHash: "", share: { reports: true, demo: false, routes: true } }, store.get("prefs", {}));
+  if (prefs.theme && !store.get("prefs", {}).look) prefs.look = { auto: "sun", light: "day", dark: "night" }[prefs.theme] || "sun";  // older setting
+  delete prefs.theme;
   const savePrefs = () => store.set("prefs", prefs);
   const trip = { company: false, when: null, rain: false };   // when: null = now, else a Date
 
@@ -696,9 +703,30 @@ const IMG = /*__IMG__*/null;
   function applyGuide() {
     document.querySelectorAll("img[data-m]").forEach(img => { const src = IMG[guide] && IMG[guide][img.dataset.m]; if (src) img.src = src; });
   }
+  const ICON_SUN = '<svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>';
+  const ICON_MOON = '<svg class="ico" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>';
+  const LOOKS = { sun: "Segue il sole", day: "Sempre giorno", night: "Sempre notte", system: "Come il telefono" };
+  // the interface: with "sun" it is light by day and dark after sunset (real time)
+  function uiDark() {
+    if (prefs.look === "day") return false;
+    if (prefs.look === "night") return true;
+    if (prefs.look === "system") return null;
+    return M.bands[QV.moment(M, new Date()).band].dark;
+  }
+  // the map: with "sun" or "system" it follows the time chosen for the walk
+  function mapDark() {
+    if (prefs.look === "day") return false;
+    if (prefs.look === "night") return true;
+    return stateNow ? M.bands[stateNow.band].dark : !!uiDark();
+  }
   function applyTheme() {
-    if (prefs.theme === "auto") document.documentElement.removeAttribute("data-theme");
-    else document.documentElement.setAttribute("data-theme", prefs.theme);
+    const d = uiDark();
+    if (d === null) document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", d ? "dark" : "light");
+    if (mapReady) paintMap(mapDark());
+    const night = mapReady ? nightMap : mapDark();
+    $("bLook").innerHTML = night ? ICON_MOON : ICON_SUN;
+    $("bLook").setAttribute("aria-label", night ? "Aspetto notte: passa al giorno" : "Aspetto giorno: passa alla notte");
     $("app").classList.toggle("big", !!prefs.big);
   }
 
@@ -1009,7 +1037,7 @@ const IMG = /*__IMG__*/null;
     $("pinState").textContent = prefs.pwHash ? "Attivo" : "Non impostato";
     $("profTxt").textContent = profileSummary();
     $("formaTxt").textContent = { f: "Al femminile (sei arrivata)", m: "Al maschile (sei arrivato)", n: "In modo neutro (sei a destinazione)" }[forma()];
-    $("themeTxt").textContent = { auto: "Automatico", light: "Chiaro", dark: "Scuro" }[prefs.theme];
+    $("themeTxt").textContent = LOOKS[prefs.look];
     const info = DATA.info || {};
     $("dataInfo").textContent = "Dati: OpenStreetMap al " + String(info.osm || "").slice(0, 10) + ", ISTAT 2021, Comune di Vicenza, Overture Maps. Altezze degli edifici indicative.";
   }
@@ -1028,7 +1056,7 @@ const IMG = /*__IMG__*/null;
   }
   function wipeNow() {
     const run = () => {
-      store.wipe(); profile = null; guide = "f"; prefs = { discreet: false, big: false, voice: true, theme: "auto", pwHash: "", share: { reports: true, demo: false, routes: true } };
+      store.wipe(); profile = null; guide = "f"; prefs = { discreet: false, big: false, voice: true, look: "sun", pwHash: "", share: { reports: true, demo: false, routes: true } };
       endNav(); from = null; to = null; route = null; routes = []; tapField = null; pickMode = null;
       Object.assign(rep, { type: "", when: "now", vote: 0, pos: null });
       Object.assign(trip, { company: false, when: null, rain: false });
@@ -1136,7 +1164,7 @@ const IMG = /*__IMG__*/null;
   // ------------------------------------------------------------ map + data
   let ctx = null, grid = null, G = null, map = null, mapReady = false, stateNow = null, nightMap = null;
   let segFC = null;
-  const PAL = {
+  const PAL = (FZ_THEME && FZ_THEME.map) || {
     day: { bg: "#d9d6e0", water: "#b7c9df", park: "#c9dcc0", road: "#c3bdcd", bld: "#f4f3f8", bldOpacity: 0.8, edge: "#8a83a0",
            c: ["#1f9455", "#e8941f", "#d93a33"], glow: 0.25, route: "#6a3fd0", casing: "#ffffff", alt: "#6f6984" },
     // after sunset the map turns a softer grey (not black) and the streets glow
@@ -1151,11 +1179,10 @@ const IMG = /*__IMG__*/null;
     if (!ctx) return;
     const when = trip.when || new Date();
     stateNow = computeState(when);
-    const dark = M.bands[stateNow.band].dark;
     for (let i = 0; i < ctx.N; i++) segFC.features[i].properties.c = stateNow.cls[i];
     if (mapReady) {
       map.getSource("seg").setData(segFC);
-      if (dark !== nightMap) paintMap(dark);
+      if (mapDark() !== nightMap) applyTheme();
     }
     if (current === "s-home") renderHome();
   }
@@ -1178,7 +1205,7 @@ const IMG = /*__IMG__*/null;
     map.setPaintProperty("seg", "line-color", color);
     map.setPaintProperty("seg-glow", "line-color", color);
     map.setPaintProperty("seg-glow", "line-opacity", P.glow);
-    $("whenChip").classList.toggle("night", dark);
+    $("whenChip").classList.toggle("night", M.bands[(stateNow || {}).band || "giorno"].dark);
   }
 
   async function decodeBuildings() {
@@ -1239,7 +1266,7 @@ const IMG = /*__IMG__*/null;
       map.addLayer({ id: "roads", type: "line", source: "roads", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": PAL.day.road, "line-width": w(1.2, 9) } });
       map.addLayer({ id: "seg-glow", type: "line", source: "seg", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#999", "line-width": w(5, 22), "line-blur": w(4, 14), "line-opacity": 0 } });
       map.addLayer({ id: "seg", type: "line", source: "seg", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#999", "line-width": w(1.5, 9) } });
-      map.addLayer({ id: "reports", type: "circle", source: "reports", paint: { "circle-color": "#6a3fd0", "circle-stroke-color": "#fff", "circle-stroke-width": 2, "circle-radius": 6 } });
+      map.addLayer({ id: "reports", type: "circle", source: "reports", paint: { "circle-color": (FZ_THEME && FZ_THEME.report) || "#6a3fd0", "circle-stroke-color": "#fff", "circle-stroke-width": 2, "circle-radius": 6 } });
       map.addLayer({ id: "bld", type: "fill-extrusion", source: "bld", minzoom: 13.5, paint: {
         "fill-extrusion-color": PAL.day.bld, "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 13.5, 0, 15, ["get", "h"]],
         "fill-extrusion-base": 0, "fill-extrusion-opacity": PAL.day.bldOpacity, "fill-extrusion-vertical-gradient": true } });
@@ -1250,7 +1277,7 @@ const IMG = /*__IMG__*/null;
       map.addLayer({ id: "trail", type: "line", source: "trail", paint: { "line-color": "#c5ef3c", "line-width": 4, "line-opacity": 0.8 } });
       map.setLight({ anchor: "viewport", color: "#ffffff", intensity: 0.32, position: [1.2, 200, 35] });
       mapReady = true;
-      paintMap(M.bands[stateNow.band].dark);
+      applyTheme();
       map.getSource("seg").setData(segFC);
       drawReports();
       $("loading").remove();
@@ -1306,6 +1333,7 @@ const IMG = /*__IMG__*/null;
 
   // ------------------------------------------------------------ planning
   let from = null, to = null, route = null, routes = [], chosen = 0, searchField = "to", pickMode = null, tapField = null, destM = null, fromM = null;
+  const PIN_TO = (FZ_THEME && FZ_THEME.pins && FZ_THEME.pins.to) || "#c5ef3c", PIN_FROM = (FZ_THEME && FZ_THEME.pins && FZ_THEME.pins.from) || "#9a7ae6";
   function pinEl(color) {
     const el = document.createElement("div"); el.className = "pin";
     el.innerHTML = '<svg width="36" height="46" viewBox="0 0 44 56"><path d="M22 2C11 2 3 10 3 21c0 14 19 33 19 33s19-19 19-33C41 10 33 2 22 2z" fill="' + color + '" stroke="#1b1b1b" stroke-width="2"/><circle cx="22" cy="20" r="7" fill="#fff" stroke="#1b1b1b" stroke-width="2"/></svg>';
@@ -1313,8 +1341,8 @@ const IMG = /*__IMG__*/null;
   }
   function drawPins() {
     if (!map) return;
-    if (to) { if (!destM) destM = new maplibregl.Marker({ element: pinEl("#c5ef3c"), anchor: "bottom" }); destM.setLngLat(to.pos).addTo(map); } else if (destM) destM.remove();
-    if (from && !from.gps) { if (!fromM) fromM = new maplibregl.Marker({ element: pinEl("#9a7ae6"), anchor: "bottom" }); fromM.setLngLat(from.pos).addTo(map); } else if (fromM) fromM.remove();
+    if (to) { if (!destM) destM = new maplibregl.Marker({ element: pinEl(PIN_TO), anchor: "bottom" }); destM.setLngLat(to.pos).addTo(map); } else if (destM) destM.remove();
+    if (from && !from.gps) { if (!fromM) fromM = new maplibregl.Marker({ element: pinEl(PIN_FROM), anchor: "bottom" }); fromM.setLngLat(from.pos).addTo(map); } else if (fromM) fromM.remove();
   }
   function onMapClick(e) {
     const p = [e.lngLat.lng, e.lngLat.lat];
@@ -1725,7 +1753,8 @@ const IMG = /*__IMG__*/null;
       }
       case "share": toggleShare(el.dataset.k); break;
       case "pref": { const k = el.dataset.k; prefs[k] = !prefs[k]; savePrefs(); applyTheme(); syncVoice(); renderSettings(); break; }
-      case "theme": prefs.theme = { auto: "light", light: "dark", dark: "auto" }[prefs.theme]; savePrefs(); applyTheme(); renderSettings(); break;
+      case "theme": prefs.look = { sun: "day", day: "night", night: "system", system: "sun" }[prefs.look] || "sun"; savePrefs(); applyTheme(); renderSettings(); break;
+      case "look": prefs.look = (mapReady ? nightMap : mapDark()) ? "day" : "night"; savePrefs(); applyTheme(); toast((prefs.look === "day" ? "Aspetto giorno" : "Aspetto notte") + ". In Impostazioni puoi farlo seguire il sole"); break;
       case "forma": profile = Object.assign(profile || {}, { forma: { f: "m", m: "n", n: "f" }[forma()] }); store.set("profile", profile); applyForma(); renderSettings(); break;
       case "edit-profile": go("s-form"); break;
       case "pin": changePin(); break;
@@ -1751,7 +1780,7 @@ const IMG = /*__IMG__*/null;
   syncVoice();
   $("sheet").inert = true; $("sheet").setAttribute("aria-hidden", "true");
   go(store.get("done", false) ? "s-home" : "s-welcome", false);
-  initData().then(() => { startGps(); if (current === "s-home") renderHome(); setInterval(() => { if (!trip.when) refreshScores(); }, 300000); })
+  initData().then(() => { startGps(); if (current === "s-home") renderHome(); setInterval(() => { applyTheme(); if (!trip.when) { refreshScores(); replan(); } }, 300000); })
     .catch(err => { $("loading").textContent = "Non riesco a caricare i dati: " + err.message + ". Serve un browser aggiornato."; });
   window.FZ = { setSimSpeed(v) { simSpeedUp = v; }, get current() { return current; }, get ctx() { return ctx; }, get route() { return route; }, get routes() { return routes; }, get state() { return stateNow; }, get map() { return map; } };  // for automated checks
 })();

@@ -1,0 +1,14 @@
+{
+  "title": "FRIENDlyZONE Lanterna",
+  "fonts": "https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Montserrat:wght@800&display=swap",
+  "js": {
+    "map": {
+      "day": {"bg": "#e9eae4", "water": "#bcd0e4", "park": "#cfe2c3", "road": "#c7c4ba", "bld": "#ffffff", "bldOpacity": 0.85, "edge": "#7d7a72",
+              "c": ["#2e8f4e", "#e9a114", "#d23c36"], "glow": 0.22, "route": "#232220", "casing": "#ffffff", "alt": "#7d7a72"},
+      "night": {"bg": "#3b3a36", "water": "#31445a", "park": "#3a4838", "road": "#5c5a54", "bld": "#6e6c65", "bldOpacity": 0.84, "edge": "#a9a59b",
+                "c": ["#5ccf88", "#ffc24f", "#ff6f61"], "glow": 0.38, "route": "#ffffff", "casing": "#232220", "alt": "#d8d4ca"}
+    },
+    "pins": {"to": "#f2b12c", "from": "#ffffff"},
+    "report": "#232220"
+  }
+}

@@ -170,6 +170,28 @@ La condivisione della posizione ora è dichiaratamente **un link una tantum** (l
 di quel momento): la barra «posizione condivisa» faceva pensare a un tracciamento continuo,
 che senza un server non c'è.
 
+## Terza revisione (17/10)
+
+- **Giorno e notte a scelta**: in Impostazioni, «Aspetto giorno o notte» vale per l'app e
+  per la mappa insieme: *segue il sole* (predefinito: chiaro di giorno, scuro dopo il
+  tramonto), *sempre giorno*, *sempre notte*, *come il telefono*. Sulla mappa c'è un
+  pulsante sole/luna per passare al volo. Con «segue il sole» la mappa segue l'ora scelta
+  per il percorso (se pianifichi le 22, la mappa diventa notturna).
+- **SOS della barra in basso**: icona e scritta ora sono centrate nel pulsante.
+- **Variante grafica «Lanterna»** (`frontend/app-lanterna.html`), da confrontare in gruppo.
+  Stesso codice e stesse funzioni: cambia solo lo strato di stile
+  (`frontend/src/themes/lanterna.css` e `.json`), quindi ogni correzione vale per tutte e due.
+  L'idea è la segnaletica urbana e la luce dei lampioni:
+  - giallo lampione per le azioni, l'antracite del logo per testi e contorni;
+  - schede con contorno pieno e ombra netta, come adesivi; pulsanti che «si premono»;
+  - titoli in Bricolage Grotesque, testi in Atkinson Hyperlegible (carattere disegnato per
+    chi vede poco);
+  - la guida Lumi dentro l'alone di un lampione, il reticolo di strade del logo come motivo
+    nelle prime schermate, barra in basso scura con il tasto SOS rosso quadrato;
+  - sulla mappa il percorso è antracite con bordo bianco di giorno, bianco di notte.
+  Per aggiungere altre varianti basta un nuovo `themes/<nome>.css` + `.json`: la pipeline
+  genera `frontend/app-<nome>.html`.
+
 ## Deciso con il team
 
 - Domande su genere e situazioni personali: **sì**, facoltative come ora.

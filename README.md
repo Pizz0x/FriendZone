@@ -37,7 +37,7 @@ I risultati sono già nel repository: per guardarli non serve eseguire la pipeli
 ### Le due interfacce
 
 ```bash
-python -m pipeline.frontend                  # rigenera frontend/enti.html, app.html e index.html dopo la pipeline
+python -m pipeline.frontend                  # rigenera frontend/enti.html, app.html, app-lanterna.html e index.html
 python -m http.server -d frontend 8000       # facoltativo: serve per il GPS del telefono (http://localhost:8000)
 ```
 
@@ -106,7 +106,7 @@ L'API FastAPI (`uvicorn api.main:app`) è prevista nella fase 4 e non c'è ancor
 | `pipeline/scenario.py` | punteggi per data/ora/profilo/meteo qualsiasi, scenario demo |
 | `model/routing.py` | percorso a costo minimo `C = L·(1 + λ·((100−S)/100)²)` (navigatore) |
 | `pipeline/frontend.py` | costruisce le due interfacce dai dati elaborati (con edifici 3D e indice di ricerca per l'app) |
-| `frontend/src/` | modelli delle pagine (`enti.html`, `app.html`, `index.html`) e calcolo condiviso nel browser (`core.js`) |
+| `frontend/src/` | modelli delle pagine (`enti.html`, `app.html`, `index.html`), calcolo condiviso nel browser (`core.js`) e varianti grafiche dell'app (`themes/`) |
 | `frontend/assets/` | logo (`brand/`) e illustrazioni della guida Lumi (`lumi/`, dalla demo del team, ingrandite con `tools/upscale_mascots.py`) |
 | `frontend/*.html` | pagine generate, da aprire nel browser |
 | `data/processed/` | `segments.parquet`, `params.parquet`, `scores.parquet`, `quartieri.parquet` (GeoParquet) |
@@ -204,7 +204,9 @@ Aggiornato alla fine di ogni fase.
   `model/routing.py` fa lo stesso percorso in Python. Seconda revisione (16/10): nome e
   logo FRIENDlyZONE, percorso sempre visibile sopra gli edifici, mappa notturna più chiara,
   schermate che stanno sempre nello schermo (provate da 320×568 al desktop), guida Lumi più
-  nitida e 27 errori corretti (elenco in `docs/app_utenti.md`).
+  nitida e 27 errori corretti (elenco in `docs/app_utenti.md`). Terza revisione (17/10):
+  aspetto giorno/notte a scelta (anche «segue il sole») e una variante grafica alternativa,
+  «Lanterna» (`frontend/app-lanterna.html`), con lo stesso codice.
 - **Corretto** un bug della fase 2: la normalizzazione delle persone, dalla seconda fascia
   in poi, finiva sulla colonna del trasporto. Un test di regressione lo copre.
 - Test: 82, tutti verdi (`python -m pytest`).

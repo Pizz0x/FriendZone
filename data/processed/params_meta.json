@@ -1,0 +1,10 @@
+{
+  "reference_date": "2026-11-18",
+  "people_norm": 0.7055273386118988,
+  "residents_saturation": 25995.668521416235,
+  "penalita": {
+    "sottopassi": 75,
+    "coperti": 91,
+    "passaggi_senza_uscita": 864
+  }
+}

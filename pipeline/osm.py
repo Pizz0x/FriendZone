@@ -316,27 +316,56 @@ def _configure_osmnx(endpoint: str | None = None) -> None:
         ox.settings.overpass_url = endpoint
 
 
+def _boundary_overpass(cfg: dict[str, Any]) -> gpd.GeoDataFrame:
+    """Municipal boundary: Nominatim (by OSM relation id, then by name), else Overpass."""
+    area = cfg["area"]
+    rel = area.get("osm_relation_id")
+    gdf = None
+    for query, by_osmid in ((f"R{rel}", True), (area["nominatim_query"], False)):
+        if query == "RNone":
+            continue
+        try:
+            gdf = ox.geocode_to_gdf(query, by_osmid=by_osmid)
+            break
+        except Exception as exc:  # noqa: BLE001 - Nominatim down: try the next way
+            log.warning("Nominatim (%s): %s", query, exc)
+    if gdf is not None and len(gdf):
+        osmid = int(gdf["osm_id"].iloc[0]) if "osm_id" in gdf else rel
+        return gpd.GeoDataFrame({"element": ["relation"], "osmid": [osmid], "name": [area["name"]],
+                                 "admin_level": [str(area["osm_admin_level"])]},
+                                geometry=[gdf.geometry.iloc[0]], crs="EPSG:4326")
+    # Overpass only: municipal boundaries (admin_level 8) around the area
+    admin = ox.features_from_bbox(tuple(area["extract_bbox"]), tags={"admin_level": str(area["osm_admin_level"])})
+    admin = admin.reset_index().rename(columns={"id": "osmid"})
+    return select_municipality(admin[admin.geom_type.isin(["Polygon", "MultiPolygon"])], cfg)
+
+
+def overpass_feature_tags() -> dict[str, Any]:
+    """Tags requested to Overpass (no generic boundary=*: country and region
+    relations would be downloaded in full)."""
+    return {
+        "highway": sorted(POINT_HIGHWAY), "railway": sorted(POINT_RAILWAY | RAIL_LINES), "public_transport": True,
+        "shop": True, "amenity": True, "leisure": True, "landuse": True, "barrier": sorted(BARRIER_LINES),
+        "place": True, "natural": sorted(NATURAL_AREAS), "building": True, "admin_level": ["9", "10"],
+    }
+
+
 def acquire_overpass(cfg: dict[str, Any], endpoint: str) -> dict[str, Any]:
     _configure_osmnx(endpoint)
-    west, south, east, north = cfg["area"]["extract_bbox"]
-    admin = ox.features_from_bbox((west, south, east, north), tags={"boundary": "administrative"})
-    admin = admin.reset_index().rename(columns={"id": "osmid"})
-    municipality = select_municipality(admin[admin.geom_type.isin(["Polygon", "MultiPolygon"])], cfg)
-    polygon = municipality.geometry.iloc[0]
+    municipality = _boundary_overpass(cfg)
     area_buffer = municipality.to_crs(cfg["area"]["crs_metric"]).buffer(1000).to_crs("EPSG:4326").iloc[0]
     G = ox.graph_from_polygon(area_buffer, network_type="walk", simplify=False, retain_all=True, truncate_by_edge=True)
-    tags = {
-        "highway": list(POINT_HIGHWAY), "railway": list(POINT_RAILWAY | RAIL_LINES), "public_transport": True,
-        "shop": True, "amenity": True, "leisure": True, "landuse": True, "barrier": list(BARRIER_LINES),
-        "place": True, "natural": list(NATURAL_AREAS), "building": True, "boundary": "administrative",
-    }
-    feats = ox.features_from_polygon(area_buffer, tags=tags).reset_index().rename(columns={"id": "osmid"})
+    feats = ox.features_from_polygon(area_buffer, tags=overpass_feature_tags())
+    feats = feats.reset_index().rename(columns={"id": "osmid"})
+    if "admin_level" in feats and "boundary" not in feats:
+        feats["boundary"] = feats["admin_level"].where(feats["admin_level"].isna(), "administrative")
     keep = ["element", "osmid", "geometry"] + [k for k in FEATURE_KEYS if k in feats.columns]
     feats = gpd.GeoDataFrame(feats[keep], geometry="geometry", crs="EPSG:4326")
+    for col in feats.columns.drop(["geometry", "osmid"]):  # list-valued tags cannot go to parquet as mixed types
+        feats[col] = feats[col].map(lambda v: ";".join(map(str, v)) if isinstance(v, list) else v)
     municipality.to_parquet(BOUNDARY, index=False)
     feats.to_parquet(FEATURES, index=False)
     ox.io.save_graphml(G, OSM_DIR / "walk_overpass.graphml")
-    _ = polygon
     return {"n_features": len(feats), "osm_timestamp": now_iso(), "overpass_endpoint": endpoint}
 
 

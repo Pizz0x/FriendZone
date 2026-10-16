@@ -41,6 +41,7 @@ def synthetic(tmp_path_factory):
         _seg("C", _line((300, 0), (340, 0)), "footway", 3, 3, tunnel="yes", layer="-1"),
         _seg("D", _line((600, 0), (650, 0)), "service", 3, 1),                    # dead end in a park
         _seg("E", _line((1000, 0), (1100, 0)), "primary", 3, 4, sidewalk="no"),
+        _seg("F", _line((1500, 0), (1530, 0)), "footway", 3, 1),                 # dead-end passage
     ]
     segments = gpd.GeoDataFrame(segs, crs=METRIC).to_crs("EPSG:4326")
 
@@ -114,11 +115,13 @@ def test_visibility_and_penalties(result):
     sera = result.loc["sera"]
     assert sera.loc["C", "x_visuale"] < sera.loc["A", "x_visuale"]          # underpass + wall
     assert sera.loc["C", "pen_bloccante"] == pytest.approx(0.3)              # underpass
-    assert sera.loc["D", "pen_bloccante"] == pytest.approx(0.3)              # dead-end passage
+    assert sera.loc["F", "pen_bloccante"] == pytest.approx(0.3)              # dead-end pedestrian passage
+    assert sera.loc["D", "pen_bloccante"] == 0                               # dead-end service road: escape routes only
     assert sera.loc["A", "pen_bloccante"] == 0
     assert sera.loc["D", "pen_parco_buio"] == pytest.approx(0.4)             # park closed at 20:00
     assert result.loc[("giorno", "D"), "pen_parco_buio"] == 0                # no park penalty by day
-    assert sera.loc["D", "fattore_penalita"] == pytest.approx(0.7 * 0.6)
+    assert sera.loc["D", "fattore_penalita"] == pytest.approx(0.6)
+    assert sera.loc["C", "fattore_penalita"] == pytest.approx(0.7)
 
 
 def test_opening_hours_drive_active_frontage(result):
@@ -146,6 +149,12 @@ def test_unmeasurable_parameters_excluded(result):
 
 def test_reliability_in_range(result):
     assert ((result["affidabilita"] > 0) & (result["affidabilita"] < 1)).all()
+
+
+def test_people_proxy_is_normalised_on_the_city_maximum(result):
+    assert result["x_persone"].max() <= 1.0
+    assert result["x_persone"].max() == pytest.approx(1.0)  # the busiest segment-band of the day
+    assert result.loc[("giorno", "A"), "x_persone"] > result.loc[("notte_fonda", "A"), "x_persone"]
 
 
 def test_walk_filter_matches_osmnx_rules():

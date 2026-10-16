@@ -262,6 +262,7 @@ def coherence_checks(segments: gpd.GeoDataFrame, params: pd.DataFrame, scores: p
     from model import scoring
     from pipeline import aggregate, pois
     from pipeline import osm as osm_mod
+    from pipeline.params import matrices
 
     checks: list[dict[str, Any]] = []
     keys = [p["key"] for p in cfg["parameters"]]
@@ -287,7 +288,8 @@ def coherence_checks(segments: gpd.GeoDataFrame, params: pd.DataFrame, scores: p
         s_i = aggregate._weighted(sera.loc[in_ind, "S"], seg.loc[in_ind, "lunghezza_m"])
         checks.append({"controllo": "Di sera le vie pedonali del centro storico hanno S medio più alto delle zone industriali",
                        "esito": "PASS" if s_c > s_i else "FAIL",
-                       "dettaglio": f"centro storico pedonale S={s_c:.1f} ({len(ped_centre)} tratti) vs industriale S={s_i:.1f} ({len(in_ind)} tratti)"})
+                       "dettaglio": f"vie pedonali del centro storico ({CENTRE_DESCRIPTION}): S = {s_c:.1f} su {len(ped_centre)} "
+                                    f"tratti; tratti in aree `landuse=industrial`: S = {s_i:.1f} su {len(in_ind)} tratti"})
     else:
         checks.append({"controllo": "Di sera le vie pedonali del centro storico hanno S medio più alto delle zone industriali",
                        "esito": "FAIL", "dettaglio": f"campione insufficiente: {len(ped_centre)} tratti in centro, {len(in_ind)} in zone industriali"})
@@ -299,9 +301,12 @@ def coherence_checks(segments: gpd.GeoDataFrame, params: pd.DataFrame, scores: p
         others = sera.drop(index=under.index, errors="ignore")
         s_u, s_o = sera.loc[under.index, "S"].mean(), others["S"].mean()
         ok = bool((under["fattore_penalita"] <= 1 - cfg["scoring"]["penalties"]["blocking"] + 1e-9).all()) and s_u < s_o
+        pen = json.loads((PROCESSED / "params_meta.json").read_text(encoding="utf-8"))["penalita"]
         checks.append({"controllo": "I sottopassi (e i passaggi coperti o senza uscita) risultano penalizzati",
                        "esito": "PASS" if ok else "FAIL",
-                       "dettaglio": f"{len(under)} tratti con penalità −30%: S medio {s_u:.1f} contro {s_o:.1f} degli altri"})
+                       "dettaglio": f"{len(under):,} tratti con penalità −30% ({pen['sottopassi']} sottopassi, {pen['coperti']} "
+                                    f"coperti o passaggi sotto edifici, {pen['passaggi_senza_uscita']} passaggi pedonali senza "
+                                    f"uscita): S medio {s_u:.1f} contro {s_o:.1f} degli altri tratti"})
     else:
         checks.append({"controllo": "I sottopassi risultano penalizzati", "esito": "FAIL", "dettaglio": "nessun sottopasso trovato nei dati"})
 
@@ -309,8 +314,8 @@ def coherence_checks(segments: gpd.GeoDataFrame, params: pd.DataFrame, scores: p
     i = keys.index("luce")
     w_day = scoring.personalized_weights("giorno")[i]
     w_night = scoring.personalized_weights("sera")[i]
-    rows_d, X_d, A_d = __import__("pipeline.params", fromlist=["matrices"]).matrices(params, "giorno", cfg)
-    rows_s, X_s, A_s = __import__("pipeline.params", fromlist=["matrices"]).matrices(params, "sera", cfg)
+    rows_d, X_d, A_d = matrices(params, "giorno", cfg)
+    rows_s, X_s, A_s = matrices(params, "sera", cfg)
     def light_effect(X, A, band):
         lo, hi = X.copy(), X.copy()
         lo[:, i], hi[:, i] = 0.0, 1.0
@@ -322,21 +327,44 @@ def coherence_checks(segments: gpd.GeoDataFrame, params: pd.DataFrame, scores: p
                                 f"passare da luce 0 a 1 vale in media {eff_d:.1f} punti di giorno e {eff_s:.1f} di sera"})
 
     # 4. the 'donna' profile never raises S on poorly lit segments
-    luce = band_rows[f"x_{'luce'}"]
+    luce = band_rows["x_luce"]
     poor = luce[(luce < 0.5) & band_rows["flag_luce"].astype(str).ne("excluded")].index
-    sd = scores[(scores["fascia"] == "sera") & (scores["profilo"] == "donna")].set_index("segment_id")["S"]
+    donna = scores[(scores["fascia"] == "sera") & (scores["profilo"] == "donna")].set_index("segment_id")
+    name = "Il profilo «donna» non alza mai S rispetto al riferimento sullo stesso tratto con luce scarsa"
     if len(poor):
-        diff = sd.loc[poor] - sera.loc[poor, "S"]
+        diff = donna.loc[poor, "S"] - sera.loc[poor, "S"]
         n_up = int((diff > 1e-9).sum())
-        checks.append({"controllo": "Il profilo «donna» non alza mai S rispetto al riferimento sui tratti con luce scarsa",
-                       "esito": "PASS" if n_up == 0 else "FAIL",
-                       "dettaglio": (f"{len(poor)} tratti con luce < 0,5: S donna − S riferimento in media {diff.mean():.2f}, "
-                                     f"massimo {diff.max():.2f}; tratti in cui sale: {n_up}") +
-                                    ("" if n_up == 0 else " — succede dove persone, visuale e uso del suolo (anch'essi pesati di più "
-                                     "per il profilo donna) sono molto alti: il profilo sposta peso anche su parametri positivi")})
+        detail = (f"{len(poor):,} tratti con luce < 0,5 di sera: per il profilo donna S scende in {len(poor) - n_up:,} e "
+                  f"sale in {n_up:,} ({100 * n_up / len(poor):.0f}%, al massimo di {diff.max():+.2f} punti); "
+                  f"variazione media {diff.mean():+.2f} punti.")
+        if n_up:
+            rows_e, X_e, A_e = matrices(params, "sera", cfg)
+            mask = rows_e["segment_id"].isin(poor).to_numpy()
+            s_ref = scoring.segment_scores(X_e, A_e, "sera", "riferimento", rows_e["fattore_penalita"].to_numpy(), cfg=cfg)
+            left = {}
+            for mult in (2.0, 3.0):
+                alt = load_config(fresh=True)
+                alt["profiles"]["donna"]["multipliers"]["luce"] = mult
+                s_alt = scoring.segment_scores(X_e, A_e, "sera", "donna", rows_e["fattore_penalita"].to_numpy(), cfg=alt)
+                left[mult] = int(((s_alt - s_ref)[mask] > 1e-9).sum())
+            detail += (" Motivo: è una proprietà del modello, non un errore di calcolo. Il profilo donna aumenta anche i pesi "
+                       "di visuale e uso del suolo; dopo la rinormalizzazione perdono peso i parametri non moltiplicati "
+                       "(vie di fuga, fronti attivi, punti di aiuto). Dove questi sono bassi e visuale e uso del suolo "
+                       "alti, S sale di poco anche al buio. Cambiare solo i moltiplicatori non basta: con luce ×2 i tratti "
+                       f"restano {left[2.0]}, con luce ×3 {left[3.0]}. Per garantire il controllo serve una penalità di buio "
+                       "specifica del profilo: è una decisione del team. Il costo per il navigatore invece cresce sempre "
+                       "(controllo successivo).")
+        checks.append({"controllo": name, "esito": "PASS" if n_up == 0 else "FAIL", "dettaglio": detail})
+        cost_d = donna.loc[poor, "costo_per_m"]
+        cost_r = sera.loc[poor, "costo_per_m"]
+        n_lower = int((cost_d < cost_r - 1e-9).sum())
+        checks.append({"controllo": "(aggiuntivo) Sui tratti con luce scarsa il costo per metro del profilo donna non è mai "
+                                    "inferiore al riferimento",
+                       "esito": "PASS" if n_lower == 0 else "FAIL",
+                       "dettaglio": f"costo medio per metro {cost_d.mean():.2f} (donna, λ = 3) contro {cost_r.mean():.2f} "
+                                    f"(riferimento, λ = 1,5); tratti con costo inferiore: {n_lower}"})
     else:
-        checks.append({"controllo": "Il profilo «donna» non alza mai S sui tratti con luce scarsa", "esito": "FAIL",
-                       "dettaglio": "nessun tratto con luce misurata < 0,5 di sera"})
+        checks.append({"controllo": name, "esito": "FAIL", "dettaglio": "nessun tratto con luce misurata < 0,5 di sera"})
 
     # 5-6. ranges and NaN
     out_of_range = int(((scores["S"] < 0) | (scores["S"] > 100)).sum())
@@ -348,16 +376,23 @@ def coherence_checks(segments: gpd.GeoDataFrame, params: pd.DataFrame, scores: p
     return checks
 
 
+CENTRE_DESCRIPTION = ""
+
+
 def _historic_centre(feats: gpd.GeoDataFrame, cfg: dict[str, Any]):
     """Historic centre: OSM polygon if mapped, else 600 m around Piazza dei Signori."""
+    global CENTRE_DESCRIPTION
     poly = feats[feats.geom_type.isin(["Polygon", "MultiPolygon"])]
     names = poly.get("name", pd.Series(index=poly.index, dtype=object)).fillna("").str.lower()
     cand = poly[names.str.contains("centro storico")]
     if len(cand):
+        CENTRE_DESCRIPTION = "poligono OSM «centro storico»"
         return cand.union_all()
     piazza = feats[feats.get("name", pd.Series(index=feats.index, dtype=object)).fillna("").eq("Piazza dei Signori")]
     if len(piazza):
+        CENTRE_DESCRIPTION = "entro 600 m da Piazza dei Signori (OSM)"
         return piazza.geometry.iloc[0].centroid.buffer(600)
+    CENTRE_DESCRIPTION = "entro 600 m da Piazza dei Signori (coordinate fisse)"
     c = gpd.GeoSeries.from_xy([11.5469], [45.5470], crs="EPSG:4326").to_crs(cfg["area"]["crs_metric"]).iloc[0]
     return c.buffer(600)
 
@@ -502,6 +537,14 @@ def validation_markdown(segments, params, scores, streets, quartieri_agg, checks
     dist = dist.merge(red, on=["fascia", "profilo"])
     dist = dist.rename(columns={"mean": "media", "10%": "p10", "50%": "mediana", "90%": "p90", "r": "% rossi", "g": "% verdi"})
     lines.append(_md_table(dist[["fascia", "profilo", "media", "p10", "mediana", "p90", "min", "max", "% rossi", "% verdi"]]))
+    lines += ["", "S cambia poco da un profilo all'altro, come previsto dal modello (PDF, esempio di calcolo): i profili "
+              "spostano peso tra parametri, quindi S cambia solo dove un parametro molto pesato per quel profilo è "
+              "molto diverso dagli altri. Over 75 e disabilità hanno S medio più alto perché pesano molto la qualità "
+              "del percorso, che in media è buona. L'effetto principale del profilo è sul **costo per il navigatore** "
+              "(λ): stesso tratto, costo più alto per chi è più sensibile al rischio.", "",
+              "### Costo medio per metro (C/L) per fascia e profilo", ""]
+    cost = scores.groupby(["fascia", "profilo"], sort=False)["costo_per_m"].mean().unstack("profilo").reset_index()
+    lines.append(_md_table(cost, "{:.2f}"))
     lines += ["", "### Affidabilità media per fascia", ""]
     rel = params.groupby("fascia", sort=False)["affidabilita"].agg(["mean", "min", "max"]).reset_index()
     lines.append(_md_table(rel.rename(columns={"mean": "media"}), "{:.2f}"))

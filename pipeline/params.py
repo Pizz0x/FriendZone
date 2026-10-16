@@ -8,6 +8,7 @@ threshold. All geometry work is done in EPSG:32632 (metres).
 
 from __future__ import annotations
 
+import json
 from datetime import date, datetime
 from typing import Any
 
@@ -23,6 +24,7 @@ from pipeline import osm, pois, sources_public
 from pipeline.common import PROCESSED, log
 
 PARAMS = PROCESSED / "params.parquet"
+PARAMS_META = PROCESSED / "params_meta.json"
 M, P, E = scoring.MEASURED, scoring.PROXY, scoring.EXCLUDED
 
 
@@ -424,7 +426,10 @@ def band_parameters(ctx: Context, band: str, when: datetime, static: dict[str, A
     open_pts = hp.geometry.values[help_open]
     dist, near = _nearest_distance(ctx.lines, open_pts)
     x_aiuto = np.clip(1.0 - (dist - hc["full_distance_m"]) / (hc["zero_distance_m"] - hc["full_distance_m"]), 0.0, 1.0)
-    near_measured = np.where(near >= 0, (help_measured | always)[help_open][np.maximum(near, 0)], True)
+    near_measured = np.ones(n, dtype=bool)  # no open help point within reach: distance is measured
+    has_near = near >= 0
+    if has_near.any():
+        near_measured[has_near] = (help_measured | always)[help_open][near[has_near]]
     f_aiuto = np.where(near_measured | (dist > hc["zero_distance_m"]), M, P).astype(np.int8)
 
     # 6. Uso del suolo (day/night values for parks)
@@ -463,8 +468,10 @@ def band_parameters(ctx: Context, band: str, when: datetime, static: dict[str, A
 # --------------------------------------------------------------------------- #
 def static_parameters(ctx: Context) -> dict[str, Any]:
     underpass, covered = underpass_covered(ctx)
-    dead_end_passage = ctx.seg["vicolo_cieco"].to_numpy() & \
-        ctx.seg["classe"].isin(ctx.cfg["params"]["penalita"]["dead_end_classes"]).to_numpy()
+    pk = ctx.cfg["params"]["penalita"]
+    passage = ctx.seg["classe"].isin(pk["dead_end_classes"]).to_numpy() | (
+        ctx.seg["classe"].eq("service").to_numpy() & _contains_any(ctx.seg["tag_service"], pk.get("dead_end_service_values", [])))
+    dead_end_passage = ctx.seg["vicolo_cieco"].to_numpy() & passage
     blocking = np.where(underpass | covered | dead_end_passage, ctx.cfg["scoring"]["penalties"]["blocking"], 0.0)
     return {
         "luce": light(ctx),
@@ -481,18 +488,33 @@ def static_parameters(ctx: Context) -> dict[str, Any]:
 
 
 def compute(segments: gpd.GeoDataFrame, feats: gpd.GeoDataFrame, cfg: dict[str, Any] | None = None,
-            ref_date: date | None = None, bands: list[str] | None = None) -> pd.DataFrame:
-    """Long table: one row per (segment, band) with x_*, flag_*, penalties, reliability."""
+            ref_date: date | None = None, bands: list[str] | None = None,
+            people_norm: float | None = None) -> pd.DataFrame:
+    """Long table: one row per (segment, band) with x_*, flag_*, penalties, reliability.
+
+    ``people_norm`` is the city maximum used to normalise the people proxy; when
+    None it is the configured percentile over all bands of ``ref_date`` (all
+    five bands are then computed, even if only some are returned).
+    """
     cfg = cfg or load_config()
     ref_date = ref_date or date.fromisoformat(cfg["standard"]["reference_date"])
-    bands = bands or list(cfg["timebands"]["order"])
+    wanted = bands or list(cfg["timebands"]["order"])
+    bands = wanted if people_norm is not None else list(cfg["timebands"]["order"])
     ctx = Context(segments, feats, cfg)
     static = static_parameters(ctx)
     keys = param_keys(cfg)
-    frames = []
+    results = {}
     for band in bands:
         when = timebands.band_time(band, ref_date, cfg)
-        res = band_parameters(ctx, band, when, static)
+        results[band] = (when, band_parameters(ctx, band, when, static))
+    j = keys.index("persone")
+    if people_norm is None:
+        raw = np.concatenate([res["X"][:, j] for _, res in results.values()])
+        people_norm = float(np.nanpercentile(raw, cfg["params"]["persone"]["normalize_percentile"])) or 1.0
+    frames = []
+    for band in wanted:
+        when, res = results[band]
+        res["X"][:, j] = np.minimum(1.0, res["X"][:, j] / people_norm)
         df = pd.DataFrame({"segment_id": ctx.seg["segment_id"].to_numpy(), "fascia": band,
                            "ora_riferimento": when.isoformat(), "tipo_giorno": res["day_type"]})
         for j, k in enumerate(keys):
@@ -505,7 +527,13 @@ def compute(segments: gpd.GeoDataFrame, feats: gpd.GeoDataFrame, cfg: dict[str, 
         frames.append(df)
         log.info("parametri fascia %s (%s, %s) calcolati", band, when.strftime("%H:%M"), res["day_type"])
     out = pd.concat(frames, ignore_index=True)
-    out.attrs["sottopassi"] = int(static["underpass"].sum())
+    out.attrs["meta"] = {
+        "reference_date": ref_date.isoformat(),
+        "people_norm": people_norm,
+        "residents_saturation": getattr(ctx, "residents_saturation", None),
+        "penalita": {"sottopassi": int(static["underpass"].sum()), "coperti": int(static["covered"].sum()),
+                     "passaggi_senza_uscita": int(static["dead_end_passage"].sum())},
+    }
     return out
 
 
@@ -514,7 +542,9 @@ def run(cfg: dict[str, Any] | None = None) -> pd.DataFrame:
     segments = gpd.read_parquet(PROCESSED / "segments.parquet")
     feats = osm.load_features()
     params = compute(segments, feats, cfg)
+    meta = params.attrs.pop("meta")
     params.to_parquet(PARAMS, index=False)
+    PARAMS_META.write_text(json.dumps(meta, indent=2), encoding="utf-8")
     log.info("salvati %d record di parametri in %s", len(params), PARAMS)
     return params
 

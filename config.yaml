@@ -17,6 +17,7 @@ area:
   name: "Vicenza"
   nominatim_query: "Vicenza, Veneto, Italia"
   osm_admin_level: "8"            # confine comunale in OSM
+  osm_relation_id: 45159          # relazione OSM del Comune di Vicenza (80,5 km²)
   istat_pro_com: "024116"         # codice ISTAT del Comune (da verificare con ISTAT)
   center: {lat: 45.5455, lon: 11.5354}
   timezone: "Europe/Rome"
@@ -239,6 +240,10 @@ params:
     building_area_saturation_m2: 12000
     residents_saturation_per_ha: 150   # usato quando c'è ISTAT
     weights: {attivita: 0.5, fermate: 0.2, residenti: 0.3}
+    # "normalizzati sul massimo della città" (PDF): si divide per questo
+    # percentile dei valori di tutti i tratti in tutte le fasce del giorno
+    # di riferimento; il valore usato viene salvato in params_meta.json
+    normalize_percentile: 99
     event_bonus: 0.3
     park_winter_factor: 0.6            # parchi da ottobre ad aprile
     park_winter_months: [10, 11, 12, 1, 2, 3, 4]
@@ -355,8 +360,10 @@ params:
   penalita:
     underpass_classes: [footway, path, cycleway, steps, pedestrian, corridor]
     covered_exempt_values: [arcade, colonnade]   # portici aperti su un lato
-    # "passaggio senza uscita": vicolo cieco su percorsi pedonali/di servizio
-    dead_end_classes: [footway, path, steps, pedestrian, corridor, service, track, cycleway, bridleway]
+    # "passaggio senza uscita": vicolo cieco su un passaggio pedonale (o un vicolo
+    # service=alley); le strade senza uscita carrabili hanno solo vie di fuga = 0,2
+    dead_end_classes: [footway, path, steps, pedestrian, corridor, cycleway, bridleway]
+    dead_end_service_values: [alley]
     park_share_min: 0.5                # quota del tratto dentro il parco
     park_unlit_threshold: 0.3          # luce sotto questa soglia = parco non illuminato
     parks: [park, garden]

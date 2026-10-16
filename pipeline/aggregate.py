@@ -126,8 +126,8 @@ def export_geojson(segments: gpd.GeoDataFrame, scores: pd.DataFrame, cfg: dict[s
     return written
 
 
-def _round_geojson_files(names: list[str], digits: int = 6) -> None:
-    """Round coordinates to ~0.1 m to keep the files small."""
+def _round_geojson_files(names: list[str], digits: int = 5) -> None:
+    """Round coordinates to ~1 m to keep the files small (full precision in the parquet)."""
     def rnd(c):
         return [rnd(v) for v in c] if isinstance(c, list) else round(c, digits)
     for name in names:

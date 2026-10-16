@@ -1,0 +1,124 @@
+{
+  "tratti": 13728,
+  "lunghezza_km": 804.4,
+  "superficie_comune_km2": 80.48,
+  "lit": {
+    "con_tag": {
+      "tratti_pct": 10.9,
+      "lunghezza_pct": 12.1
+    },
+    "lit_si": {
+      "tratti_pct": 9.9,
+      "lunghezza_pct": 10.1
+    },
+    "lit_no": {
+      "tratti_pct": 1.0,
+      "lunghezza_pct": 2.0
+    }
+  },
+  "lampioni_osm": 2835,
+  "poi": {
+    "totale": 999,
+    "con_opening_hours": 157,
+    "con_opening_hours_pct": 15.7,
+    "negozi": 418,
+    "per_amenity": {
+      "restaurant": 181,
+      "bar": 155,
+      "cafe": 101,
+      "fast_food": 37,
+      "pharmacy": 31,
+      "ice_cream": 18,
+      "pub": 14,
+      "hospital": 12,
+      "library": 11,
+      "police": 11,
+      "theatre": 9,
+      "clinic": 9,
+      "cinema": 5,
+      "fuel": 3,
+      "nightclub": 1,
+      "post_box": 1
+    }
+  },
+  "sidewalk": {
+    "tratti_con_tag_sidewalk": {
+      "tratti_pct": 7.4,
+      "lunghezza_pct": 8.6
+    },
+    "strade_veicolari_con_tag_sidewalk": {
+      "tratti_pct": 10.2,
+      "lunghezza_pct": 11.4
+    },
+    "marciapiedi_mappati_a_parte": {
+      "tratti_pct": 4.2,
+      "lunghezza_pct": 4.0
+    }
+  },
+  "surface": {
+    "tratti_pct": 63.8,
+    "lunghezza_pct": 66.1
+  },
+  "fermate": 401,
+  "fermate_con_shelter": 295,
+  "panchine": 387,
+  "barriere_lineari_km": 19.3,
+  "landuse_copertura_pct": 73.9,
+  "tunnel_tratti": 143,
+  "covered_tratti": 105,
+  "vicoli_ciechi": 2314,
+  "classi": {
+    "residential": {
+      "tratti": 3296,
+      "km": 222.5
+    },
+    "footway": {
+      "tratti": 3071,
+      "km": 109.5
+    },
+    "unclassified": {
+      "tratti": 1324,
+      "km": 109.1
+    },
+    "service": {
+      "tratti": 2190,
+      "km": 106.3
+    },
+    "tertiary": {
+      "tratti": 942,
+      "km": 56.9
+    },
+    "primary": {
+      "tratti": 797,
+      "km": 48.2
+    },
+    "track": {
+      "tratti": 210,
+      "km": 47.4
+    },
+    "path": {
+      "tratti": 469,
+      "km": 44.6
+    },
+    "secondary": {
+      "tratti": 939,
+      "km": 43.7
+    },
+    "pedestrian": {
+      "tratti": 290,
+      "km": 13.1
+    },
+    "steps": {
+      "tratti": 184,
+      "km": 1.6
+    },
+    "living_street": {
+      "tratti": 12,
+      "km": 1.2
+    },
+    "bridleway": {
+      "tratti": 4,
+      "km": 0.1
+    }
+  }
+}

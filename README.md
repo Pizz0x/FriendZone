@@ -62,5 +62,25 @@ Aggiornato alla fine di ogni fase.
 - Pesi, moltiplicatori dei profili e λ: proposta del team ricavata dalla
   letteratura (PDF), non ancora tarata su Vicenza con il questionario.
 
+### Fase 1 — completata
+
+**Funziona**
+- Dati OSM di tutta Vicenza (al 12/10/2026). Overpass non è raggiungibile da questo
+  ambiente, quindi la pipeline ha estratto Vicenza dal planet OSM su AWS (vedi
+  `DATA_SOURCES.md`). Il percorso Overpass + osmnx resta il primo tentativo.
+- `data/processed/segments.parquet`: 13.728 tratti pedonali (804 km) del grafo non
+  orientato e semplificato, con id, nome, via, classe, lunghezza, quartiere, tag utili
+  e geometria.
+- `data/processed/quartieri.parquet`: 38 quartieri.
+- `reports/osm_coverage.md`: report di copertura (`lit`, lampioni, `opening_hours`,
+  `sidewalk`, ecc.).
+- `reports/check_map.html`: prima mappa di controllo, con le classi stradali.
+- `DATA_SOURCES.md` compilato; ricerca sull'illuminazione in `docs/illuminazione.md`.
+
+**Stimato**
+- Confini dei quartieri: celle di Voronoi attorno ai 38 punti `place` di OSM, in
+  attesa dei confini del SIT.
+
 **Da fare**
-- Fasi 1–5 del brief.
+- SIT, ISTAT, GTFS, eventi, Punti Viola: bloccati dalla rete, sbloccabili con file in
+  `data/manual/` (fase 3).

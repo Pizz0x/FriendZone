@@ -189,6 +189,9 @@ sources:
 network:
   network_type: walk
   retain_all: false                    # tiene solo la componente connessa principale
+  # esclude motorroad=yes e le highway=trunk senza marciapiede né foot=yes
+  # (in Italia: strade extraurbane principali, vietate ai pedoni, art. 175 CdS)
+  italian_road_rule: true
   # oltre agli incroci, un tratto si spezza dove cambiano questi attributi
   split_on_attribute_change: [name, highway]
   unnamed_label: "percorso senza nome"

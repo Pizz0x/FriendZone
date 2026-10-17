@@ -21,3 +21,6 @@ cache/
 
 # Scenari calcolati al volo (python -m pipeline.scenario)
 exports/scenario_*.geojson
+
+# File intermedi dei video della demo (node tools/video/*.js)
+video/.build/

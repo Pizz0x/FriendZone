@@ -27,6 +27,7 @@ I risultati sono già nel repository: per guardarli non serve eseguire la pipeli
 | Per… | Apri |
 |---|---|
 | **provare le interfacce** | `frontend/index.html` nel browser: porta alla mappa per gli enti (`enti.html`) e all'app per chi cammina (`app.html`) |
+| vedere la demo senza telefono | `video/demo_app.mp4` e `video/demo_enti.mp4` (16:9, per la presentazione; come sono fatti e come rifarli: `tools/video/README.md`) |
 | vedere la mappa | `reports/check_map.html` nel browser (serve internet per Leaflet e lo sfondo OSM). In alto a destra si scelgono fascia e profilo; passando sopra un tratto si leggono via, S, affidabilità, i 3 parametri che pesano di più e da dove viene il dato sulla luce |
 | controllare i risultati in kepler.gl o geojson.io | `exports/segments_{fascia}_{profilo}.geojson` (proprietà `S`, `classe_colore`, `colore`, `affidabilita`, `parametri_peggiori`, `fonte_luce`) |
 | leggere i controlli | `reports/validation.md` e `reports/osm_coverage.md` |
@@ -112,6 +113,7 @@ L'API FastAPI (`uvicorn api.main:app`) è prevista nella fase 4 e non c'è ancor
 | `data/processed/` | `segments.parquet`, `params.parquet`, `scores.parquet`, `quartieri.parquet` (GeoParquet) |
 | `data/demo/` | solo dati **simulati** per la demo (eventi), usati solo con `--demo` |
 | `tests/` | test del modello, delle fasce, dei parametri, del modulo dinamico (dati sintetici) e del percorso Overpass simulato |
+| `tools/video/` | registrazione dei video della demo (Playwright + ffmpeg), risultati in `video/` |
 
 ## Scelte di implementazione
 

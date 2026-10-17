@@ -1,0 +1,970 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FRIENDlyZONE Pitch</title>
+<style>
+  /* Keynote-like pitch deck: one 1920×1080 stage scaled to the screen, arrow keys move through slides and
+     their builds. Every slide has entrance animations and slow idle motion. Colours from the citizens' app
+     (night violet, lavender, lime accent) and the three street colours of the logo. System fonts only. */
+  @property --b1 { syntax: "<color>"; inherits: true; initial-value: #6a3fd0; }
+  @property --b2 { syntax: "<color>"; inherits: true; initial-value: #9b7cf0; }
+  @property --b3 { syntax: "<color>"; inherits: true; initial-value: #f0b155; }
+  @property --b4 { syntax: "<color>"; inherits: true; initial-value: #2e2650; }
+  @property --bgc { syntax: "<color>"; inherits: true; initial-value: #120e1c; }
+  @property --r { syntax: "<percentage>"; inherits: false; initial-value: 0%; }
+
+  :root {
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --ease: cubic-bezier(.16, .84, .24, 1); --ease2: cubic-bezier(.65, 0, .35, 1); --spring: cubic-bezier(.34, 1.56, .64, 1);
+    --ink: #f1edfa; --mute: #aaa2c2; --violet: #6a3fd0; --violet2: #9b7cf0; --lav: #b9a3f5; --lime: #c5ef3c;
+    --amber: #f0b155; --green: #4cc27d; --red: #f0675a; --lg: #3fa35b; --la: #e9a320; --lr: #de4440;
+    --dink: #241d3a; --dmute: #665e7f; --s: 1;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #000; font-family: var(--font); -webkit-font-smoothing: antialiased; }
+  body.nocursor, body.nocursor * { cursor: none !important; }
+
+  /* ---------------------------------------------------------------- background */
+  #bg { position: fixed; inset: 0; overflow: hidden; background: var(--bgc);
+        transition: --bgc 1.4s ease, --b1 1.6s ease, --b2 1.6s ease, --b3 1.6s ease, --b4 1.6s ease; }
+  #bg[data-theme="night"] { --bgc: #120e1c; --b1: #4b2a9ccc; --b2: #9b7cf044; --b3: #f0b15526; --b4: #2a1a4fcc; }
+  #bg[data-theme="deep"]  { --bgc: #0c0913; --b1: #3a2178aa; --b2: #9b7cf02a; --b3: #f0b15518; --b4: #1d1238cc; }
+  #bg[data-theme="warm"]  { --bgc: #140e16; --b1: #f0b15540; --b2: #6a3fd070; --b3: #e9a32033; --b4: #2a1a3fcc; }
+  #bg[data-theme="violet"] { --bgc: #1a1033; --b1: #6a3fd0dd; --b2: #c5ef3c30; --b3: #b9a3f560; --b4: #2e1a66dd; }
+  #bg[data-theme="light"] { --bgc: #ebe7f5; --b1: #b9a3f5aa; --b2: #c5ef3c66; --b3: #ffffffee; --b4: #9b7cf055; }
+  #bg[data-theme="dawn"]  { --bgc: #2a1d45; --b1: #9b7cf0cc; --b2: #f0b15588; --b3: #c5ef3c40; --b4: #6a3fd0cc; }
+  #bg[data-theme="black"] { --bgc: #000000; --b1: #00000000; --b2: #00000000; --b3: #00000000; --b4: #00000000; }
+  .blob { position: absolute; width: 78vmax; height: 78vmax; border-radius: 50%; left: var(--x); top: var(--y);
+          background: radial-gradient(closest-side, var(--c), transparent); will-change: transform; }
+  .blob.b1 { --c: var(--b1); --x: 18%; --y: 22%; animation: drift1 26s ease-in-out infinite alternate; }
+  .blob.b2 { --c: var(--b2); --x: 82%; --y: 30%; animation: drift2 31s ease-in-out infinite alternate; }
+  .blob.b3 { --c: var(--b3); --x: 70%; --y: 88%; animation: drift3 23s ease-in-out infinite alternate; }
+  .blob.b4 { --c: var(--b4); --x: 28%; --y: 92%; animation: drift2 37s ease-in-out infinite alternate-reverse; }
+  @keyframes drift1 { from { transform: translate(-50%, -50%) scale(1); } to { transform: translate(-38%, -58%) scale(1.18); } }
+  @keyframes drift2 { from { transform: translate(-50%, -50%) scale(1.1); } to { transform: translate(-62%, -42%) scale(.92); } }
+  @keyframes drift3 { from { transform: translate(-50%, -50%) rotate(0); } to { transform: translate(-44%, -60%) scale(1.2); } }
+  #grain { position: fixed; inset: -50%; pointer-events: none; opacity: .07; mix-blend-mode: overlay; z-index: 5;
+           background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+           animation: grain 1s steps(4) infinite; }
+  @keyframes grain { 0% { transform: translate(0, 0); } 25% { transform: translate(-3%, 2%); } 50% { transform: translate(2%, -3%); } 75% { transform: translate(-2%, -1%); } }
+
+  /* ---------------------------------------------------------------- stage and slides */
+  #stage { position: fixed; left: 50%; top: 50%; width: 1920px; height: 1080px; transform: translate(-50%, -50%) scale(var(--s)); z-index: 2; }
+  .slide { position: absolute; inset: 0; padding: 120px 160px; color: var(--ink); visibility: hidden; }
+  .slide.active { visibility: visible; }
+  .slide.leave { animation: leave .6s var(--ease2) forwards; pointer-events: none; }
+  @keyframes leave { to { opacity: 0; filter: blur(14px); transform: scale(1.035); } }
+  .slide.light { color: var(--dink); }
+
+  /* ---------------------------------------------------------------- type */
+  .kicker { font-size: 26px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--lav); margin: 0 0 28px; }
+  .light .kicker { color: var(--violet); }
+  .h1 { font-size: 118px; line-height: 1.02; font-weight: 800; letter-spacing: -.035em; margin: 0; }
+  .h2 { font-size: 86px; line-height: 1.06; font-weight: 800; letter-spacing: -.03em; margin: 0; }
+  .h3 { font-size: 58px; line-height: 1.12; font-weight: 750; letter-spacing: -.02em; margin: 0; }
+  .lead { font-size: 40px; line-height: 1.35; font-weight: 500; color: var(--mute); margin: 0; }
+  .light .lead { color: var(--dmute); }
+  .small { font-size: 24px; line-height: 1.4; color: var(--mute); margin: 0; }
+  .light .small { color: var(--dmute); }
+  em, .hl { font-style: normal; color: var(--lime); }
+  .light em, .light .hl { color: var(--violet); }
+  .warmc { color: var(--amber); }
+  .grad { background: linear-gradient(100deg, #fff 0%, var(--lav) 45%, var(--lime) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .gradw { background: linear-gradient(100deg, #fff, var(--amber)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .c-g { color: var(--lg); } .c-a { color: var(--la); } .c-r { color: var(--lr); }
+  .mark { background: linear-gradient(var(--violet), var(--violet)) no-repeat 0 96% / 0% 30%; padding: 0 .06em; }
+  .light .mark { background-image: linear-gradient(var(--lime), var(--lime)); }
+  .active .mark:not([data-s]:not(.in) *) { animation: marker 1s var(--ease) var(--md, 1.2s) forwards; }
+  @keyframes marker { to { background-size: 100% 30%; } }
+
+  /* words: each one rises out of its own line box */
+  .w { display: inline-block; overflow: hidden; vertical-align: top; padding: 0 .02em .14em; margin-bottom: -.14em; }
+  .wi { display: inline-block; transform: translateY(112%) rotate(5deg); transform-origin: left bottom; }
+  .active .split:not([data-s]):not([data-s]:not(.in) *) .wi, .active .split.in:not([data-s]:not(.in) *) .wi {
+    animation: wordUp 1s var(--ease) calc(var(--d, 0s) + var(--i) * 60ms) forwards; }
+  @keyframes wordUp { to { transform: none; } }
+  .split.soft .wi { transform: translateY(40%); opacity: 0; filter: blur(10px); }
+  .active .split.soft:not([data-s]):not([data-s]:not(.in) *) .wi, .active .split.soft.in:not([data-s]:not(.in) *) .wi {
+    animation: wordSoft 1.2s var(--ease) calc(var(--d, 0s) + var(--i) * 80ms) forwards; }
+  @keyframes wordSoft { to { transform: none; opacity: 1; filter: blur(0); } }
+
+  /* ---------------------------------------------------------------- generic entrances (data-s = build step) */
+  .fx-up, .fx-fade, .fx-zoom, .fx-pop, .fx-left, .fx-right, .fx-blur, .fx-down { opacity: 0; }
+  .active .fx-up:not([data-s]):not([data-s]:not(.in) *), .active .fx-up.in:not([data-s]:not(.in) *) { animation: fxUp 1.1s var(--ease) var(--d, 0s) both; }
+  .active .fx-down:not([data-s]):not([data-s]:not(.in) *), .active .fx-down.in:not([data-s]:not(.in) *) { animation: fxDown 1.1s var(--ease) var(--d, 0s) both; }
+  .active .fx-fade:not([data-s]):not([data-s]:not(.in) *), .active .fx-fade.in:not([data-s]:not(.in) *) { animation: fxFade 1.4s ease var(--d, 0s) both; }
+  .active .fx-zoom:not([data-s]):not([data-s]:not(.in) *), .active .fx-zoom.in:not([data-s]:not(.in) *) { animation: fxZoom 1.4s var(--ease) var(--d, 0s) both; }
+  .active .fx-pop:not([data-s]):not([data-s]:not(.in) *), .active .fx-pop.in:not([data-s]:not(.in) *) { animation: fxPop .9s var(--spring) var(--d, 0s) both; }
+  .active .fx-left:not([data-s]):not([data-s]:not(.in) *), .active .fx-left.in:not([data-s]:not(.in) *) { animation: fxLeft 1.1s var(--ease) var(--d, 0s) both; }
+  .active .fx-right:not([data-s]):not([data-s]:not(.in) *), .active .fx-right.in:not([data-s]:not(.in) *) { animation: fxRight 1.1s var(--ease) var(--d, 0s) both; }
+  .active .fx-blur:not([data-s]):not([data-s]:not(.in) *), .active .fx-blur.in:not([data-s]:not(.in) *) { animation: fxBlur 1.6s var(--ease) var(--d, 0s) both; }
+  .active [data-h].out { animation: fxOut .7s var(--ease2) both !important; }
+  @keyframes fxUp { from { opacity: 0; transform: translateY(46px); filter: blur(8px); } to { opacity: 1; transform: none; filter: blur(0); } }
+  @keyframes fxDown { from { opacity: 0; transform: translateY(-46px); filter: blur(8px); } to { opacity: 1; transform: none; filter: blur(0); } }
+  @keyframes fxFade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes fxZoom { from { opacity: 0; transform: scale(.82); filter: blur(16px); } to { opacity: 1; transform: none; filter: blur(0); } }
+  @keyframes fxPop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
+  @keyframes fxLeft { from { opacity: 0; transform: translateX(-80px); filter: blur(8px); } to { opacity: 1; transform: none; filter: blur(0); } }
+  @keyframes fxRight { from { opacity: 0; transform: translateX(80px); filter: blur(8px); } to { opacity: 1; transform: none; filter: blur(0); } }
+  @keyframes fxBlur { from { opacity: 0; filter: blur(30px); letter-spacing: .12em; } to { opacity: 1; filter: blur(0); } }
+  @keyframes fxOut { to { opacity: 0; transform: translateY(-30px); filter: blur(10px); } }
+
+  /* idle motion, on inner wrappers so it never fights the entrance */
+  .float { animation: float 7s ease-in-out infinite; }
+  .float.slow { animation-duration: 11s; }
+  .float.alt { animation-delay: -3.5s; }
+  @keyframes float { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-14px) rotate(.4deg); } }
+  .breathe { animation: breathe 5s ease-in-out infinite; }
+  @keyframes breathe { 0%, 100% { opacity: .55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
+  .spin { animation: spin 40s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .kenburns { animation: kb 30s ease-in-out infinite alternate; }
+  @keyframes kb { from { transform: scale(1); } to { transform: scale(1.07) translate(-1%, 1%); } }
+
+  /* svg strokes that draw themselves */
+  .draw { fill: none; stroke-dasharray: var(--len, 3000); stroke-dashoffset: var(--len, 3000); }
+  .active .draw:not([data-s]):not([data-s]:not(.in) *), .active .draw.in:not([data-s]:not(.in) *) {
+    animation: draw var(--dur, 2.4s) var(--ease2) var(--d, 0s) forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+
+  /* ---------------------------------------------------------------- shared pieces */
+  .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .card { background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .1); border-radius: 36px; padding: 44px;
+          backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+  .light .card { background: rgba(255, 255, 255, .72); border-color: rgba(106, 63, 208, .12); box-shadow: 0 30px 80px rgba(60, 40, 120, .14); }
+  .num { font-size: 168px; font-weight: 800; letter-spacing: -.05em; line-height: .9; font-variant-numeric: tabular-nums; }
+  .src { position: absolute; left: 160px; bottom: 64px; font-size: 20px; color: var(--mute); opacity: .8; }
+  .light .src { color: var(--dmute); }
+  .pill { display: inline-flex; align-items: center; gap: 12px; padding: 14px 26px; border-radius: 999px; font-size: 28px; font-weight: 700;
+          background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .12); }
+  .light .pill { background: #fff; border-color: rgba(106, 63, 208, .14); box-shadow: 0 10px 30px rgba(60, 40, 120, .1); }
+  .dot { width: 18px; height: 18px; border-radius: 50%; display: inline-block; }
+  svg text { font-family: var(--font); }
+  .map-g { stroke-linecap: round; stroke-linejoin: round; fill: none; }
+
+  /* ---------------------------------------------------------------- 1 cover */
+  #s-cover .center { gap: 0; }
+  .logo { position: relative; width: 300px; height: 300px; margin-bottom: 56px; }
+  .logo img { position: absolute; inset: 30px; width: 240px; height: 240px; object-fit: contain; }
+  .logo svg { position: absolute; inset: -40px; width: 380px; height: 380px; overflow: visible; }
+  .wordmark { font-size: 150px; font-weight: 900; letter-spacing: -.045em; margin: 0; line-height: 1; }
+  .wordmark span { display: inline-block; }
+  .tagline { font-size: 46px; font-weight: 500; color: var(--mute); margin: 34px 0 0; }
+  .cover-foot { position: absolute; bottom: 70px; left: 0; right: 0; text-align: center; font-size: 24px; letter-spacing: .14em; text-transform: uppercase; color: var(--mute); }
+
+  /* ---------------------------------------------------------------- 2 forks */
+  .forks { position: absolute; left: 160px; right: 160px; bottom: 90px; height: 470px; }
+  .forks svg { width: 100%; height: 100%; overflow: visible; }
+  .forks .lbl { position: absolute; right: 0; font-size: 40px; font-weight: 700; margin-top: -26px; }
+
+  /* ---------------------------------------------------------------- 3 chat */
+  .chatwrap { position: absolute; right: 200px; top: 150px; width: 640px; }
+  .chat { padding: 34px 34px 46px; border-radius: 48px; background: rgba(20, 15, 32, .82); border: 1px solid rgba(255, 255, 255, .08);
+          box-shadow: 0 50px 120px rgba(0, 0, 0, .5), 0 0 0 1px rgba(155, 124, 240, .12); }
+  .chat-top { display: flex; justify-content: space-between; align-items: center; color: var(--mute); font-size: 24px; padding: 4px 8px 26px;
+              border-bottom: 1px solid rgba(255, 255, 255, .07); margin-bottom: 34px; }
+  .chat-top .who { display: flex; align-items: center; gap: 16px; color: var(--ink); font-weight: 700; font-size: 28px; }
+  .chat-top .av { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, var(--violet2), var(--violet)); }
+  .msg { max-width: 82%; padding: 24px 30px; border-radius: 32px; font-size: 36px; line-height: 1.3; margin: 0 0 22px; }
+  .msg.rx { background: #2a2440; border-bottom-left-radius: 10px; min-height: 92px; }
+  .msg.tx { background: var(--violet); color: #fff; margin-left: auto; border-bottom-right-radius: 10px; }
+  .msg .ticks { font-size: 24px; color: var(--lime); margin-left: 10px; letter-spacing: -.2em; }
+  .typing { display: inline-flex; gap: 10px; padding: 14px 4px; }
+  .typing i { width: 14px; height: 14px; border-radius: 50%; background: var(--mute); animation: tdot 1.2s ease-in-out infinite; }
+  .typing i:nth-child(2) { animation-delay: .15s; } .typing i:nth-child(3) { animation-delay: .3s; }
+  @keyframes tdot { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-10px); opacity: 1; } }
+  .msg.typed .typing { display: none; }
+  .type::after { content: ""; display: inline-block; width: 3px; height: 1em; background: currentColor; margin-left: 4px; vertical-align: -.12em; animation: caret 1s steps(1) infinite; }
+  .type.done::after { display: none; }
+  @keyframes caret { 50% { opacity: 0; } }
+  .glow { position: absolute; border-radius: 50%; pointer-events: none; background: radial-gradient(closest-side, var(--gc, rgba(155, 124, 240, .5)), transparent); }
+
+  /* ---------------------------------------------------------------- 4 sketch */
+  #sketch { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #sketch path { stroke: var(--lav); stroke-width: 3; stroke-linecap: round; opacity: .45; }
+  .feel { position: absolute; font-size: 30px; font-weight: 700; padding: 10px 22px; border-radius: 999px; }
+
+  /* ---------------------------------------------------------------- 5 numbers */
+  .people { display: flex; gap: 36px; margin: 10px 0 40px; }
+  .person { width: 110px; height: 190px; position: relative; }
+  .person::before { content: ""; position: absolute; left: 30px; top: 0; width: 50px; height: 50px; border-radius: 50%; background: currentColor; }
+  .person::after { content: ""; position: absolute; left: 8px; top: 62px; width: 94px; height: 128px; border-radius: 47px 47px 18px 18px; background: currentColor; }
+  .person { color: var(--lav); }
+  .person.gone { color: transparent; }
+  .person.gone::before, .person.gone::after { border: 4px dashed var(--amber); }
+  .bars { display: grid; gap: 22px; width: 820px; }
+  .bar { display: grid; grid-template-columns: 170px 1fr 130px; align-items: center; gap: 22px; font-size: 30px; font-weight: 700; }
+  .bar .track { height: 26px; border-radius: 13px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+  .bar .fill { height: 100%; width: 0; border-radius: 13px; background: linear-gradient(90deg, var(--violet2), var(--lav)); }
+  .bar.f .fill { background: linear-gradient(90deg, var(--amber), #ffd08a); }
+  .active .bar .fill:not([data-s]:not(.in) *) { animation: grow 1.8s var(--ease) var(--d, .3s) forwards; }
+  @keyframes grow { to { width: var(--w); } }
+
+  /* ---------------------------------------------------------------- 6 Vicenza */
+  .stats3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; margin-top: 80px; }
+  .stats3 .card { padding: 50px 48px 54px; min-height: 420px; display: flex; flex-direction: column; gap: 22px; }
+  .stats3 .big { display: flex; align-items: baseline; gap: 16px; }
+  .stats3 .num { font-size: 150px; color: var(--violet); }
+  .stats3 .unit { font-size: 46px; font-weight: 800; color: var(--violet2); }
+  .stats3 p { font-size: 34px; line-height: 1.3; font-weight: 600; margin: 0; }
+  .stats3 small { font-size: 22px; color: var(--dmute); margin-top: auto; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; }
+
+  /* ---------------------------------------------------------------- 7 quote */
+  .qmark { position: absolute; left: 130px; top: 40px; font-size: 420px; line-height: 1; font-weight: 900; color: var(--amber); opacity: .22; }
+  .quote { position: absolute; left: 260px; right: 220px; top: 260px; }
+  .quote p { font-size: 84px; line-height: 1.15; font-weight: 750; letter-spacing: -.025em; margin: 0 0 50px; }
+  .quote p.second { font-size: 58px; font-weight: 600; color: #e9dfff; }
+  .quote .who { font-size: 28px; color: var(--mute); letter-spacing: .08em; }
+  .lamp { position: absolute; width: 520px; height: 520px; --gc: rgba(240, 177, 85, .35); }
+
+  /* ---------------------------------------------------------------- 8 words */
+  .trio { display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 130px; margin-top: 90px; }
+  .trio .t { display: flex; flex-direction: column; gap: 30px; align-items: flex-start; }
+  .trio .ic { width: 150px; height: 150px; border-radius: 44px; display: grid; place-items: center; background: #fff; box-shadow: 0 24px 60px rgba(60, 40, 120, .14); }
+  .trio .ic svg { width: 84px; height: 84px; fill: none; stroke: var(--violet); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .trio b { font-size: 92px; font-weight: 850; letter-spacing: -.04em; white-space: nowrap; }
+
+  /* ---------------------------------------------------------------- 9 the real map */
+  .mapfull { position: absolute; inset: 0; overflow: hidden; }
+  .mapfull svg { width: 100%; height: 100%; }
+  .reveal { -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 calc(var(--r) - 12%), transparent var(--r));
+            mask-image: radial-gradient(circle at 50% 50%, #000 calc(var(--r) - 12%), transparent var(--r)); }
+  .active .reveal:not([data-s]:not(.in) *) { animation: reveal 3.6s var(--ease2) var(--d, .2s) forwards; }
+  @keyframes reveal { to { --r: 130%; } }
+  .shade { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(18, 14, 28, .92) 0%, rgba(18, 14, 28, 0) 22%),
+                                                  linear-gradient(90deg, rgba(18, 14, 28, .96) 0%, rgba(18, 14, 28, .82) 34%, rgba(18, 14, 28, 0) 62%); }
+  .mapcopy { position: absolute; left: 160px; top: 120px; width: 820px; }
+  .mapcopy .h2 { font-size: 70px; }
+  .kpis { display: grid; gap: 26px; margin-top: 48px; }
+  .kpi b { display: block; font-size: 80px; font-weight: 800; letter-spacing: -.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .kpi span { font-size: 28px; color: var(--mute); }
+  .legend { position: absolute; right: 120px; bottom: 150px; display: flex; gap: 18px; }
+  .disclaimer { position: absolute; left: 160px; right: 160px; bottom: 52px; font-size: 22px; color: var(--mute); }
+
+  /* ---------------------------------------------------------------- 10 dial */
+  .dialbox { position: absolute; left: 1060px; top: 90px; width: 800px; height: 900px; }
+  .dial { position: absolute; left: 200px; top: 250px; width: 400px; height: 400px; }
+  .dial svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .dial .val { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+  .dial .val b { font-size: 150px; font-weight: 850; letter-spacing: -.05em; line-height: .9; font-variant-numeric: tabular-nums; }
+  .dial .val span { display: block; font-size: 30px; font-weight: 700; color: var(--dmute); margin-top: 6px; }
+  .chipw { position: absolute; transform: translate(-50%, -50%); }
+  .chip { white-space: nowrap; font-size: 24px; padding: 12px 20px; }
+  .chip.hot { background: var(--violet); color: #fff; border-color: var(--violet); transition: background .6s, color .6s; }
+  .when { display: inline-flex; gap: 10px; padding: 8px; border-radius: 999px; background: #fff; box-shadow: 0 10px 30px rgba(60, 40, 120, .12); margin-top: 50px; }
+  .when span { font-size: 28px; font-weight: 800; padding: 12px 30px; border-radius: 999px; color: var(--dmute); transition: background .6s, color .6s; }
+  .when span.on { background: var(--dink); color: #fff; }
+
+  /* ---------------------------------------------------------------- 11 reports (phone) */
+  .phone { position: absolute; width: 470px; height: 900px; border-radius: 64px; background: #0d0a16;
+           box-shadow: 0 0 0 2px #3a3156, 0 60px 140px rgba(0, 0, 0, .55); padding: 0; }
+  .phone .scr { position: relative; width: 100%; height: 100%; border-radius: 52px; overflow: hidden; background: #15121f; }
+  .phone .scr > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .notch { position: absolute; left: 50%; top: 14px; width: 130px; height: 34px; border-radius: 20px; background: #000; transform: translateX(-50%); z-index: 3; }
+  .pin { position: absolute; left: 50%; top: 40%; width: 64px; height: 64px; transform: translate(-50%, -100%); }
+  .pin > div, .pin svg { width: 100%; height: 100%; }
+  .ripple { position: absolute; left: 50%; top: 40%; width: 220px; height: 220px; margin: -110px 0 0 -110px; border-radius: 50%;
+            border: 3px solid var(--amber); opacity: 0; }
+  .active .ripple { animation: ripple 2.6s ease-out 2.2s infinite; }
+  @keyframes ripple { from { transform: scale(.2); opacity: .9; } to { transform: scale(1.4); opacity: 0; } }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; padding: 30px 26px 40px; border-radius: 34px 34px 0 0; background: #221d31; }
+  .sheet h4 { margin: 0 0 18px; font-size: 26px; }
+  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .opts span { font-size: 21px; font-weight: 700; padding: 16px 14px; border-radius: 18px; background: #2a2440; text-align: center; }
+  .opts span.sel { background: var(--violet); color: #fff; }
+  .active .opts span.sel { animation: selp 1s ease 3s both; }
+  @keyframes selp { from { background: #2a2440; color: var(--ink); } 50% { transform: scale(1.06); } to { background: var(--violet); color: #fff; } }
+  .toast { position: absolute; left: 24px; right: 24px; top: 70px; padding: 18px 22px; border-radius: 22px; background: var(--lime); color: #1a1f05;
+           font-size: 22px; font-weight: 800; text-align: center; }
+
+  /* ---------------------------------------------------------------- 13 Comune */
+  .two-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 44px; margin-top: 54px; }
+  .two-cards .card { padding: 50px 54px; }
+  .two-cards .who { font-size: 24px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--violet); margin-bottom: 24px; }
+  .two-cards p { font-size: 38px; line-height: 1.3; font-weight: 650; margin: 0 0 20px; }
+  .bigline { position: absolute; left: 160px; right: 160px; bottom: 80px; font-size: 56px; line-height: 1.15; font-weight: 800; letter-spacing: -.03em; }
+
+  /* ---------------------------------------------------------------- 14 empty vs full */
+  .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-top: 60px; }
+  .panel { position: relative; height: 660px; border-radius: 40px; overflow: hidden; background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .1); }
+  .panel .cap { position: absolute; left: 36px; bottom: 30px; right: 36px; font-size: 32px; font-weight: 700; }
+  .panel .cap small { display: block; font-size: 24px; font-weight: 500; color: var(--mute); margin-top: 6px; }
+  .grid-bg { position: absolute; inset: 0; background-image: linear-gradient(rgba(255, 255, 255, .05) 2px, transparent 2px), linear-gradient(90deg, rgba(255, 255, 255, .05) 2px, transparent 2px); background-size: 60px 60px; }
+  .empty-msg { position: absolute; inset: 0 0 90px; display: grid; place-items: center; font-size: 30px; color: var(--mute); }
+  .panel > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  /* ---------------------------------------------------------------- 15 help */
+  .tiles { display: grid; grid-template-columns: 1.25fr 1fr 1fr 1fr; grid-template-rows: 250px 250px; gap: 28px; margin-top: 60px; }
+  .tile { border-radius: 36px; padding: 34px; background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .1); display: flex; flex-direction: column; justify-content: space-between; }
+  .tile b { font-size: 88px; font-weight: 850; letter-spacing: -.04em; line-height: 1; }
+  .tile span { font-size: 26px; color: var(--mute); font-weight: 600; }
+  .tile.sos { grid-row: span 2; background: linear-gradient(160deg, #e2564c, #b8322b); border: 0; position: relative; overflow: hidden; }
+  .tile.sos b { font-size: 150px; color: #fff; }
+  .tile.sos span { color: #ffe3e0; font-size: 30px; }
+  .tile.sos .pulse { position: absolute; right: -80px; top: -80px; width: 360px; height: 360px; border-radius: 50%; border: 3px solid rgba(255, 255, 255, .5); animation: ripple 2.8s ease-out infinite; }
+  .tile.violet { background: linear-gradient(160deg, var(--violet), #4b2a9c); border: 0; }
+  .tile.violet span { color: #e3dafc; }
+  .tile.wide { grid-column: span 3; flex-direction: row; align-items: center; gap: 40px; justify-content: flex-start; }
+  .tile.wide span { font-size: 30px; color: var(--ink); }
+
+  /* ---------------------------------------------------------------- 16 two faces */
+  .faces { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-top: 40px; height: 600px; }
+  .face { position: relative; border-radius: 40px; overflow: hidden; background: #15121f; box-shadow: 0 40px 100px rgba(60, 40, 120, .25); }
+  .face > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .face .lab { position: absolute; left: 30px; top: 30px; right: 30px; color: #fff; font-size: 34px; font-weight: 800; }
+  .face .lab small { display: block; font-size: 22px; font-weight: 600; color: var(--mute); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8px; }
+  .flow { position: absolute; left: 160px; right: 160px; bottom: 90px; display: flex; align-items: center; gap: 30px; font-size: 46px; font-weight: 800; }
+  .flow svg { width: 220px; height: 60px; overflow: visible; }
+
+  /* ---------------------------------------------------------------- 17 next steps */
+  .timeline { position: absolute; left: 160px; right: 160px; top: 470px; height: 420px; }
+  .timeline svg { position: absolute; left: 0; top: 40px; width: 100%; height: 40px; overflow: visible; }
+  .node { position: absolute; top: 0; width: 460px; }
+  .node .n { width: 120px; height: 120px; border-radius: 50%; display: grid; place-items: center; font-size: 52px; font-weight: 850;
+             background: var(--violet); color: #fff; --pc: 106, 63, 208; box-shadow: 0 0 0 14px rgba(var(--pc), .25); animation: nodePulse 3.2s ease-in-out infinite; }
+  .node .n.lime { background: var(--lime); color: #1a1f05; --pc: 197, 239, 60; }
+  .node:nth-child(3) .n { animation-delay: -1s; } .node:nth-child(4) .n { animation-delay: -2s; }
+  @keyframes nodePulse { 50% { box-shadow: 0 0 0 26px rgba(var(--pc), .08); } }
+  .node h4 { font-size: 44px; line-height: 1.12; margin: 44px 0 14px; letter-spacing: -.02em; }
+  .node p { font-size: 28px; color: var(--mute); margin: 0; line-height: 1.35; }
+
+  /* ---------------------------------------------------------------- 18 funding */
+  .free { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 30px; }
+  .free .pill { font-size: 32px; padding: 18px 32px; }
+  .nfc { position: absolute; right: 70px; top: 150px; width: 640px; height: 600px; perspective: 1400px; }
+  .card3d { position: absolute; left: 60px; top: 120px; width: 520px; height: 328px; border-radius: 34px; padding: 40px;
+            background: linear-gradient(135deg, #7d55e6 0%, #4b2a9c 55%, #2a1666 100%); box-shadow: 0 50px 100px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .3);
+            transform-style: preserve-3d; animation: tilt 9s ease-in-out infinite; color: #fff; }
+  @keyframes tilt { 0%, 100% { transform: rotateY(-16deg) rotateX(8deg); } 50% { transform: rotateY(14deg) rotateX(-4deg); } }
+  .card3d .chipc { width: 84px; height: 64px; border-radius: 14px; background: linear-gradient(135deg, #f6d78b, #c99a3d); margin: 26px 0 30px; }
+  .card3d b { font-size: 50px; letter-spacing: -.02em; }
+  .card3d small { display: block; font-size: 22px; opacity: .8; margin-top: 8px; }
+  .card3d .brand { position: absolute; right: 36px; top: 34px; font-size: 22px; font-weight: 900; letter-spacing: -.02em; }
+  .waves { position: absolute; left: 470px; top: 210px; width: 160px; height: 160px; }
+  .waves i { position: absolute; inset: 0; border-radius: 50%; border: 4px solid var(--lime); border-color: var(--lime) transparent transparent transparent; transform: rotate(45deg); opacity: 0;
+             animation: wave 2.4s ease-out infinite; }
+  .waves i:nth-child(2) { animation-delay: .5s; } .waves i:nth-child(3) { animation-delay: 1s; }
+  @keyframes wave { from { opacity: 1; transform: rotate(45deg) scale(.3); } to { opacity: 0; transform: rotate(45deg) scale(1.3); } }
+  .partners { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; margin-top: 18px; }
+  .partners .pill { font-size: 28px; }
+
+  /* ---------------------------------------------------------------- 19 closing */
+  .road { position: absolute; left: 0; right: 0; bottom: 0; height: 520px; }
+  .road svg { width: 100%; height: 100%; overflow: visible; }
+  .lampglow { opacity: 0; }
+  .active .lampglow { animation: lampOn 1.2s ease forwards; animation-delay: var(--d); }
+  @keyframes lampOn { 0% { opacity: 0; } 30% { opacity: .9; } 45% { opacity: .4; } 100% { opacity: 1; } }
+  .closing { position: absolute; left: 160px; right: 160px; top: 150px; }
+  .closing .line { position: absolute; left: 0; right: 0; top: 0; }
+  .fin { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; padding-bottom: 260px; }
+  .fin img { width: 170px; height: 170px; object-fit: contain; }
+
+  /* ---------------------------------------------------------------- demo slot and chrome */
+  #demo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; display: none; }
+  #demo.ready { display: block; }
+  #progress { position: fixed; left: 0; bottom: 0; height: 4px; background: linear-gradient(90deg, var(--violet2), var(--lime)); z-index: 6;
+              transition: width .6s var(--ease), opacity .4s; opacity: .55; }
+  #black { position: fixed; inset: 0; background: #000; z-index: 9; opacity: 0; pointer-events: none; transition: opacity .5s; }
+  #black.on { opacity: 1; }
+  #help { position: fixed; right: 24px; bottom: 22px; z-index: 8; font: 600 14px/1.5 var(--font); color: #cfc8e6; background: rgba(12, 9, 19, .72);
+          padding: 12px 16px; border-radius: 14px; transition: opacity .6s; }
+  #help.off { opacity: 0; pointer-events: none; }
+  #help kbd { font: inherit; padding: 1px 7px; border-radius: 6px; background: rgba(255, 255, 255, .12); }
+  body.isblack #progress { opacity: 0; }
+  /* reduced motion: entrances stay (they carry the story), the endless idle loops stop */
+  @media (prefers-reduced-motion: reduce) { .blob, #grain, .float, .spin, .kenburns, .breathe, .ripple, .waves i, .card3d, .node .n, .tile.sos .pulse { animation: none !important; } }
+</style>
+</head>
+<body>
+<div id="bg" data-theme="night"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div></div>
+<div id="grain"></div>
+
+<!-- real streets of Vicenza, evening scores (profile: woman), drawn from the centre outwards -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <path id="m-all" d="__M_ALL__"/>
+    <path id="m-v" d="__M_V__"/>
+    <path id="m-g" d="__M_G__"/>
+    <path id="m-r" d="__M_R__"/>
+    <radialGradient id="lampg"><stop offset="0" stop-color="#ffd690" stop-opacity=".9"/><stop offset=".35" stop-color="#f0b155" stop-opacity=".35"/><stop offset="1" stop-color="#f0b155" stop-opacity="0"/></radialGradient>
+  </defs>
+</svg>
+
+<div id="stage">
+
+  <!-- 1 · cover -->
+  <section class="slide" id="s-cover" data-theme="night">
+    <div class="center">
+      <div class="logo fx-zoom" style="--d:.2s">
+        <div class="float slow">
+          <svg viewBox="-40 -40 380 380">
+            <circle class="draw" cx="150" cy="150" r="170" stroke="#9b7cf0" stroke-width="2" style="--len:1070;--dur:2.6s;--d:.3s" opacity=".6"/>
+            <g class="spin" style="transform-origin:150px 150px"><circle cx="150" cy="150" r="186" fill="none" stroke="#c5ef3c" stroke-width="2" stroke-dasharray="2 18" opacity=".45"/></g>
+          </svg>
+          <img src="__MARK__" alt="">
+        </div>
+      </div>
+      <h1 class="wordmark"><span class="fx-blur" style="--d:.9s">FRIEND</span><span class="fx-blur c-g" style="--d:1.15s">ly</span><span class="fx-blur c-a" style="--d:1.3s">ZO</span><span class="fx-blur c-r" style="--d:1.45s">NE</span></h1>
+      <p class="tagline split soft" style="--d:2s">La città vista da chi la cammina.</p>
+    </div>
+    <p class="cover-foot fx-fade" style="--d:2.8s">TechWarriors Vicenza 2026 · Sfida 07 – Urbanistica</p>
+  </section>
+
+  <!-- 2 · the choice we make every evening -->
+  <section class="slide" id="s-choice" data-theme="night" data-steps="1">
+    <p class="kicker fx-fade">Ogni sera</p>
+    <h2 class="h1 split" style="max-width:1500px">Pensate a quante volte scegliete una strada <em>senza pensarci.</em></h2>
+    <div class="forks" data-s="1">
+      <svg viewBox="0 0 1600 470" preserveAspectRatio="none">
+        <path id="road1" class="draw" d="M0 250 C 360 250, 520 70, 1080 70" stroke="#f0b155" stroke-width="12" stroke-linecap="round" style="--len:1200;--dur:1.8s;--d:.1s"/>
+        <path id="road2" class="draw" d="M0 250 C 380 250, 600 235, 1080 235" stroke="#b9a3f5" stroke-width="12" stroke-linecap="round" style="--len:1200;--dur:1.8s;--d:.35s"/>
+        <path id="road3" class="draw" d="M0 250 C 360 250, 520 400, 1080 400" stroke="#4cc27d" stroke-width="12" stroke-linecap="round" style="--len:1200;--dur:1.8s;--d:.6s"/>
+        <g class="fx-fade" style="--d:2.2s" data-s="1">
+          <circle r="11" fill="#fff"><animateMotion dur="7s" repeatCount="indefinite"><mpath href="#road1"/></animateMotion></circle>
+          <circle r="11" fill="#fff"><animateMotion dur="8.5s" begin="-3s" repeatCount="indefinite"><mpath href="#road2"/></animateMotion></circle>
+          <circle r="11" fill="#fff"><animateMotion dur="7.6s" begin="-5s" repeatCount="indefinite"><mpath href="#road3"/></animateMotion></circle>
+        </g>
+      </svg>
+      <div class="lbl fx-right" data-s="1" style="top:15%;--d:1.2s;color:#f0b155;left:1130px">la più illuminata</div>
+      <div class="lbl fx-right" data-s="1" style="top:50%;--d:1.45s;color:#b9a3f5;left:1130px">quella con più gente</div>
+      <div class="lbl fx-right" data-s="1" style="top:85%;--d:1.7s;color:#4cc27d;left:1130px">quella più tranquilla</div>
+    </div>
+  </section>
+
+  <!-- 3 · "fammi sapere quando arrivi" -->
+  <section class="slide" id="s-chat" data-theme="deep" data-steps="1">
+    <div class="glow breathe" style="right:120px;top:40px;width:900px;height:900px"></div>
+    <div style="position:absolute;left:160px;top:250px;width:820px">
+      <p class="kicker fx-fade">E poi</p>
+      <h2 class="h2 split">Quante volte avete scritto, o ricevuto…</h2>
+      <p class="lead fx-up" data-s="1" style="--d:1.1s;margin-top:50px">Lo scriviamo tutti.<br>Ogni sera.</p>
+    </div>
+    <div class="chatwrap fx-up" style="--d:.5s">
+      <div class="float slow">
+        <div class="chat">
+          <div class="chat-top"><span class="who"><span class="av"></span>Messaggi</span><span>23:04</span></div>
+          <div class="msg rx" id="m1"><span class="typing"><i></i><i></i><i></i></span><span class="type" data-text="Fammi sapere quando arrivi" data-delay="1700" data-flag="m1"></span></div>
+          <div class="msg tx fx-pop" data-s="1" style="--d:.2s;transform-origin:right bottom">Sono a casa. <span class="ticks">✓✓</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · the map in our heads -->
+  <section class="slide" id="s-head" data-theme="night" data-steps="2">
+    <svg id="sketch" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice"></svg>
+    <div class="fx-fade" style="--d:2.2s"><div class="glow breathe" style="left:1180px;top:170px;width:420px;height:420px;--gc:rgba(76,194,125,.45)"></div></div>
+    <div class="fx-fade" style="--d:2.6s"><div class="glow breathe" style="left:1420px;top:560px;width:380px;height:380px;--gc:rgba(240,103,90,.4);animation-delay:-2s"></div></div>
+    <span class="feel fx-pop" style="left:1300px;top:350px;--d:2.5s;background:rgba(76,194,125,.18);color:#8de0ad">qui sì</span>
+    <span class="feel fx-pop" style="left:1540px;top:730px;--d:2.9s;background:rgba(240,103,90,.18);color:#ffb0a8">qui meglio di no</span>
+    <div style="position:absolute;left:160px;top:200px;width:980px">
+      <h2 class="h2 split">Ognuno ha in mente una mappa della città.</h2>
+      <p class="lead fx-up" style="--d:1.2s;margin-top:40px">Dove ci sentiamo tranquilli e dove no.</p>
+      <p class="h3 split soft" data-s="1" style="margin-top:110px">È una mappa che nessuno ha mai disegnato.</p>
+      <p class="h3 fx-up" data-s="2" style="margin-top:40px;color:var(--lime)">Noi l'abbiamo disegnata.</p>
+    </div>
+  </section>
+
+  <!-- 5 · why: national data -->
+  <section class="slide" id="s-why" data-theme="night" data-steps="1">
+    <p class="kicker fx-fade">Perché</p>
+    <h2 class="h2 split" style="max-width:1300px">Quella sensazione cambia la vita delle persone.</h2>
+    <div data-s="1" class="fx-fade" style="position:absolute;left:160px;top:470px;right:160px;display:grid;grid-template-columns:auto 1fr;gap:110px;align-items:center">
+      <div>
+        <div class="people">
+          <span class="person gone fx-pop" style="--d:.1s"></span><span class="person fx-pop" style="--d:.2s"></span><span class="person fx-pop" style="--d:.3s"></span><span class="person fx-pop" style="--d:.4s"></span><span class="person fx-pop" style="--d:.5s"></span>
+        </div>
+        <p class="h3 fx-up" style="--d:1s;font-size:52px">Quasi <span class="warmc">1 donna su 5</span>, in Italia,<br>non esce la sera per paura.</p>
+      </div>
+      <div class="bars fx-up" style="--d:1.4s">
+        <div class="bar f"><span>Donne</span><div class="track"><div class="fill" style="--w:100%;--d:1.8s"></div></div><b class="count warmc" data-to="19.5" data-dec="1" data-suf="%" data-delay="1800">0</b></div>
+        <div class="bar"><span>Uomini</span><div class="track"><div class="fill" style="--w:27.2%;--d:2s"></div></div><b class="count" data-to="5.3" data-dec="1" data-suf="%" data-delay="2000">0</b></div>
+      </div>
+    </div>
+    <p class="src fx-fade" data-s="1" style="--d:2.4s">ISTAT, La percezione della sicurezza, anni 2022–2023 (29.317 persone)</p>
+  </section>
+
+  <!-- 6 · Vicenza: what people told us -->
+  <section class="slide light" id="s-vicenza" data-theme="light" data-steps="1">
+    <p class="kicker fx-fade">E a Vicenza?</p>
+    <h2 class="h2 split">L'abbiamo chiesto <span class="mark" style="--md:1.1s">direttamente</span> alle persone.</h2>
+    <div class="stats3">
+      <div class="card fx-up" data-s="1" style="--d:.1s"><div class="big"><span class="num count" data-to="4" data-delay="300">0</span><span class="unit">su 4</span></div><p>hanno già cambiato strada almeno una volta</p><small>Questionario</small></div>
+      <div class="card fx-up" data-s="1" style="--d:.35s"><div class="big"><span class="num count" data-to="6" data-delay="550">0</span><span class="unit">su 6</span></div><p>allungherebbero il percorso per sentirsi più al sicuro</p><small>Interviste per strada</small></div>
+      <div class="card fx-up" data-s="1" style="--d:.6s"><div class="big"><span class="num count" data-to="30" data-delay="800">0</span><span class="unit">min</span></div><p>in più, pur di passare dove ci sono luce e persone</p><small>Interviste per strada</small></div>
+    </div>
+    <p class="src fx-fade" data-s="1" style="--d:1.4s">6 interviste per strada e 4 risposte al questionario, Vicenza, ottobre 2026</p>
+  </section>
+
+  <!-- 7 · a voice from the street -->
+  <section class="slide" id="s-quote" data-theme="warm" data-steps="1">
+    <div class="glow lamp breathe" style="left:-120px;top:-160px"></div>
+    <div class="glow lamp breathe" style="right:-140px;bottom:-200px;animation-delay:-2.5s"></div>
+    <div class="qmark fx-zoom" style="--d:.1s">“</div>
+    <div class="quote">
+      <p class="gradw"><span class="type" data-text="Anche 20 minuti, mezz'ora in più." data-delay="700" data-speed="55"></span></p>
+      <p class="second split soft" data-s="1">In centro è molto più illuminato… ci sono più persone che guardano.</p>
+      <p class="who fx-fade" data-s="1" style="--d:1.6s">UNA PERSONA INTERVISTATA A VICENZA, USCITA DALLA STAZIONE ALLE 23</p>
+    </div>
+  </section>
+
+  <!-- 8 · what makes a street feel calm -->
+  <section class="slide light" id="s-three" data-theme="light" data-steps="1">
+    <p class="kicker fx-fade">Le cose che tornavano più spesso</p>
+    <div class="trio">
+      <div class="t fx-up" style="--d:.2s"><div class="ic float"><svg viewBox="0 0 24 24"><path d="M9 21h6M10 17h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg></div><b>Luce.</b></div>
+      <div class="t fx-up" style="--d:.5s"><div class="ic float alt"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 20c0-2.5 1.5-4.5 4-4.5s3 1.5 3 4.5"/></svg></div><b>Persone.</b></div>
+      <div class="t fx-up" style="--d:.8s"><div class="ic float"><svg viewBox="0 0 24 24"><path d="M4 10l1.5-5h13L20 10M4 10v10h16V10M4 10h16M9 20v-5h6v5"/></svg></div><b>Negozi aperti.</b></div>
+    </div>
+    <div data-s="1" style="position:absolute;left:160px;bottom:150px">
+      <p class="h2 split" style="color:var(--dink)">Cose che una città può cambiare.</p>
+      <p class="h2 fx-up" style="--d:.9s;color:var(--violet)">Se sa dove.</p>
+    </div>
+  </section>
+
+  <!-- 9 · FRIENDlyZONE: the map exists -->
+  <section class="slide" id="s-map" data-theme="night">
+    <div class="mapfull"><div class="kenburns" style="position:absolute;inset:0">
+      <svg viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" class="reveal" style="--d:.1s;transform:translateX(330px)">
+        <use href="#m-all" class="map-g" stroke="#3a3157" stroke-width="1.6"/>
+        <g class="fx-fade" style="--d:1.6s">
+          <use href="#m-v" class="map-g" stroke="#4cc27d" stroke-width="2.2"/>
+          <use href="#m-g" class="map-g" stroke="#f0b155" stroke-width="2.2"/>
+          <use href="#m-r" class="map-g" stroke="#f0675a" stroke-width="2.6"/>
+        </g>
+      </svg>
+    </div></div>
+    <div class="shade"></div>
+    <div class="mapcopy">
+      <p class="kicker fx-fade" style="--d:.4s">FRIENDlyZONE</p>
+      <h2 class="h2 split" style="--d:.5s">La mappa della sicurezza percepita di Vicenza.</h2>
+      <div class="kpis">
+        <div class="kpi fx-up" style="--d:1.3s"><b class="count grad" data-to="13728" data-delay="1300">0</b><span>tratti di strada pedonale</span></div>
+        <div class="kpi fx-up" style="--d:1.55s"><b class="count grad" data-to="804" data-delay="1550" data-suf=" km">0</b><span>di rete, strada per strada</span></div>
+        <div class="kpi fx-up" style="--d:1.8s"><b class="grad">0–100</b><span>un punteggio per ogni tratto</span></div>
+      </div>
+    </div>
+    <div class="legend">
+      <span class="pill fx-pop" style="--d:2.4s"><span class="dot" style="background:#4cc27d"></span>tranquilla</span>
+      <span class="pill fx-pop" style="--d:2.55s"><span class="dot" style="background:#f0b155"></span>intermedia</span>
+      <span class="pill fx-pop" style="--d:2.7s"><span class="dot" style="background:#f0675a"></span>criticità percepita</span>
+    </div>
+    <p class="disclaimer fx-fade" style="--d:3s">Strade reali di Vicenza, la sera, profilo donna. Il punteggio stima la sicurezza percepita a partire dai dati disponibili. Non misura la sicurezza reale di un luogo.</p>
+  </section>
+
+  <!-- 10 · twelve factors, a score that changes with the hour -->
+  <section class="slide light" id="s-dial" data-theme="light" data-steps="1">
+    <div style="position:absolute;left:160px;top:170px;width:740px">
+      <p class="kicker fx-fade">Come funziona</p>
+      <h2 class="h2 split">12 fattori, da dati pubblici.</h2>
+      <p class="lead fx-up" style="--d:1s;margin-top:40px">È dinamico: cambia con l'ora e con chi cammina.</p>
+      <div class="when fx-up" style="--d:1.3s"><span id="w-day" class="on">Giorno</span><span id="w-eve">Sera</span></div>
+      <p class="small fx-up" data-s="1" style="--d:1.2s;margin-top:44px;max-width:700px">Un tratto vero del centro, profilo donna: 86 di giorno, 49 la sera. Pesano di più persone, luce e visuale.</p>
+      <p class="small fx-fade" style="--d:2s;position:absolute;top:740px">Stima come un posto viene percepito, non quanto è sicuro.</p>
+    </div>
+    <div class="dialbox">
+      <div class="dial fx-zoom" style="--d:.4s">
+        <svg viewBox="0 0 220 220"><circle cx="110" cy="110" r="96" fill="none" stroke="rgba(106,63,208,.12)" stroke-width="16"/>
+          <circle id="dialArc" cx="110" cy="110" r="96" fill="none" stroke="#2f9a59" stroke-width="16" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100" style="transition:stroke .8s"/></svg>
+        <div class="val"><div><b id="dialNum">0</b><span id="dialLbl">su 100</span></div></div>
+      </div>
+      <div id="chips"></div>
+    </div>
+  </section>
+
+  <!-- 11 · people light up the map -->
+  <section class="slide" id="s-report" data-theme="night" data-steps="1">
+    <div style="position:absolute;left:160px;top:190px;width:900px">
+      <p class="kicker fx-fade">Poi ci sono le persone</p>
+      <h2 class="h2 split">Segnalazioni anonime.</h2>
+      <div class="free" style="margin-top:44px">
+        <span class="pill fx-pop" style="--d:.9s">Luogo isolato</span><span class="pill fx-pop" style="--d:1.05s">Molestia</span>
+        <span class="pill fx-pop" style="--d:1.2s">Lampione guasto</span><span class="pill fx-pop" style="--d:1.35s;color:var(--lime)">Luogo positivo</span>
+      </div>
+      <p class="h3 split soft" data-s="1" style="margin-top:90px;font-size:54px">Dove i dati pubblici non arrivano, sono <em>le persone</em> ad accendere la mappa.</p>
+    </div>
+    <div class="phone fx-up" style="right:230px;top:90px;--d:.3s">
+      <div class="float slow" style="position:absolute;inset:0;padding:14px">
+        <div class="scr">
+          <div class="notch"></div>
+          <svg viewBox="840 380 300 574" preserveAspectRatio="xMidYMid slice">
+            <use href="#m-all" class="map-g" stroke="#3a3157" stroke-width="2.2"/>
+            <use href="#m-v" class="map-g" stroke="#4cc27d" stroke-width="2.6"/>
+            <use href="#m-g" class="map-g" stroke="#f0b155" stroke-width="2.6"/>
+            <use href="#m-r" class="map-g" stroke="#f0675a" stroke-width="3"/>
+          </svg>
+          <div class="ripple"></div>
+          <div class="pin"><div class="fx-down" style="--d:1.8s"><svg viewBox="0 0 24 24"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z" fill="#f0b155"/><circle cx="12" cy="10" r="2.6" fill="#15121f"/></svg></div></div>
+          <div class="toast fx-down" style="--d:3.8s">Grazie! Segnalazione anonima inviata</div>
+          <div class="sheet fx-up" style="--d:1.1s">
+            <h4>Cosa hai notato?</h4>
+            <div class="opts"><span>Luce scarsa</span><span class="sel">Luogo isolato</span><span>Angolo cieco</span><span>Luogo positivo</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · live demo: black on purpose (drop a video in assets/demo.mp4 to play it here, muted) -->
+  <section class="slide" id="s-demo" data-theme="black">
+    <video id="demo" src="assets/demo.mp4" muted playsinline preload="auto"></video>
+  </section>
+
+  <!-- 13 · what the Comune told us -->
+  <section class="slide light" id="s-comune" data-theme="light" data-steps="1">
+    <p class="kicker fx-fade">Siamo andati in Comune</p>
+    <h2 class="h2 split">Che cosa manca, oggi.</h2>
+    <div class="two-cards">
+      <div class="card fx-up" style="--d:.6s"><div class="who">Dal referente del SIT</div>
+        <p>Nel sistema informativo della città non ci sono dati sulla sicurezza percepita.</p>
+        <p style="margin:0">Gli eventi che fanno vivere i quartieri non sono sulla mappa.</p></div>
+      <div class="card fx-up" style="--d:.9s"><div class="who">Dalla vicesindaca</div>
+        <p>Guardare sia le criticità sia le risorse.</p>
+        <p style="margin:0">Rispondere a un bisogno vero.</p></div>
+    </div>
+    <p class="bigline split" data-s="1">FRIENDlyZONE aggiunge quello che manca: <span class="mark" style="--md:1.2s">la voce di chi cammina.</span></p>
+  </section>
+
+  <!-- 14 · full from day one -->
+  <section class="slide" id="s-full" data-theme="night" data-steps="1">
+    <p class="kicker fx-fade">Cosa ci rende diversi</p>
+    <h2 class="h2 split">Piena dal primo giorno.</h2>
+    <div class="vs">
+      <div class="panel fx-left" style="--d:.6s"><div class="grid-bg"></div><div class="empty-msg"><span class="breathe">0 segnalazioni</span></div>
+        <div class="cap">Le altre app<small>fanno una cosa sola, o partono da una mappa vuota</small></div></div>
+      <div class="panel fx-right" data-s="1">
+        <svg viewBox="560 240 800 600" preserveAspectRatio="xMidYMid slice" class="reveal" style="--d:.2s">
+          <use href="#m-all" class="map-g" stroke="#3a3157" stroke-width="1.8"/>
+          <use href="#m-v" class="map-g" stroke="#4cc27d" stroke-width="2.4"/>
+          <use href="#m-g" class="map-g" stroke="#f0b155" stroke-width="2.4"/>
+          <use href="#m-r" class="map-g" stroke="#f0675a" stroke-width="2.8"/>
+        </svg>
+        <div class="cap" style="background:linear-gradient(transparent,rgba(18,14,28,.9) 40%);left:0;right:0;bottom:0;padding:60px 36px 30px">FRIENDlyZONE<small>13.728 tratti già valutati. Le segnalazioni la migliorano.</small></div></div>
+    </div>
+  </section>
+
+  <!-- 15 · all the help in one place -->
+  <section class="slide" id="s-help" data-theme="night">
+    <p class="kicker fx-fade">Sempre a portata di mano</p>
+    <h2 class="h2 split">Tutto l'aiuto in un posto solo.</h2>
+    <div class="tiles">
+      <div class="tile sos fx-pop" style="--d:.6s"><span class="pulse"></span><b>SOS</b><span>Mostra subito il 112.<br>Senza codici.</span></div>
+      <div class="tile fx-pop" style="--d:.75s"><b>112</b><span>Numero unico di emergenza</span></div>
+      <div class="tile fx-pop" style="--d:.85s"><b>113</b><span>Polizia di Stato</span></div>
+      <div class="tile fx-pop" style="--d:.95s"><b>118</b><span>Emergenza sanitaria</span></div>
+      <div class="tile violet fx-pop" style="--d:1.05s"><b>1522</b><span>Antiviolenza e stalking, 24 ore su 24</span></div>
+      <div class="tile fx-pop" style="--d:1.15s"><b>115</b><span>Vigili del fuoco</span></div>
+      <div class="tile fx-pop" style="--d:1.25s;grid-column:span 1"><span style="color:var(--ink);font-size:30px;font-weight:700">La posizione a una persona di fiducia</span><span>e i tuoi diritti, in parole semplici</span></div>
+    </div>
+  </section>
+
+  <!-- 16 · one map, two faces -->
+  <section class="slide light" id="s-faces" data-theme="light" data-steps="1">
+    <p class="kicker fx-fade">E soprattutto</p>
+    <h2 class="h2 split">Una mappa sola, con due facce.</h2>
+    <div class="faces">
+      <div class="face fx-left" style="--d:.6s">
+        <svg viewBox="700 300 520 480" preserveAspectRatio="xMidYMid slice">
+          <use href="#m-all" class="map-g" stroke="#3a3157" stroke-width="2"/>
+          <use href="#m-v" class="map-g" stroke="#4cc27d" stroke-width="2.4" opacity=".5"/>
+          <path class="draw" d="M760 700 C 840 650, 860 560, 940 540 S 1080 470, 1140 380" stroke="#c5ef3c" stroke-width="9" stroke-linecap="round" style="--len:700;--dur:2.2s;--d:1.2s"/>
+          <circle cx="1140" cy="380" r="12" fill="#c5ef3c" class="fx-pop" style="--d:3.2s"/>
+        </svg>
+        <div class="lab"><small>Chi cammina</small>sceglie la strada</div>
+      </div>
+      <div class="face fx-right" style="--d:.8s">
+        <svg viewBox="560 240 800 600" preserveAspectRatio="xMidYMid slice">
+          <use href="#m-all" class="map-g" stroke="#3a3157" stroke-width="1.8"/>
+          <use href="#m-r" class="map-g breathe" stroke="#f0675a" stroke-width="3.4" style="transform-origin:960px 540px"/>
+        </svg>
+        <div class="lab"><small>Il Comune</small>vede dove intervenire</div>
+      </div>
+    </div>
+    <div class="flow" data-s="1">
+      <span class="fx-left">La segnalazione di stasera</span>
+      <svg viewBox="0 0 220 60"><path class="draw" d="M10 30 H 190 M165 8 L 195 30 L 165 52" stroke="#6a3fd0" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" style="--len:300;--dur:1s;--d:.5s"/></svg>
+      <span class="fx-right" style="--d:.9s;color:var(--violet)">l'intervento di domani.</span>
+    </div>
+  </section>
+
+  <!-- 17 · next steps -->
+  <section class="slide" id="s-next" data-theme="night">
+    <p class="kicker fx-fade">Prossimi passi</p>
+    <h2 class="h2 split">Da qui in avanti.</h2>
+    <div class="timeline">
+      <svg viewBox="0 0 1600 40" preserveAspectRatio="none"><path class="draw" d="M60 20 H 1560" stroke="#9b7cf0" stroke-width="4" stroke-dasharray="1600" style="--len:1600;--dur:2.4s;--d:.5s"/></svg>
+      <div class="node fx-up" style="left:0;--d:.7s"><div class="n">1</div><h4>Dati più precisi, con i Comuni</h4><p>Punti luce ed eventi della città, anche con il nuovo SIT.</p></div>
+      <div class="node fx-up" style="left:560px;--d:1.3s"><div class="n">2</div><h4>Il prodotto per i partner</h4><p>Mappa e priorità per strada. Mai dati sulle persone.</p></div>
+      <div class="node fx-up" style="left:1120px;--d:1.9s"><div class="n lime">3</div><h4>Posizione in tempo reale</h4><p>Con un avviso alla persona di fiducia se il segnale si perde.</p></div>
+    </div>
+  </section>
+
+  <!-- 18 · funding -->
+  <section class="slide" id="s-fund" data-theme="violet" data-steps="2">
+    <div style="position:absolute;left:160px;top:140px;width:1000px">
+      <p class="kicker fx-fade">Come ci finanziamo</p>
+      <div class="free">
+        <span class="pill fx-pop" style="--d:.3s">Gratuita</span><span class="pill fx-pop" style="--d:.5s">Senza pubblicità</span>
+        <span class="pill fx-pop" style="--d:.7s;color:var(--lime)">I dati delle persone non si vendono</span>
+      </div>
+      <h2 class="h2 split" data-s="1" style="margin-top:60px">Partiamo con il <em>crowdfunding</em>.</h2>
+      <p class="lead fx-up" data-s="1" style="--d:.8s;margin-top:24px;max-width:860px">È la comunità a far nascere il progetto. Chi contribuisce riceve Salvavita.</p>
+      <div data-s="2" class="fx-up" style="margin-top:48px;width:1500px">
+        <p class="small" style="letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:var(--lav)">Poi, l'obiettivo</p>
+        <div class="partners"><span class="pill">Un partner privato per la sicurezza di chi lavora la sera, come Sibilla</span><span class="pill">Un accordo con i tassisti</span></div>
+      </div>
+    </div>
+    <div class="nfc fx-zoom" data-s="1" style="--d:.4s">
+      <div class="float slow" style="position:absolute;inset:0">
+        <div class="card3d"><span class="brand">FRIENDlyZONE</span><div class="chipc"></div><b>Salvavita</b><small>Avvicinala a un telefono: numeri di emergenza e la tua persona di fiducia.</small></div>
+        <div class="waves"><i></i><i></i><i></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19 · closing -->
+  <section class="slide" id="s-end" data-theme="night" data-steps="3" data-theme-at="3:dawn">
+    <div class="road">
+      <svg viewBox="0 0 1920 520" preserveAspectRatio="none">
+        <path id="endroad" class="draw" d="M-40 470 C 420 470, 640 330, 980 330 S 1560 200, 1980 190" stroke="rgba(185,163,245,.5)" stroke-width="5" style="--len:2300;--dur:3s;--d:.2s"/>
+        <g id="lamps"></g>
+        <circle r="10" fill="#fff" class="fx-fade" style="--d:1.2s"><animateMotion dur="12s" repeatCount="indefinite"><mpath href="#endroad"/></animateMotion></circle>
+      </svg>
+    </div>
+    <div class="closing">
+      <p class="h2 split line" data-h="1">Ogni sera una strada la scegliamo da soli, con quello che sentiamo.</p>
+      <p class="h2 line" data-s="1" data-h="2"><span class="split">Più luce.</span> <span class="split" style="--d:.5s">Più consapevolezza.</span><br><span class="split" style="--d:1s;color:var(--lime)">Più ritorni a casa tranquilli.</span></p>
+      <p class="h1 split soft line" data-s="2" data-h="3">Tornare a casa non dovrebbe essere una <span class="warmc">scommessa.</span></p>
+    </div>
+    <div class="fin" data-s="3">
+      <img class="fx-zoom" src="__MARK__" alt="" style="--d:.3s">
+      <h2 class="wordmark" style="font-size:120px"><span class="fx-blur" style="--d:.7s">FRIEND</span><span class="fx-blur c-g" style="--d:.85s">ly</span><span class="fx-blur c-a" style="--d:1s">ZO</span><span class="fx-blur c-r" style="--d:1.15s">NE</span></h2>
+      <p class="h3 fx-up" style="--d:1.8s">Grazie.</p>
+    </div>
+  </section>
+
+</div>
+
+<div id="progress"></div>
+<div id="black"></div>
+<div id="help"><kbd>→</kbd> avanti · <kbd>←</kbd> indietro · <kbd>F</kbd> schermo intero · <kbd>B</kbd> schermo nero</div>
+
+<script>
+(() => {
+  const root = document.documentElement, stage = document.getElementById("stage"), bg = document.getElementById("bg");
+  const slides = [...document.querySelectorAll(".slide")];
+  let cur = -1, step = 0;
+
+  // ------------------------------------------------------------ fit the 1920×1080 stage to the window
+  const fit = () => root.style.setProperty("--s", Math.min(innerWidth / 1920, innerHeight / 1080));
+  addEventListener("resize", fit); fit();
+
+  // ------------------------------------------------------------ split text into words for the staggered entrance
+  document.querySelectorAll(".split").forEach(el => {
+    let i = 0;
+    const walk = node => {
+      for (const ch of [...node.childNodes]) {
+        if (ch.nodeType === 3) {
+          const frag = document.createDocumentFragment();
+          for (const part of ch.textContent.split(/(\s+)/)) {
+            if (!part) continue;
+            if (/^\s+$/.test(part)) { frag.append(" "); continue; }
+            const w = document.createElement("span"), wi = document.createElement("span");
+            w.className = "w"; wi.className = "wi"; wi.style.setProperty("--i", i++); wi.textContent = part;
+            w.append(wi); frag.append(w);
+          }
+          ch.replaceWith(frag);
+        } else if (ch.nodeType === 1 && ch.tagName !== "BR") walk(ch);
+      }
+    };
+    walk(el);
+  });
+
+  // ------------------------------------------------------------ procedural pieces
+  // the sketched "mental map": wobbly strokes from a fixed seed, so it is the same every time
+  (() => {
+    const svg = document.getElementById("sketch");
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    for (let k = 0; k < 22; k++) {
+      let x = 900 + rnd() * 1000, y = rnd() * 1080, a = rnd() * Math.PI * 2, d = `M${x.toFixed(0)} ${y.toFixed(0)}`;
+      const n = 6 + Math.floor(rnd() * 6);
+      for (let j = 0; j < n; j++) {
+        a += (rnd() - .5) * 1.1; const L = 60 + rnd() * 110;
+        const cx = x + Math.cos(a) * L * .5 + (rnd() - .5) * 40, cy = y + Math.sin(a) * L * .5 + (rnd() - .5) * 40;
+        x += Math.cos(a) * L; y += Math.sin(a) * L;
+        if (x < 1000) { x = 1000 + (1000 - x); a = (rnd() - .5) * .8; }
+        d += ` Q${cx.toFixed(0)} ${cy.toFixed(0)} ${x.toFixed(0)} ${y.toFixed(0)}`;
+      }
+      const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      p.setAttribute("d", d); p.setAttribute("class", "draw");
+      p.style.cssText = `--len:1600;--dur:${(2.4 + rnd() * 1.6).toFixed(2)}s;--d:${(.2 + k * .07).toFixed(2)}s`;
+      svg.append(p);
+    }
+  })();
+
+  // the twelve factors around the dial
+  (() => {
+    const names = ["Luce", "Presenza di persone", "Fronti attivi", "Visuale libera", "Vie di fuga", "Uso del suolo",
+                   "Episodi segnalati", "Cura e degrado", "Qualità del percorso", "Composizione della folla", "Punti di aiuto", "Trasporto e attesa"];
+    const box = document.getElementById("chips"), cx = 400, cy = 450;
+    names.forEach((n, k) => {
+      const a = -Math.PI / 2 + k * Math.PI * 2 / names.length, rx = 330, ry = 380;
+      const outer = document.createElement("div"), chip = document.createElement("span");
+      outer.className = "chipw"; outer.style.cssText = `left:${cx + Math.cos(a) * rx}px;top:${cy + Math.sin(a) * ry}px`;
+      chip.className = "pill chip fx-pop"; chip.textContent = n; chip.dataset.f = n; chip.style.setProperty("--d", (.6 + k * .08).toFixed(2) + "s");
+      outer.append(chip); box.append(outer);
+    });
+  })();
+
+  // street lamps along the closing road, lit one after the other
+  (() => {
+    const road = document.getElementById("endroad"), g = document.getElementById("lamps"), NS = "http://www.w3.org/2000/svg";
+    const L = road.getTotalLength();
+    for (let k = 0; k < 8; k++) {
+      const p = road.getPointAtLength(L * (.08 + k * .12));
+      const glow = document.createElementNS(NS, "circle");
+      glow.setAttribute("cx", p.x); glow.setAttribute("cy", p.y - 120); glow.setAttribute("r", 130); glow.setAttribute("fill", "url(#lampg)");
+      glow.setAttribute("class", "lampglow"); glow.style.setProperty("--d", (1 + k * .45).toFixed(2) + "s");
+      const pole = document.createElementNS(NS, "path");
+      pole.setAttribute("d", `M${p.x} ${p.y} V${p.y - 120}`); pole.setAttribute("stroke", "rgba(185,163,245,.45)"); pole.setAttribute("stroke-width", "4");
+      const head = document.createElementNS(NS, "circle");
+      head.setAttribute("cx", p.x); head.setAttribute("cy", p.y - 122); head.setAttribute("r", 8); head.setAttribute("fill", "#ffd690");
+      head.setAttribute("class", "lampglow"); head.style.setProperty("--d", (1 + k * .45).toFixed(2) + "s");
+      g.append(glow, pole, head);
+    }
+  })();
+
+  // ------------------------------------------------------------ counters and typewriter
+  const fmt = (el, v) => {
+    const dec = +(el.dataset.dec || 0);
+    return v.toLocaleString("it-IT", { minimumFractionDigits: dec, maximumFractionDigits: dec }) + (el.dataset.suf || "");
+  };
+  const shown = el => { const a = el.closest("[data-s]"); return !a || a.classList.contains("in"); };
+  const tween = (from, to, ms, cb, delay = 0) => {
+    const t0 = performance.now() + delay; let raf;
+    const tick = now => {
+      const t = Math.min(1, Math.max(0, (now - t0) / ms)), e = 1 - Math.pow(1 - t, 4);
+      cb(from + (to - from) * e);
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  };
+  const runCounters = s => s.querySelectorAll(".count").forEach(c => {
+    if (c._run || !shown(c)) return;
+    c._run = true;
+    c._stop = tween(0, +c.dataset.to, 1800, v => { c.textContent = fmt(c, v); }, +(c.dataset.delay || 0));
+  });
+  const runTypers = s => s.querySelectorAll(".type").forEach(t => {
+    if (t._run || !shown(t)) return;
+    t._run = true;
+    const text = t.dataset.text, speed = +(t.dataset.speed || 45);
+    let k = 0;
+    const go = () => {
+      if (t.dataset.flag) document.getElementById(t.dataset.flag).classList.add("typed");
+      const tick = () => { t.textContent = text.slice(0, ++k); if (k < text.length) t._t = setTimeout(tick, speed + Math.random() * 40); else t.classList.add("done"); };
+      tick();
+    };
+    t._t = setTimeout(go, +(t.dataset.delay || 0));
+  });
+
+  // ------------------------------------------------------------ per-slide behaviour
+  const hooks = {
+    "s-dial"(s) {
+      const arc = document.getElementById("dialArc"), num = document.getElementById("dialNum"), lbl = document.getElementById("dialLbl");
+      const target = step >= 1 ? 49 : 86, from = s._dial ?? 0;
+      const col = v => v > 65 ? "#2f9a59" : v >= 40 ? "#d98d1f" : "#d23f38";
+      if (s._stop) s._stop();
+      s._stop = tween(from, target, 1600, v => {
+        num.textContent = Math.round(v); arc.setAttribute("stroke-dasharray", `${v.toFixed(1)} 100`); arc.setAttribute("stroke", col(v)); s._dial = v;
+      }, from ? 150 : 700);
+      lbl.textContent = step >= 1 ? "la sera" : "di giorno";
+      document.getElementById("w-day").classList.toggle("on", step < 1);
+      document.getElementById("w-eve").classList.toggle("on", step >= 1);
+      s.querySelectorAll(".chip").forEach(c => c.classList.toggle("hot", step >= 1 && ["Presenza di persone", "Luce", "Visuale libera"].includes(c.dataset.f)));
+    },
+    "s-demo"() {
+      const v = document.getElementById("demo");
+      if (v.classList.contains("ready")) { v.currentTime = 0; v.play().catch(() => {}); }
+    }
+  };
+  const leaveHooks = { "s-demo"() { document.getElementById("demo").pause(); } };
+  const demo = document.getElementById("demo");
+  demo.addEventListener("loadeddata", () => { demo.classList.add("ready"); if (slides[cur] && slides[cur].id === "s-demo") hooks["s-demo"](); });
+
+  // ------------------------------------------------------------ navigation
+  const maxStep = s => +(s.dataset.steps || 0);
+  const themeOf = s => {
+    let t = s.dataset.theme;
+    for (const rule of (s.dataset.themeAt || "").split(",").filter(Boolean)) {
+      const [k, name] = rule.split(":"); if (step >= +k) t = name;
+    }
+    return t;
+  };
+  const reset = s => {
+    s.querySelectorAll("[data-s], [data-h]").forEach(e => e.classList.remove("in", "out"));
+    s.querySelectorAll(".count").forEach(c => { if (c._stop) c._stop(); c._run = false; c.textContent = fmt(c, 0); });
+    s.querySelectorAll(".type").forEach(t => { clearTimeout(t._t); t._run = false; t.textContent = ""; t.classList.remove("done"); });
+    s.querySelectorAll(".msg.typed").forEach(m => m.classList.remove("typed"));
+    if (s._stop) s._stop();
+    s._dial = 0;
+  };
+  const apply = s => {
+    s.querySelectorAll("[data-s]").forEach(e => e.classList.toggle("in", +e.dataset.s <= step));
+    s.querySelectorAll("[data-h]").forEach(e => e.classList.toggle("out", +e.dataset.h <= step));
+    runCounters(s); runTypers(s);
+    bg.dataset.theme = themeOf(s);
+    document.body.classList.toggle("isblack", s.id === "s-demo");
+    if (hooks[s.id]) hooks[s.id](s);
+  };
+  const show = (n, st = 0) => {
+    n = Math.max(0, Math.min(slides.length - 1, n));
+    const prev = slides[cur], s = slides[n];
+    if (prev && prev !== s) {
+      clearTimeout(prev._leave);
+      prev.classList.add("leave");
+      if (leaveHooks[prev.id]) leaveHooks[prev.id](prev);
+      prev._leave = setTimeout(() => { prev.classList.remove("active", "leave"); reset(prev); }, 620);
+    }
+    cur = n; step = Math.min(st, maxStep(s));
+    clearTimeout(s._leave);
+    s.classList.remove("active", "leave"); reset(s);
+    void s.offsetWidth;                       // restart every entrance animation
+    s.classList.add("active");
+    apply(s);
+    document.getElementById("progress").style.width = (100 * (n + 1) / slides.length) + "%";
+    try { history.replaceState(null, "", "#" + (n + 1)); } catch (e) { /* sandboxed viewers */ }
+  };
+  const next = () => { const s = slides[cur]; if (step < maxStep(s)) { step++; apply(s); } else if (cur < slides.length - 1) show(cur + 1); };
+  const prev = () => { const s = slides[cur]; if (step > 0) { step--; apply(s); } else if (cur > 0) show(cur - 1, maxStep(slides[cur - 1])); };
+
+  addEventListener("keydown", e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const k = e.key;
+    if (["ArrowRight", "ArrowDown", "PageDown", " ", "Enter"].includes(k)) { e.preventDefault(); next(); }
+    else if (["ArrowLeft", "ArrowUp", "PageUp", "Backspace"].includes(k)) { e.preventDefault(); prev(); }
+    else if (k === "Home") show(0);
+    else if (k === "End") show(slides.length - 1, 99);
+    else if (k === "f" || k === "F") { if (document.fullscreenElement) document.exitFullscreen(); else root.requestFullscreen().catch(() => {}); }
+    else if (k === "b" || k === "B" || k === ".") document.getElementById("black").classList.toggle("on");
+    else if (k === "h" || k === "H" || k === "?") document.getElementById("help").classList.toggle("off");
+    else return;
+    hint();
+  });
+  addEventListener("click", e => { if (e.button === 0) next(); });
+  addEventListener("contextmenu", e => { e.preventDefault(); prev(); });
+
+  // the key hint and the cursor disappear on their own
+  let hintT, curT;
+  const hint = () => { clearTimeout(hintT); hintT = setTimeout(() => document.getElementById("help").classList.add("off"), 3500); };
+  addEventListener("mousemove", () => { document.body.classList.remove("nocursor"); clearTimeout(curT); curT = setTimeout(() => document.body.classList.add("nocursor"), 1800); });
+  hint();
+
+  show(Math.max(0, (parseInt(location.hash.slice(1), 10) || 1) - 1));
+  window.PITCH = { show, next, prev, get cur() { return cur; }, get step() { return step; }, slides };   // for automated checks
+})();
+</script>
+</body>
+</html>

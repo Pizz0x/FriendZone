@@ -361,7 +361,8 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;"
   // ---------------- wiring
   function update() { compute(); draw(); summary(); renderCard(); }
   document.querySelectorAll("input").forEach(el => el.addEventListener("input", update));
-  window.QVcheck = { compute: () => { compute(); return { S: S_arr, R: R_arr }; }, profiles, ids: DATA.segment_ids };  // used by the automated check
+  window.QVcheck = { compute: () => { compute(); return { S: S_arr, R: R_arr }; }, profiles, ids: DATA.segment_ids,  // used by the automated check
+                    map, point: i => map.latLngToContainerPoint(lines[i][Math.floor(lines[i].length / 2)]) };      // and by the demo recording
   update();
   document.getElementById("loading").remove();
   const info = DATA.info, lm = info.luce_modello || {};

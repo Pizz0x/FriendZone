@@ -59,15 +59,16 @@ novembre; fascia e tramonto sono quelli della data vera.
 
 ### Presentazione del pitch
 
-`frontend/presentazione.html` sono le slide per i 5 minuti di presentazione: si apre con un
+`frontend/presentazione.html` sono le 10 slide per i 5 minuti di presentazione: si apre con un
 doppio clic, funziona senza internet e senza audio. Si va avanti con la freccia destra, lo
 spazio o un clic, indietro con la freccia sinistra; `F` mette lo schermo intero, `B` lo schermo
-nero. Ogni slide ha animazioni di ingresso e un movimento lento di attesa; alcune si
-costruiscono in più passaggi (ogni freccia mostra il pezzo successivo). La mappa delle slide è
-quella vera: strade di Vicenza, la sera, profilo donna. La slide della demo è nera apposta per
-passare alla demo dal vivo; se in `frontend/assets/demo.mp4` c'è un video, la slide lo
-riproduce senza audio. I testi vengono dal pitch del team; la si rigenera con
-`python -m pipeline.pitch` dopo aver cambiato `frontend/src/presentazione.html`.
+nero (per passare a una demo dal vivo). Ogni slide ha animazioni di ingresso e un movimento lento
+di attesa; alcune si costruiscono in più passaggi (ogni freccia mostra il pezzo successivo). La
+mappa delle slide è quella vera: strade di Vicenza, la sera, profilo donna. Due slide mostrano i
+video registrati delle interfacce, senza audio e in loop: `frontend/assets/video/app.*` (l'app
+per chi cammina, 62 s) ed `enti.*` (la mappa per il Comune, 42 s), in WebM e MP4. I testi
+vengono dal pitch del team; la si rigenera con `python -m pipeline.pitch` dopo aver cambiato
+`frontend/src/presentazione.html`.
 
 ### Scenari per la demo
 

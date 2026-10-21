@@ -1,0 +1,8 @@
+# Netlify publishes the ready-made pages in frontend/ as they are: no build step.
+# Starting from frontend/ also keeps Netlify from installing the pipeline's Python
+# requirements, which the site does not need. Regenerate the pages locally
+# (python -m pipeline.frontend, python -m pipeline.pitch) and commit them.
+[build]
+  base = "frontend"
+  publish = "."
+  command = ""

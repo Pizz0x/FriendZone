@@ -1,5 +1,9 @@
 # FRIENDlyZONE
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/66e8d6e7-977e-4dc3-943a-3c546a607804/deploy-status)](https://app.netlify.com/projects/friendlyz0ne/deploys)
+
+Online: https://friendlyz0ne.netlify.app (pubblicato da Netlify a ogni push; configurazione in `netlify.toml`).
+
 Progetto dell'hackathon **TechWarriors Vicenza 2026**, sfida 07 – Urbanistica (il logo è in
 `frontend/assets/brand/`). Il backend calcola un **punteggio di sicurezza percepita stimata** (S, da 0 a 100) per ogni
 tratto della rete pedonale di Vicenza, poi per via e per quartiere, partendo
